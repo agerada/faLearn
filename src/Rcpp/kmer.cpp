@@ -8,8 +8,8 @@ List kmers(const CharacterVector& x, int kmer = 3) {
   // Simple kmer algorithm that returns a named R list with simple kmer strings
   // and counts
   std::string dna_string = as<std::string>(x); 
-  std::map<std::string, int> kmer_dict; 
-  int n = dna_string.size() + 1 - kmer;
+  std::map<std::string, unsigned long long int> kmer_dict; 
+  unsigned long long int n = dna_string.size() + 1 - kmer;
   for(int i = 0; i < n; i++){
     auto kmer_i = dna_string.substr(i, kmer); 
     if(kmer_dict.find(kmer_i) == kmer_dict.end()){
@@ -18,7 +18,7 @@ List kmers(const CharacterVector& x, int kmer = 3) {
       kmer_dict[kmer_i] = kmer_dict[kmer_i] + 1; 
     }
   }
-  std::vector<int> kmer_output;
+  std::vector<unsigned long long int> kmer_output;
   std::vector<std::string> kmer_string;
   for(auto i = kmer_dict.begin(), n = kmer_dict.end(); i != n; i++){
     kmer_string.push_back(i->first); 
@@ -79,11 +79,11 @@ CharacterVector generate_kmer_perms(int k, const CharacterVector& bases){
 }
 
 
-std::map<std::string, int> generate_kmer_perm_dict(int k, std::string b = "ACTG") {
+std::map<std::string, unsigned long long int> generate_kmer_perm_dict(int k, std::string b = "ACTG") {
   // "Private" function to generate a map of all possible kmers initialised to 
   // counts of 0
   std::sort(b.begin(), b.end()); 
-  std::map<std::string, int> output_s; 
+  std::map<std::string, unsigned long long int> output_s; 
   char max_char = b.back(); 
   char min_char = b.front(); 
   std::string min_string;  
@@ -117,14 +117,29 @@ std::map<std::string, int> generate_kmer_perm_dict(int k, std::string b = "ACTG"
   return output_s; 
 }
 
+List wrap_custom(const std::map<std::string, unsigned long long int> dict){ 
+  std::vector<unsigned long long int> kmer_output;
+  std::vector<std::string> kmer_string;
+  for(auto i = dict.begin(), n = dict.end(); i != n; i++){
+    kmer_string.push_back(i->first); 
+    kmer_output.push_back(i->second); 
+  }
+  return List::create(Named("kmer_string") = kmer_string, 
+                      Named("kmer_value") = kmer_output); 
+}
 
-List make_kmer_paired_list(const std::string& x, int kmer, 
-                           std::map<std::string, int> kmer_dict = {}) {
+List wrap_custom(const std::vector<unsigned long long int> v){
+  return List::create(v);
+}
+
+std::map<std::string, unsigned long long int> make_kmer_paired_list(
+    const std::string& x, int kmer, 
+    std::map<std::string, unsigned long long int> kmer_dict = {}) {
   // "Private" function that generates a paired named R list of kmers and 
   // counts, functionally identical to kmers()
   //std::map<std::string, int> kmer_dict; 
-  int n = x.size() + 1 - kmer;
-  for(int i = 0; i < n; i++){
+  unsigned long long int n = x.size() + 1 - kmer;
+  for(unsigned long long int i = 0; i < n; i++){
     auto kmer_i = x.substr(i, kmer); 
     if(kmer_dict.find(kmer_i) == kmer_dict.end()){
       kmer_dict[kmer_i] = 1; 
@@ -134,14 +149,7 @@ List make_kmer_paired_list(const std::string& x, int kmer,
       kmer_dict[kmer_i] = kmer_dict[kmer_i] + 1; 
     }
   }
-  std::vector<int> kmer_output;
-  std::vector<std::string> kmer_string;
-  for(auto i = kmer_dict.begin(), n = kmer_dict.end(); i != n; i++){
-    kmer_string.push_back(i->first); 
-    kmer_output.push_back(i->second); 
-  }
-  return List::create(Named("kmer_string") = kmer_string, 
-                      Named("kmer_value") = kmer_output); 
+  return kmer_dict; 
 }
 
 // [[Rcpp::export]]
@@ -154,13 +162,31 @@ List kmers_pointed(const CharacterVector& x, int kmer = 3,
   // Need to implement simplify = true, which should return just a vector of kmer
   // counts. 
   std::string dna_string = as<std::string>(x); 
-  
-  if (anchor) {
-    std::map<std::string, int> mapped = generate_kmer_perm_dict(kmer, "ACTG"); 
-    return make_kmer_paired_list(dna_string, kmer, mapped);
-    
-  }
-  
-  return make_kmer_paired_list(dna_string, kmer); 
-}
 
+  if (anchor) {
+    std::map<std::string, unsigned long long int> mapped = generate_kmer_perm_dict(kmer, "ACTG"); 
+    if (simplify) {
+      std::map<std::string, unsigned long long int> temp_dict = make_kmer_paired_list(dna_string, kmer, mapped); 
+      std::vector<unsigned long long int> kmer_output; 
+      for(auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
+        kmer_output.push_back(i->second);
+      }
+      return wrap_custom(kmer_output); 
+    }
+    else {
+      return wrap_custom(make_kmer_paired_list(dna_string, kmer, mapped));
+    }
+  }
+  else {
+    if (simplify) {
+      std::map<std::string, 
+               unsigned long long int> temp_dict = make_kmer_paired_list(dna_string, kmer); 
+      std::vector<unsigned long long int> kmer_output; 
+      for (auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
+        kmer_output.push_back(i->second); 
+      }
+      return wrap_custom(kmer_output); 
+    }
+    return wrap_custom(make_kmer_paired_list(dna_string, kmer)); 
+  }
+}

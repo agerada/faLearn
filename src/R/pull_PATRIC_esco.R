@@ -10,7 +10,8 @@ database_txt_dir <- "data/databases/patric/PATRIC_genomes_AMR.txt"
 genomes_download_dir <- "data/genomes/patric/"
 
 # make list of unique genome_id for download
-patric_amr_list <- read_delim(database_txt_dir, delim='\t')
+patric_amr_list <- read_delim(database_txt_dir, delim='\t', 
+                              col_types = cols(.default="c"))
 
 # select only samples with broth or agar dilution
 patric_amr_list_esco_agar_broth <- patric_amr_list %>% 
@@ -32,12 +33,16 @@ esco_genome_paths <- glue("ftp://ftp.patricbrc.org/genomes/{esco_genome_ids}/{es
 
 i <- 1
 while(i <= n_downloads){
-  print(glue("Downloading file {i} of {n_downloads}"))
-  tryCatch(download.file(esco_genome_paths[[i]], 
-                destfile = glue("{esco_genome_ids[[i]]}.fna"), 
-                mode="wb"), 
-           error = function(e) print(glue("Unable to download {esco_genome_ids[[i]]}"))
-           )
+  if(file.exists(glue("{esco_genome_ids[[i]]}.fna"))){
+    print(glue("Genome {esco_genome_paths[[i]]} already exists"))
+  } else{
+    print(glue("Downloading file {i} of {n_downloads}"))
+    tryCatch(download.file(esco_genome_paths[[i]], 
+                  destfile = glue("{esco_genome_ids[[i]]}.fna"), 
+                  mode="wb"), 
+             error = function(e) print(glue("Unable to download {esco_genome_ids[[i]]}"))
+             )
+  }
   i <- i+1
 }
 setwd(old_wd)
