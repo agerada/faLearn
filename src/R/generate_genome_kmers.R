@@ -4,12 +4,15 @@ library(glue)
 library(Biostrings)
 library(Rcpp)
 library(bench)
+library(snow)
+
 sourceCpp("src/Rcpp/kmer.cpp", rebuild=T)
 
 # options
-parallel <- FALSE
-kmer_var <- 10
+parallel <- T
+kmer_var <- 3
 n_genomes_to_process <- 4
+clusters_var <- 8
 
 # directories
 database_txt <- "data/databases/patric/PATRIC_genomes_AMR.txt"
@@ -37,16 +40,37 @@ confirmed_genomes_paths <- file.path(genomes_dir, confirmed_genomes_paths)
 
 if(!dir.exists(kmer_output_dir)) dir.create(kmer_output_dir, recursive = TRUE)
 
+convert_to_kmers <- function(x) {
+  print(paste("Working on",x))
+  x <- as.character(unlist(Biostrings::readDNAStringSet(x)))
+  x <- kmers_pointed(x, kmer=kmer_var, anchor=T, simplify=F)
+  x
+}
+
 if (parallel) {
+  if (Sys.info()['sysname'] != 'Windows') {
   output <- mclapply(confirmed_genomes_paths[1:n_genomes_to_process], 
-           function(x) x %>% readDNAStringSet() %>% unlist() %>% 
-             as.character() %>% kmers_pointed(., kmer=kmer_var, anchor=T, simplify=T) %>% 
-             unlist) 
+           convert_to_kmers)
+  }
+  else{
+    # if running on Windows, we require a few extra steps for parallel to work
+    # use snow package instead
+    cl <- snow::makeCluster(clusters_var, type='SOCK')
+    # next expose required variables and Rcpp scripts. Note that any package 
+    # function calls should be done without namespace (therefore e.g. Rcpp::)
+    # otherwise run library(package) on all cores
+    clusterExport(cl, 'kmer_var')
+    clusterEvalQ(cl, Rcpp::sourceCpp("src/Rcpp/kmer.cpp"))
+    output <- clusterApply(cl, confirmed_genomes_paths[1:n_genomes_to_process], 
+                 convert_to_kmers)
+    stopCluster(cl)
+  }
 } else {
   output <- lapply(confirmed_genomes_paths[1:n_genomes_to_process], 
                    function(x) x %>% readDNAStringSet() %>% unlist() %>% 
                      as.character() %>% kmers_pointed(., kmer=kmer_var, anchor=T, simplify=T) %>% 
                      unlist) 
 }
+
 names(output) <- confirmed_genomes_ids[1:n_genomes_to_process]
 save(output, file=file.path(kmer_output_dir, paste0(kmer_var, "_kmer_data.RData")))
