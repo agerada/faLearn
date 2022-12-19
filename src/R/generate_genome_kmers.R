@@ -5,13 +5,14 @@ library(Biostrings)
 library(Rcpp)
 library(bench)
 library(snow)
+library(pbapply)
 
 sourceCpp("src/Rcpp/kmer.cpp", rebuild=T)
 
 # options
 parallel <- T
-kmer_var <- 3
-n_genomes_to_process <- 4
+kmer_var <- 4
+n_genomes_to_process <- 'max'
 clusters_var <- 8
 
 # directories
@@ -38,6 +39,10 @@ confirmed_genomes_paths <- base::unique(confirmed_genomes_paths)
 confirmed_genomes_ids <- confirmed_genomes_paths %>% str_remove(".fna.*$")
 confirmed_genomes_paths <- file.path(genomes_dir, confirmed_genomes_paths)
 
+n_genomes_to_process <- ifelse(n_genomes_to_process == 'max', 
+                               length(confirmed_genomes_paths), 
+                               n_genomes_to_process)
+
 if(!dir.exists(kmer_output_dir)) dir.create(kmer_output_dir, recursive = TRUE)
 
 convert_to_kmers <- function(x) {
@@ -61,15 +66,13 @@ if (parallel) {
     # otherwise run library(package) on all cores
     clusterExport(cl, 'kmer_var')
     clusterEvalQ(cl, Rcpp::sourceCpp("src/Rcpp/kmer.cpp"))
-    output <- clusterApply(cl, confirmed_genomes_paths[1:n_genomes_to_process], 
-                 convert_to_kmers)
+    output <- pblapply(confirmed_genomes_paths[1:n_genomes_to_process], 
+                 convert_to_kmers, cl=cl)
     stopCluster(cl)
   }
 } else {
   output <- lapply(confirmed_genomes_paths[1:n_genomes_to_process], 
-                   function(x) x %>% readDNAStringSet() %>% unlist() %>% 
-                     as.character() %>% kmers_pointed(., kmer=kmer_var, anchor=T, simplify=T) %>% 
-                     unlist) 
+                   convert_to_kmers) 
 }
 
 names(output) <- confirmed_genomes_ids[1:n_genomes_to_process]

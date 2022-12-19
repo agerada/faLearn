@@ -10,7 +10,7 @@ List kmers(const CharacterVector& x, int kmer = 3) {
   std::string dna_string = as<std::string>(x); 
   std::map<std::string, unsigned long long int> kmer_dict; 
   unsigned long long int n = dna_string.size() + 1 - kmer;
-  for(int i = 0; i < n; i++){
+  for(unsigned int i = 0; i < n; i++){
     auto kmer_i = dna_string.substr(i, kmer); 
     if(kmer_dict.find(kmer_i) == kmer_dict.end()){
       kmer_dict[kmer_i] = 1; 
@@ -152,6 +152,11 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
   return kmer_dict; 
 }
 
+template<typename T>
+bool is_valid_dna_string(T dna){
+  return dna.size() > 0 ? true : false; 
+}
+
 // [[Rcpp::export]]
 List kmers_pointed(const CharacterVector& x, int kmer = 3, 
                    bool simplify = false, 
@@ -162,6 +167,7 @@ List kmers_pointed(const CharacterVector& x, int kmer = 3,
   // Need to implement simplify = true, which should return just a vector of kmer
   // counts. 
   std::string dna_string = as<std::string>(x); 
+  if (!is_valid_dna_string(dna_string)) return List(); 
 
   if (anchor) {
     std::map<std::string, unsigned long long int> mapped = generate_kmer_perm_dict(kmer, "ACTG"); 
