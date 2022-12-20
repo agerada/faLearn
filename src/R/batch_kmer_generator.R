@@ -1,0 +1,76 @@
+#!/usr/bin/env Rscript
+# Copyright 2022 Alessandro Gerada alessandro.gerada@liverpool.ac.uk
+library(optparse)
+option_list <- list( 
+  make_option(c("-v", "--verbose"), action="store_true", default=FALSE,
+              help="Print extra output"), 
+  make_option(c("-c", "--cores"), type="integer", default=1, 
+              help="When >1, indicates number of parallel cores to use [default 1]"), 
+  make_option(c("-k", "--kmers"), type="integer", default=3, 
+              help="Kmer length [default 3]"), 
+  make_option(c("-n","--n_genomes"), type="integer", 
+              help="Max number of genomes to process [default all]"), 
+  make_option(c("-a", "--anchor"), action="store_true", default=FALSE, 
+              help="Include unobserved permutations"), 
+  make_option(c("-s", "--simplify"), action="store_true", default=FALSE,
+              help="Store only the kmer counts (key: value -> value)")
+)
+
+args <- parse_args(OptionParser(usage = "%script [options] input_dir output_dir", 
+                               option_list=option_list), 
+                  positional_arguments=2)
+
+opt <- args$options
+dirs <- args$args
+input_dir <- dirs[[1]]
+output_dir <- dirs[[2]]
+
+confirmed_genomes_paths <- list.files(input_dir, pattern="*.fna", full.names = TRUE)
+confirmed_genomes_ids <- confirmed_genomes_paths |> stringr::str_remove(".fna.*$")
+
+if (length(confirmed_genomes_paths) < 1) { stop("No .fna files found in input dir")}
+if (opt$n_genomes > length(confirmed_genomes_paths)) stop("Number of genomes to process 
+                                                          greater than genomes available")
+
+path_to_rcpp_script <- file.path( dirname(getwd()), "Rcpp/kmer.cpp")
+Rcpp::sourceCpp(path_to_rcpp_script)
+
+n_genomes_to_process <- ifelse(is.null(opt$n_genomes), 
+                               length(confirmed_genomes_paths), 
+                               opt$n_genomes)
+
+if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+
+convert_to_kmers <- function(x) {
+  if(opt$verbose) print(paste("Working on",x))
+  x <- as.character(unlist(Biostrings::readDNAStringSet(x)))
+  x <- kmers_pointed(x, kmer=opt$kmers, anchor=opt$anchor, simplify=opt$simplify)
+  x
+}
+
+
+if (opt$cores > 1) {
+  if (Sys.info()['sysname'] != 'Windows') {
+    output <- mclapply(confirmed_genomes_paths[1:n_genomes_to_process], 
+                       convert_to_kmers, mc.cores = opt$cores)
+  }
+  else{
+    # if running on Windows, we require a few extra steps for parallel to work
+    # use snow package instead
+    cl <- snow::makeCluster(opt$cores, type='SOCK')
+    # next expose required variables and Rcpp scripts. Note that any package 
+    # function calls should be done without namespace (therefore e.g. Rcpp::)
+    # otherwise run library(package) on all cores
+    clusterExport(cl, 'opt$kmers')
+    clusterEvalQ(cl, Rcpp::sourceCpp(path_to_rcpp_script))
+    output <- pblapply(confirmed_genomes_paths[1:n_genomes_to_process], 
+                       convert_to_kmers, cl=cl)
+    stopCluster(cl)
+  }
+} else {
+  output <- lapply(confirmed_genomes_paths[1:n_genomes_to_process], 
+                   convert_to_kmers) 
+}
+
+names(output) <- confirmed_genomes_ids[1:n_genomes_to_process]
+save(output, file=file.path(output_dir, paste0(opt$kmers, "_kmer_data.RData")))
