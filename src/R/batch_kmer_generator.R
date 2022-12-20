@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Copyright 2022 Alessandro Gerada alessandro.gerada@liverpool.ac.uk
 library(optparse)
+
 option_list <- list( 
   make_option(c("-v", "--verbose"), action="store_true", default=FALSE,
               help="Print extra output"), 
@@ -15,7 +16,7 @@ option_list <- list(
   make_option(c("-s", "--simplify"), action="store_true", default=FALSE,
               help="Store only the kmer counts (key: value -> value)")
 )
-
+print(getwd())
 args <- parse_args(OptionParser(usage = "%script [options] input_dir output_dir", 
                                option_list=option_list), 
                   positional_arguments=2)
@@ -48,10 +49,9 @@ convert_to_kmers <- function(x) {
   x
 }
 
-
 if (opt$cores > 1) {
   if (Sys.info()['sysname'] != 'Windows') {
-    output <- mclapply(confirmed_genomes_paths[1:n_genomes_to_process], 
+    output <- parallel::mclapply(confirmed_genomes_paths[1:n_genomes_to_process], 
                        convert_to_kmers, mc.cores = opt$cores)
   }
   else{
@@ -61,11 +61,11 @@ if (opt$cores > 1) {
     # next expose required variables and Rcpp scripts. Note that any package 
     # function calls should be done without namespace (therefore e.g. Rcpp::)
     # otherwise run library(package) on all cores
-    clusterExport(cl, 'opt$kmers')
-    clusterEvalQ(cl, Rcpp::sourceCpp(path_to_rcpp_script))
-    output <- pblapply(confirmed_genomes_paths[1:n_genomes_to_process], 
+    snow::clusterExport(cl, 'opt$kmers')
+    snow::clusterEvalQ(cl, Rcpp::sourceCpp(path_to_rcpp_script))
+    output <- pbapply::pblapply(confirmed_genomes_paths[1:n_genomes_to_process], 
                        convert_to_kmers, cl=cl)
-    stopCluster(cl)
+    snow::stopCluster(cl)
   }
 } else {
   output <- lapply(confirmed_genomes_paths[1:n_genomes_to_process], 
