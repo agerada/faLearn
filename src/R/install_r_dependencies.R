@@ -4,7 +4,7 @@
 packages <- c("tidyverse", "parallel", "glue", "Rcpp", "snow", "pbapply")
 installed <- installed.packages()
 
-if(!("BiocManager" %in% installed)) install.packages("BiocManager")
+if(!("BiocManager" %in% installed)) install.packages("BiocManager", repos = "http://cran.us.r-project.org")
 # install core Bioconductor
 message("Installing/updating Bioconductor")
 BiocManager::install()
@@ -12,7 +12,7 @@ BiocManager::install()
 message("Installing Biostrings")
 BiocManager::install("Biostrings")
 
-install.packages(setdiff(packages, installed))
+install.packages(setdiff(packages, installed), repos = "http://cran.us.r-project.org")
 
 # test Rcpp
 message("Testing Rcpp")
