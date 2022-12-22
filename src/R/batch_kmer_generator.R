@@ -30,15 +30,16 @@ confirmed_genomes_paths <- list.files(input_dir, pattern="*.fna", full.names = T
 confirmed_genomes_ids <- confirmed_genomes_paths |> stringr::str_remove(".fna.*$")
 
 if (length(confirmed_genomes_paths) < 1) { stop("No .fna files found in input dir")}
-if (opt$n_genomes > length(confirmed_genomes_paths)) stop("Number of genomes to process 
-                                                          greater than genomes available")
-
-path_to_rcpp_script <- file.path( dirname(getwd()), "Rcpp/kmer.cpp")
-Rcpp::sourceCpp(path_to_rcpp_script)
 
 n_genomes_to_process <- ifelse(is.null(opt$n_genomes), 
                                length(confirmed_genomes_paths), 
                                opt$n_genomes)
+
+if (n_genomes_to_process > length(confirmed_genomes_paths)) stop("Number of genomes to process 
+                                                          greater than genomes available")
+
+path_to_rcpp_script <- file.path( dirname(getwd()), "Rcpp/kmer.cpp")
+Rcpp::sourceCpp(path_to_rcpp_script)
 
 if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
