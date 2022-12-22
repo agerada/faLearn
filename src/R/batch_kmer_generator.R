@@ -11,6 +11,8 @@ option_list <- list(
               help="Kmer length [default 3]"), 
   make_option(c("-n","--n_genomes"), type="integer", 
               help="Max number of genomes to process [default all]"), 
+  make_option(c("-p", "--split"), type="integer", default=1, 
+              help="Split data into s chunks for parallel processing [default 1]"), 
   make_option(c("-a", "--anchor"), action="store_true", default=FALSE, 
               help="Include unobserved permutations"), 
   make_option(c("-s", "--simplify"), action="store_true", default=FALSE,
@@ -35,6 +37,9 @@ n_genomes_to_process <- ifelse(is.null(opt$n_genomes),
                                length(confirmed_genomes_paths), 
                                opt$n_genomes)
 
+confirmed_genomes_paths <- confirmed_genomes_paths[1:n_genomes_to_process]
+confirmed_genomes_ids <- confirmed_genomes_ids[1:n_genomes_to_process]
+
 if (n_genomes_to_process > length(confirmed_genomes_paths)) stop("Number of genomes to process 
                                                           greater than genomes available")
 
@@ -50,10 +55,26 @@ convert_to_kmers <- function(x) {
   x
 }
 
+split_indices <- parallel::splitIndices(length(confirmed_genomes_paths), opt$split)
+confirmed_genomes_paths_split <- lapply(split_indices, function(x){
+  sapply(x, function(y) confirmed_genomes_paths[[y]])
+})
+confirmed_genomes_ids_split <- lapply(split_indices, function(x){
+  sapply(x, function(y) confirmed_genomes_ids[[y]])
+})
+
 if (opt$cores > 1) {
   if (Sys.info()['sysname'] != 'Windows') {
-    output <- parallel::mclapply(confirmed_genomes_paths[1:n_genomes_to_process], 
-                       convert_to_kmers, mc.cores = opt$cores)
+    for (i in seq_along(confirmed_genomes_paths_split))
+    {
+      if (opt$verbose) message(paste("Working on chunk", i, "of", opt$split))
+      output <- parallel::mclapply(confirmed_genomes_paths_split[[i]], 
+                         convert_to_kmers, mc.cores = opt$cores)
+      names(output) <- confirmed_genomes_ids_split[[i]]
+      save(output, file=file.path(output_dir, 
+                                  paste0(opt$kmers, "_kmer_data", i, ".RData")))
+      remove(output)
+    }
   }
   else{
     # if running on Windows, we require a few extra steps for parallel to work
@@ -64,14 +85,27 @@ if (opt$cores > 1) {
     # otherwise run library(package) on all cores
     snow::clusterExport(cl, 'opt$kmers')
     snow::clusterEvalQ(cl, Rcpp::sourceCpp(path_to_rcpp_script))
-    output <- pbapply::pblapply(confirmed_genomes_paths[1:n_genomes_to_process], 
-                       convert_to_kmers, cl=cl)
+    for (i in seq_along(confirmed_genomes_paths_split))
+    {
+      if (opt$verbose) message(paste("Working on chunk", i, "of", opt$split))
+      output <- pbapply::pblapply(confirmed_genomes_paths_split[[i]], 
+                         convert_to_kmers, cl=cl)
+      names(output) <- confirmed_genomes_ids_split[[i]]
+      save(output, file=file.path(output_dir, 
+                                  paste0(opt$kmers, "_kmer_data", i, ".RData")))
+      remove(output)
+    }
     snow::stopCluster(cl)
   }
 } else {
-  output <- lapply(confirmed_genomes_paths[1:n_genomes_to_process], 
-                   convert_to_kmers) 
+  for (i in seq_along(confirmed_genomes_paths_split))
+  {
+    if (opt$verbose) message(paste("Working on chunk", i, "of", opt$split))
+    output <- lapply(confirmed_genomes_paths_split[[i]], convert_to_kmers)
+    names(output) <- confirmed_genomes_ids_split[[i]]
+    save(output, file=file.path(output_dir, 
+                                paste0(opt$kmers, "_kmer_data", i, ".RData")))
+    remove(output)
+  }
 }
 
-names(output) <- confirmed_genomes_ids[1:n_genomes_to_process]
-save(output, file=file.path(output_dir, paste0(opt$kmers, "_kmer_data.RData")))
