@@ -28,7 +28,7 @@ dirs <- args$args
 input_dir <- dirs[[1]]
 output_dir <- dirs[[2]]
 
-confirmed_genomes_paths <- list.files(input_dir, pattern="*.fna", full.names = TRUE)
+confirmed_genomes_paths <- list.files(input_dir, pattern="\\.fna$", full.names = TRUE)
 confirmed_genomes_ids <- confirmed_genomes_paths |> stringr::str_remove(".fna.*$")
 
 if (length(confirmed_genomes_paths) < 1) { stop("No .fna files found in input dir")}
