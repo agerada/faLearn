@@ -143,7 +143,7 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
     auto kmer_i = x.substr(i, kmer); 
     
     // Drop kmers that contain N if drop_n = true
-    if(drop_n & (x.find("N") != std::string::npos)) continue; 
+    if(drop_n & (kmer_i.find("N") != std::string::npos)) continue; 
     
     if(kmer_dict.find(kmer_i) == kmer_dict.end()){
       kmer_dict[kmer_i] = 1; 
