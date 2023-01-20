@@ -16,7 +16,9 @@ option_list <- list(
   make_option(c("-a", "--anchor"), action="store_true", default=FALSE, 
               help="Include unobserved permutations"), 
   make_option(c("-s", "--simplify"), action="store_true", default=FALSE,
-              help="Store only the kmer counts (key: value -> value)")
+              help="Store only the kmer counts (key: value -> value)"), 
+  make_option(c("-d", "--drop_n"), action="store_true", default=FALSE, 
+              help="Drop kmers that have N [default false]")
 )
 print(getwd())
 args <- parse_args(OptionParser(usage = "%script [options] input_dir output_dir", 
@@ -53,7 +55,11 @@ if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 convert_to_kmers <- function(x) {
   if(opt$verbose) print(paste("Working on",x))
   x <- as.character(unlist(Biostrings::readDNAStringSet(x)))
-  x <- kmers_pointed(x, kmer=opt$kmers, anchor=opt$anchor, simplify=opt$simplify)
+  x <- kmers_pointed(x, 
+                     kmer=opt$kmers, 
+                     anchor=opt$anchor, 
+                     simplify=opt$simplify, 
+                     clean_up=opt$drop_n)
   x
 }
 
