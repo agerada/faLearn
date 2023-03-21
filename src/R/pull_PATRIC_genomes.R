@@ -72,11 +72,13 @@ old_wd <- getwd()
 if (!dir.exists(opt$output_directory)) dir.create(opt$output_directory)
 setwd(opt$output_directory)
 
-n_downloads <- case_when(
-  opt$n_genomes < 0 ~ 0,
-  opt$n_genomes > 0 & opt$n_genomes < length(genome_ids) ~ opt$n_genomes,
-  TRUE ~ length(genome_ids)
-)
+if (opt$n_genomes < 0) {
+  n_downloads <- 0
+} else if (opt$n_genomes > 0 & opt$n_genomes < length(genome_ids)) {
+  n_downloads <- opt$n_genomes
+} else {
+  n_downloads <- length(genome_ids)
+}
 
 genome_paths <- glue(
   "ftp://ftp.patricbrc.org/genomes/{genome_ids}/{genome_ids}.fna"
