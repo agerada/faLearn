@@ -1,6 +1,11 @@
 # Custom
 data/
 utils/
+src/archived/ 
+temp/
+abx_list.csv
+.DS_store
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
