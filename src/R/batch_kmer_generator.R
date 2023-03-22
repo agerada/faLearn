@@ -55,7 +55,10 @@ if (n_genomes_to_process > length(confirmed_genomes_paths)) {
   stop("Number of genomes to process greater than genomes available")
 }
 
-path_to_rcpp_script <- file.path(here::here("Rcpp"), "kmer.cpp")
+path_to_rcpp_script <- file.path(
+  here::here(file.path("src", "Rcpp"),
+  "kmer.cpp"))
+
 Rcpp::sourceCpp(path_to_rcpp_script)
 
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
