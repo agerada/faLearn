@@ -67,10 +67,6 @@ filtered_data <- filtered_data %>% filter(case_when(
 
 genome_ids <- unique(filtered_data$genome_id)
 
-# set download dir
-old_wd <- getwd()
-if (!dir.exists(opt$output_directory)) dir.create(opt$output_directory)
-setwd(opt$output_directory)
 
 if (opt$n_genomes < 0) {
   n_downloads <- 0
@@ -84,15 +80,19 @@ genome_paths <- glue(
   "ftp://ftp.patricbrc.org/genomes/{genome_ids}/{genome_ids}.fna"
   )
 
+if (!dir.exists(opt$output_directory)) dir.create(opt$output_directory)
+
 i <- 1
 failures <- 0
 while (i <= n_downloads) {
-  if (file.exists(glue("{genome_ids[[i]]}.fna"))) {
+  target_path <- file.path(opt$output_directory,
+                          glue("{genome_ids[[i]]}.fna"))
+  if (file.exists(target_path)) {
     print(glue("Genome {genome_paths[[i]]} already exists"))
   } else {
     print(glue("Downloading file {i} of {n_downloads}"))
     tryCatch(download.file(genome_paths[[i]],
-                  destfile = glue("{genome_ids[[i]]}.fna"),
+                  destfile = target_path,
                   mode = "wb"),
              error = function(e) {
               failures <- failures + 1
@@ -102,7 +102,7 @@ while (i <= n_downloads) {
   }
   i <- i + 1
 }
-setwd(old_wd)
+
 print("Downloads complete")
 if (failures > 0) {
   print(glue("Failed to download {failures} out of {n_downloads}"))
