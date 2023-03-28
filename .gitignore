@@ -1,5 +1,7 @@
 # Custom
-data/
+data/genomes
+data/output
+data/temp
 utils/
 src/archived/ 
 temp/
