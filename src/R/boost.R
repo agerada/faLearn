@@ -96,18 +96,18 @@ combine_kmer_metadata_and_split <- function(meta_data,
   
   test_ds <- anti_join(train_test_dataset, train_ds)
   
-  dtrain <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
+  train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
                         label = train_ds$label)
-  dtest <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("kmer"))), 
+  test_ds <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("kmer"))), 
                        label = test_ds$label)
   
-  return(list('train' = dtrain, 
-              'test' = dtest))
+  return(list('train' = train_ds, 
+              'test' = test_ds))
 }
 
 combined_data <- combine_kmer_metadata_and_split(meta_data_binary,
                                                  kmers, 
-                                                 'ciprofloxacin')
+                                                 ciprofloxacin)
 training_data <- combined_data[['train']]
 testing_data <- combined_data[['test']]
 
@@ -120,32 +120,9 @@ make_xgmodel_binary <- function(training_data, iterations = 100,
   
 xgmodel <- make_xgmodel_binary(training_data)
 
-accuracy_binary <- function(xg_model, labels){
-  return(sum(as.numeric(predict(xg_model, dtest) > 0.5) == test_ds$label) / nrow(test_ds))
+accuracy_binary <- function(xg_model, test_dataset){
+  labels <- getinfo(test_dataset, 'label')
+  return(sum(as.numeric(predict(xg_model, test_dataset) > 0.5) == labels) / nrow(test_ds))
 }
 
-meta_data_cip <- meta_data %>% 
-  filter(!is.na(ciprofloxacin)) %>% 
-  mutate(organism_name = AMR::as.mo(genome_name)) %>% 
-  mutate(interpretation = AMR::as.sir(ciprofloxacin, col_mo = organism_name))
-
-train_test_dataset <- left_join(
-  select(meta_data_cip, genome_id, interpretation), 
-  kmers
-) %>% 
-  mutate(interpretation = if_else(interpretation == "R", 1, 0))
-
-train_frac <- 0.8 
-train_test_dataset <- ungroup(train_test_dataset)
-train_ds <- train_test_dataset %>% 
-  slice_sample(prop = train_frac, replace = FALSE)
-test_ds <- anti_join(train_test_dataset, train_ds)
-
-dtrain <- xgb.DMatrix(data = as.matrix(train_ds[3:ncol(train_ds)]), 
-                      label = train_ds$interpretation)
-dtest <- xgb.DMatrix(data = as.matrix(test_ds[3:ncol(test_ds)]), 
-                     label = test_ds$interpretation)
-bstDMatrix <- xgboost(data = dtrain, max.depth = 2, eta = 1, nthread = cores, 
-                      nrounds = 100, objective = "binary:logistic")
-
-sum(as.numeric(predict(bstDMatrix, dtest) > 0.5) == test_ds$interpretation) / nrow(test_ds)
+accuracy_binary(xgmodel, testing_data)
