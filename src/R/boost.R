@@ -3,8 +3,8 @@ library(AMR)
 library(multidplyr)
 library(xgboost)
 
-
 parallel <- TRUE
+antibiotic_subset <- c("ciprofloxacin", "gentamicin", "ampicillin")
 
 clean_raw_mic <- function(mic) {
   # remove leading equals sign
@@ -16,7 +16,6 @@ clean_raw_mic <- function(mic) {
 
 database_path <- "data/databases/patric/PATRIC_genomes_AMR.txt"
 kmers_path <- "data/output/projections/6_kmer_backup.csv"
-
 database <- read_delim(database_path, col_types = cols(.default = "c"))
 kmers <- read_csv(kmers_path,
                   col_types = cols(V1 = col_character())) 
@@ -24,46 +23,58 @@ kmers <- read_csv(kmers_path,
 names(kmers) <- c("genome_id", paste0("kmer_", seq(ncol(kmers) - 1)))
 kmers <- distinct(kmers, genome_id, .keep_all = TRUE)
 
-# Remove isolates where there are multiple readings for the same organism and
-# antibiotic combo. Unable to determine which to use
-database_filtered <- database %>% 
-  group_by(genome_id, antibiotic) %>% 
-  filter(n() == 1) 
+make_meta_data <- function(patric_meta_data, 
+                           kmers_database, 
+                           measurement_unit_filter = "mg/L") {
+  # meta_data = dataframe of PATRIC meta data
+  # kmers = dataframe of kmer reads, needs to include genome_id and 
+  # kmer reads in wide format, columns must be named kmer_1 .. kmer_n
+  # where n = number of kmers read per organism
+  
+  # Remove isolates where there are multiple readings for the same organism and
+  # antibiotic combo. Unable to determine which to use
+  database_filtered <- patric_meta_data %>% 
+    group_by(genome_id, antibiotic) %>% 
+    filter(n() == 1) 
+  
+  meta_data <- tibble(genome_id = kmers$genome_id)
+  meta_data <- inner_join(database_filtered, meta_data) %>%
+    filter(measurement_unit == measurement_unit_filter) 
+  
+  antibiotic_names <- unique(meta_data$antibiotic)
+  meta_data <- meta_data %>% 
+    pivot_wider(id_cols = genome_id, 
+                names_from = antibiotic, 
+                values_from = measurement) %>% 
+    left_join(distinct(patric_meta_data, genome_id, .keep_all = T))
+  
+  meta_data <- meta_data %>% 
+    mutate(across(all_of(antibiotic_names), clean_raw_mic))
+}
 
-meta_data <- tibble(genome_id = kmers$genome_id)
-meta_data <- inner_join(database_filtered, meta_data) %>%
-  filter(measurement_unit == "mg/L") 
+meta_data <- make_meta_data(database, kmers)
+meta_data <- meta_data %>% select(all_of(c('genome_id', 'genome_name', antibiotic_subset)))
 
-antibiotic_names <- unique(meta_data$antibiotic)
-meta_data <- meta_data %>% 
-  pivot_wider(id_cols = genome_id, 
-              names_from = antibiotic, 
-              values_from = measurement) %>% 
-  left_join(distinct(database, genome_id, .keep_all = T))
-
-meta_data <- meta_data %>% 
-  mutate(across(all_of(antibiotic_names), clean_raw_mic))
-
+# process MICs
 if(parallel) {
   cores <- parallel::detectCores()
   cluster <- multidplyr::new_cluster(cores)
-  cluster_copy(cluster, c("antibiotic_names", "clean_raw_mic"))
+  cluster_copy(cluster, c("antibiotic_subset", "clean_raw_mic"))
   system.time(
     meta_data <- meta_data %>% 
       partition(cluster) %>% 
-      mutate(across(all_of(antibiotic_names), clean_raw_mic)) %>% 
-      mutate(across(all_of(antibiotic_names), AMR::as.mic)) %>% 
+      mutate(across(all_of(antibiotic_subset), clean_raw_mic)) %>% 
+      mutate(across(all_of(antibiotic_subset), AMR::as.mic)) %>% 
       collect()
   )
 } else {
   system.time(
     meta_data <- meta_data %>% 
-      mutate(across(all_of(antibiotic_names), AMR::as.mic))
+      mutate(across(all_of(antibiotic_subset), AMR::as.mic))
   )
 }
 
-antibiotic_subset <- c("ciprofloxacin", "gentamicin", "ampicillin")
-
+# convert to binary
 if(parallel) {
   cores <- parallel::detectCores()
   cluster <- multidplyr::new_cluster(cores)
