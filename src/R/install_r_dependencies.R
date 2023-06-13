@@ -2,7 +2,8 @@
 # Copyright 2022 Alessandro Gerada alessandro.gerada@liverpool.ac.uk
 
 packages <- c("tidyverse", "parallel", "glue", "Rcpp", "snow", "pbapply",
-              "optparse", "here")
+              "optparse", "here",
+              "AMR", "multidplyr")
 installed <- installed.packages()
 
 if(!("BiocManager" %in% installed)) install.packages("BiocManager", repos = "http://cran.us.r-project.org")
