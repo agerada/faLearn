@@ -33,7 +33,6 @@ option_list <- list(
                 "number of iterations of xgboost model [default 100]"),
   make_option(c("-s", "--save"),
               type = "character",
-              default = FALSE, 
               help =
                 "path to store model file")
 )
@@ -211,7 +210,7 @@ xgmodel <- make_xgmodel_binary(training_data,
                                iterations = opt$iterations,
                                cores = opt$cores)
 
-if (opt$save) {
+if (!is.null(opt$save)) {
   save(xgmodel, file = opt$save)
 }
 
