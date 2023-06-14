@@ -94,11 +94,12 @@ combine_kmer_metadata_and_split <- function(meta_data,
   train_ds <- train_test_dataset %>% 
     slice_sample(prop = train_frac, replace = FALSE)
   train_ds_names <- train_ds$genome_id
-  train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
-                          label = train_ds$label)
   
   test_ds <- anti_join(train_test_dataset, train_ds)
   test_ds_names <- test_ds$genome_id
+  
+  train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
+                          label = train_ds$label)
   test_ds <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("kmer"))), 
                          label = test_ds$label)
   
