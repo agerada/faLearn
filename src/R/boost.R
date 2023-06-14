@@ -2,11 +2,53 @@ library(tidyverse)
 library(AMR)
 library(multidplyr)
 library(xgboost)
+library(optparse)
 
-parallel <- TRUE
-antibiotic_subset <- c("ciprofloxacin", "gentamicin", "ampicillin")
-antibiotic_process_restrict <- c("ciprofloxacin", "gentamicin", "ampicillin")
-model_type <- "binary"
+option_list <- list(
+  make_option(c("-v", "--verbose", action = "store_true", default = FALSE,
+                help = "Print extra output")),
+  make_option(c("-c", "--cores"), type = "integer", default = 1, 
+              help =
+                "When >1, indicates number of parallel cores to use [default 1]"),
+  make_option(c("-r", "--restrict_antibiotics", type = "character", 
+                default = NULL, 
+                help =
+                  "comma-serated list of antibiotics to restrict processing
+                of meta-data. This reduces computational time but may miss out 
+                on inherent resitant and inferred phenotypes")),
+  make_option(c("-t", "--type", type = "character",
+                default = "binary",
+                help =
+                  "type of model to train, only binary supported currently [default binary]")), 
+  make_option(c("-i", "--iterations", type = "integer",
+                default = 100,
+                help =
+                  "number of iterations of xgboost model [default 100]")),
+  make_option(c("-s", "--save", type = "character", 
+                default = FALSE, 
+                help =
+                  "path to store model file"))
+)
+
+args <- parse_args(
+  OptionParser(usage = "%script [options] data_file meta_data antibiotic_target", 
+               option_list = option_list,
+               positional_arguments = 3)
+)
+
+opt <- args$options
+input_data_path <- args$args[[1]]
+meta_data_path <- args$args[[2]]
+antibiotic_target <- args$args[[3]]
+
+parallel <- ifelse(opt$cores > 1, TRUE, FALSE)
+
+if (!is.null(opt$restrict_antibiotics)) {
+  antibiotic_process_restrict <- unlist(strsplit(opt$restrict_antibiotics))
+} else {
+  antibiotic_process_restrict <- NULL
+}
+model_type <- opt$type
 
 clean_raw_mic <- function(mic) {
   # remove leading equals sign
@@ -16,8 +58,8 @@ clean_raw_mic <- function(mic) {
   stringr::str_remove(mic, "/(.)+")
 }
 
-database_path <- "data/databases/patric/PATRIC_genomes_AMR.txt"
-kmers_path <- "data/output/projections/6_kmer_backup.csv"
+database_path <- meta_data_path
+kmers_path <- input_data_path
 database <- read_delim(database_path, col_types = cols(.default = "c"))
 
 if(!is.null(antibiotic_process_restrict)){
@@ -113,6 +155,9 @@ meta_data_clean_mics <- clean_up_mics(meta_data, antibiotic_names)
 
 if(model_type == "binary") {
   meta_data_sir <- convert_mic_to_sir(meta_data_clean_mics, antibiotic_names)
+} else {
+  message("Only binary model type is implemented")
+  quit("ask")
 }
 
 combine_kmer_metadata_and_split <- function(meta_data, 
@@ -144,7 +189,7 @@ combine_kmer_metadata_and_split <- function(meta_data,
 
 combined_data <- combine_kmer_metadata_and_split(meta_data_sir,
                                                  kmers, 
-                                                 ciprofloxacin)
+                                                 antibiotic_target)
 training_data <- combined_data[['train']]
 testing_data <- combined_data[['test']]
 
@@ -156,7 +201,13 @@ make_xgmodel_binary <- function(training_data, iterations = 100,
 }
 
 
-xgmodel <- make_xgmodel_binary(training_data, cores = 4)
+xgmodel <- make_xgmodel_binary(training_data,
+                               iterations = opt$iterations,
+                               cores = opt$cores)
+
+if (opt$save) {
+  save(xgmodel, file = opt$save)
+}
 
 accuracy_binary <- function(xg_model, test_dataset){
   labels <- getinfo(test_dataset, 'label')
