@@ -95,6 +95,9 @@ if (opt$backup) {
 random_matrix <- matrix(
   rnorm(kmer_perms * dimensions_out), nrow = dimensions_out, ncol = kmer_perms)
 
+X <- kmer_data
+R <- random_matrix
+
 if (opt$matrix) {
   matrix_backup <- file.path(
     output_dir, paste0(kmers, "_kmer_random_matrix.csv"))
