@@ -32,16 +32,14 @@ option_list <- list(
 
 args <- parse_args(
   OptionParser(usage = "%script [options] data_file meta_data antibiotic_target", 
-               option_list = option_list,
-               positional_arguments = 3)
+               option_list = option_list),
+               positional_arguments = 3
 )
 
 opt <- args$options
 input_data_path <- args$args[[1]]
 meta_data_path <- args$args[[2]]
 antibiotic_target <- args$args[[3]]
-
-parallel <- ifelse(opt$cores > 1, TRUE, FALSE)
 
 if (!is.null(opt$restrict_antibiotics)) {
   antibiotic_process_restrict <- unlist(strsplit(opt$restrict_antibiotics))
@@ -106,9 +104,8 @@ meta_data <- make_meta_data(database, kmers)
 meta_data <- meta_data %>% select(any_of(c('genome_id', 'genome_name', antibiotic_names)))
 
 # process MICs
-clean_up_mics <- function(data, abx_names, parallel = TRUE) {
-  if(parallel) {
-    cores <- parallel::detectCores()
+clean_up_mics <- function(data, abx_names, cores = 1) {
+  if(cores > 1) {
     cluster <- multidplyr::new_cluster(cores)
     cluster_copy(cluster, c("abx_names", "clean_raw_mic"))
     system.time(
@@ -128,9 +125,8 @@ clean_up_mics <- function(data, abx_names, parallel = TRUE) {
   return(meta_data)
 }
 
-convert_mic_to_sir <- function(data, abx_names, parallel = TRUE) {
-  if(parallel) {
-    cores <- parallel::detectCores()
+convert_mic_to_sir <- function(data, abx_names, cores = 1) {
+  if(cores > 1) {
     cluster <- multidplyr::new_cluster(cores)
     cluster_copy(cluster, c("abx_names"))
     
@@ -151,10 +147,12 @@ convert_mic_to_sir <- function(data, abx_names, parallel = TRUE) {
   return(meta_data_binary)
 }
 
-meta_data_clean_mics <- clean_up_mics(meta_data, antibiotic_names)
+meta_data_clean_mics <- clean_up_mics(meta_data, antibiotic_names, 
+                                      cores = opt$cores)
 
 if(model_type == "binary") {
-  meta_data_sir <- convert_mic_to_sir(meta_data_clean_mics, antibiotic_names)
+  meta_data_sir <- convert_mic_to_sir(meta_data_clean_mics, antibiotic_names,
+                                      cores = opt$cores)
 } else {
   message("Only binary model type is implemented")
   quit("ask")
