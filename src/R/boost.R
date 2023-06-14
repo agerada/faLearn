@@ -103,4 +103,4 @@ if (!is.null(opt$save)) {
   save(xgmodel, file = opt$save)
 }
 
-accuracy_binary(xgmodel, testing_data)
+print(accuracy_binary(xgmodel, testing_data))

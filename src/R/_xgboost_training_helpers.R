@@ -93,16 +93,19 @@ combine_kmer_metadata_and_split <- function(meta_data,
   
   train_ds <- train_test_dataset %>% 
     slice_sample(prop = train_frac, replace = FALSE)
-  
-  test_ds <- anti_join(train_test_dataset, train_ds)
-  
+  train_ds_names <- train_ds$genome_id
   train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
                           label = train_ds$label)
+  
+  test_ds <- anti_join(train_test_dataset, train_ds)
+  test_ds_names <- test_ds$genome_id
   test_ds <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("kmer"))), 
                          label = test_ds$label)
   
-  return(list('train' = train_ds, 
-              'test' = test_ds))
+  return(list('train' = train_ds,
+              'train_names' = train_ds_names, 
+              'test' = test_ds, 
+              'test_names' = test_ds_names))
 }
 
 make_xgmodel_binary <- function(training_data, iterations = 100, 
@@ -112,7 +115,14 @@ make_xgmodel_binary <- function(training_data, iterations = 100,
 }
 
 
-accuracy_binary <- function(xg_model, test_dataset){
+accuracy_binary <- function(xg_model, test_dataset, genome_names = NA){
   labels <- getinfo(test_dataset, 'label')
+  summary_table <- tibble(genome = genome_names,
+                          label = labels)
+  sig_out <- predict(xg_model, test_dataset)
+  summary_table$sigmoid_prediction <- sig_out
+  predictions <- ifelse(sig_out > 1, 1, 0)
+  summary_table$prediction <- predictions
+  return(summary_table)
   return(sum(as.numeric(predict(xg_model, test_dataset) > 0.5) == labels) / nrow(test_dataset))
 }
