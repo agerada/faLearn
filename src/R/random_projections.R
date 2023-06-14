@@ -65,7 +65,7 @@ data_list <- as.list(data_env)
 data <- data_list[[object_name]]
 
 data <- lapply(data, function(x) {
-  x <- unlist(x["kmer_value"])
+  x <- unlist(x)
   names(x) <- NULL
   x})
 
