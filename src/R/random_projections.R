@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Copyright 2022 Alessandro Gerada alessandro.gerada@liverpool.ac.uk
 library(optparse)
+source(here::here("src/R", "_data_converters.R"))
 
 option_list <- list( 
   make_option(c("-v", "--verbose"), action = "store_true", default = FALSE,
@@ -87,16 +88,8 @@ for (i in seq_along(head(data, n_to_process))) {
 
 if (opt$backup) {
   backup_file <- file.path(output_dir, paste0(kmers, "_kmer_backup.csv"))
-  if (file.exists(backup_file) && !opt$overwrite) {
-    message("Skipping backup as file is already present. 
-    Use --overwrite to force overwrite.")
-  } else if (file.exists(backup_file)) {
-    message(paste("Overwriting kmer backup to", backup_file))
-    write.csv(cbind(names(data), kmer_data), backup_file, row.names = FALSE)
-  } else {
-    message(paste("Saving kmer backup to", backup_file))
-    write.csv(cbind(names(data), kmer_data), backup_file, row.names = FALSE)
-  }
+  kmer_Rdata_to_csv(cbind(names(data), kmer_data), backup_file, 
+                    overwrite = opt$overwrite)
 }
 
 random_matrix <- matrix(
