@@ -5,29 +5,37 @@ library(xgboost)
 library(optparse)
 
 option_list <- list(
-  make_option(c("-v", "--verbose", action = "store_true", default = FALSE,
-                help = "Print extra output")),
-  make_option(c("-c", "--cores"), type = "integer", default = 1, 
+  make_option(c("-v", "--verbose"), 
+              action = "store_true", 
+              default = FALSE,
+              help = "Print extra output"),
+  make_option(c("-c", "--cores"), 
+              type = "integer", 
+              default = 1, 
               help =
                 "When >1, indicates number of parallel cores to use [default 1]"),
-  make_option(c("-r", "--restrict_antibiotics", type = "character", 
-                default = NULL, 
-                help =
-                  "comma-serated list of antibiotics to restrict processing
-                of meta-data. This reduces computational time but may miss out 
-                on inherent resitant and inferred phenotypes")),
-  make_option(c("-t", "--type", type = "character",
-                default = "binary",
-                help =
-                  "type of model to train, only binary supported currently [default binary]")), 
-  make_option(c("-i", "--iterations", type = "integer",
-                default = 100,
-                help =
-                  "number of iterations of xgboost model [default 100]")),
-  make_option(c("-s", "--save", type = "character", 
-                default = FALSE, 
-                help =
-                  "path to store model file"))
+  make_option(c("-r", "--restrict_antibiotics"), 
+              type = "character",
+              default = NULL,
+              help =
+              "comma-serated list of antibiotics to restrict processing
+              of meta-data. This reduces computational time but may miss out 
+              on inherent resitant and inferred phenotypes"),
+  make_option(c("-t", "--type"), 
+              type = "character",
+              default = "binary",
+              help =
+                "type of model to train, only binary supported currently [default binary]"), 
+  make_option(c("-i", "--iterations"),
+              type = "integer",
+              default = 100,
+              help =
+                "number of iterations of xgboost model [default 100]"),
+  make_option(c("-s", "--save"),
+              type = "character",
+              default = FALSE, 
+              help =
+                "path to store model file")
 )
 
 args <- parse_args(
