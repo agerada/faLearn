@@ -49,7 +49,8 @@ meta_data_path <- args$args[[2]]
 antibiotic_target <- args$args[[3]]
 
 if (!is.null(opt$restrict_antibiotics)) {
-  antibiotic_process_restrict <- unlist(strsplit(opt$restrict_antibiotics))
+  antibiotic_process_restrict <- unlist(strsplit(opt$restrict_antibiotics,
+                                                split = ","))
 } else {
   antibiotic_process_restrict <- NULL
 }
