@@ -1,3 +1,7 @@
+require(tidyverse)
+require(AMR)
+require(multidplyr)
+
 clean_raw_mic <- function(mic) {
   # remove leading equals sign
   mic <- stringr::str_remove(mic, pattern = "^=+")
@@ -77,31 +81,40 @@ convert_mic_to_sir <- function(data, abx_names, cores = 1) {
   return(meta_data_binary)
 }
 
-combine_kmer_metadata_and_split <- function(meta_data, 
-                                            kmer_data, 
-                                            antibiotic,
-                                            train_frac = 0.8){
-  antibiotic <- sym(antibiotic)
-  meta_data_antibiotic <- meta_data %>% 
-    left_join(kmer_data, by = "genome_id") %>% 
-    filter(!is.na({{antibiotic}}))
-  
-  train_test_dataset <- meta_data_antibiotic %>% 
-    mutate(label = if_else({{antibiotic}} == "R", 1, 0)) 
-  
-  train_test_dataset <- ungroup(train_test_dataset)
-  
+sir_to_binary <- function(data, cols) {
+  data %>% mutate(
+    across(any_of(cols), function(x) if_else(x == "R", 1, 0)))
+}
+
+combine_kmer_meta_data <- function(meta_data,
+                                   kmer_data,
+                                   antibiotic_filter = NA,
+                                   joining_col = "genome_id") {
+  meta_data <- meta_data %>%
+    left_join(kmer_data, by = joining_col)
+
+  if (antibiotic_filter %in% colnames(meta_data)) {
+    antibiotic_filter <- sym(antibiotic_filter)
+    meta_data <- meta_data %>% filter(!is.na({{antibiotic_filter}}))
+  }
+  return(meta_data)
+}
+
+split_combined <- function(meta_kmer_data, antibiotic, train_frac = 0.8) {
+  train_test_dataset <- ungroup(meta_kmer_data)
   train_ds <- train_test_dataset %>% 
     slice_sample(prop = train_frac, replace = FALSE)
   train_ds_names <- train_ds$genome_id
+  train_ds_labels <- train_ds[[antibiotic]]
   
+
   test_ds <- anti_join(train_test_dataset, train_ds)
   test_ds_names <- test_ds$genome_id
-  
+  test_ds_labels <- test_ds[[antibiotic]]
   train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
-                          label = train_ds$label)
+                          label = train_ds_labels)
   test_ds <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("kmer"))), 
-                         label = test_ds$label)
+                         label = test_ds_labels)
   
   return(list('train' = train_ds,
               'train_names' = train_ds_names, 
@@ -109,12 +122,30 @@ combine_kmer_metadata_and_split <- function(meta_data,
               'test_names' = test_ds_names))
 }
 
-make_xgmodel_binary <- function(training_data, iterations = 100, 
-                                train_frac = 0.8, cores){ 
-  bstDMatrix <- xgboost(data = training_data, max.depth = 2, eta = 1, nthread = cores, 
-                        nrounds = iterations, objective = "binary:logistic")
+make_xgmodel_binary <- function(training_data, iterations = 100, cores = 1) {
+  bstDMatrix <- xgboost(
+    data = training_data,
+    max.depth = 2,
+    eta = 1,
+    nthread = cores,
+    nrounds = iterations,
+    objective = "binary:logistic")
 }
 
+make_xgmodel_regression <- function(
+  training_data,
+  iterations = 100,
+  cores = 1
+  ) {
+    bstDMatrix <- xgboost(
+      data = training_data,
+      max.depth = 2,
+      eta = 1,
+      nthread = cores,
+      nrounds = iterations,
+      objective = "reg:squarederror"
+    )
+  }
 
 accuracy_binary <- function(xg_model, test_dataset, genome_names = NA){
   labels <- getinfo(test_dataset, 'label')
@@ -126,4 +157,19 @@ accuracy_binary <- function(xg_model, test_dataset, genome_names = NA){
   summary_table$prediction <- predictions
   return(summary_table)
   return(sum(as.numeric(predict(xg_model, test_dataset) > 0.5) == labels) / nrow(test_dataset))
+}
+
+mic_double_and_halve <- function(mic) {
+  case_when(
+    str_detect(mic, ">") ~ as.mic(mic * 2),
+    str_detect(mic, "<") ~ as.mic(mic / 2),
+    .default = mic)
+}
+
+mic_categorical_to_numeric <- function(data, cols) {
+  data <- data %>%
+    ungroup %>% 
+    mutate(across(any_of(cols), mic_double_and_halve)) %>%
+    mutate(across(any_of(cols), as.numeric))
+  return(data)
 }
