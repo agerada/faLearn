@@ -160,6 +160,8 @@ accuracy_binary <- function(xg_model, test_dataset, genome_names = NA){
 }
 
 mic_double_and_halve <- function(mic) {
+  # case_when generates many warnings here because it has to evaluate
+  # all RHS conditions for vectorisation
   case_when(
     str_detect(mic, ">") ~ as.mic(mic * 2),
     str_detect(mic, "<") ~ as.mic(mic / 2),

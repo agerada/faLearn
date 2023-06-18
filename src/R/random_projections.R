@@ -88,7 +88,11 @@ for (i in seq_along(head(data, n_to_process))) {
 
 if (opt$backup) {
   backup_file <- file.path(output_dir, paste0(kmers, "_kmer_backup.csv"))
-  kmer_Rdata_to_csv(cbind(names(data), kmer_data), backup_file, 
+  backup_df <- as.data.frame(kmer_data)
+  backup_df <- cbind(as.character(names(data)), backup_df)
+  colnames(backup_df) <- c("genome_id", paste0(
+    "kmer_", seq(from = 1, to = ncol(backup_df) - 1)))
+  kmer_data_to_csv(backup_df, backup_file,
                     overwrite = opt$overwrite)
 }
 
@@ -118,7 +122,11 @@ random_proj <- R %*% t(X)
 random_proj <- (1 / sqrt(length(head(data, n_to_process)))) * random_proj
 
 random_proj <- t(random_proj)
-random_proj <- cbind(names(data), random_proj)
+random_proj <- as.data.frame(random_proj)
+random_proj <- cbind(as.character(names(data)), random_proj)
+colnames(random_proj) <- c(
+  "genome_id",
+  paste0("r_proj_", seq(from = 1, to = ncol(random_proj) - 1)))
 
 message("Saving output..")
 output_file <- file.path(

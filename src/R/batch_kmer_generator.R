@@ -3,6 +3,8 @@
 library(optparse)
 library(here)
 
+source("src/R/_data_converters.R")
+
 option_list <- list(
   make_option(c("-v", "--verbose"), action = "store_true", default = FALSE,
               help = "Print extra output"),
@@ -21,9 +23,11 @@ option_list <- list(
   make_option(c("-s", "--simplify"), action = "store_true", default = FALSE,
               help = "Store only the kmer counts (key: value -> value)"),
   make_option(c("-d", "--drop_n"), action = "store_true", default = FALSE,
-              help = "Drop kmers that have N [default false]")
+              help = "Drop kmers that have N [default false]"), 
+  make_option(c("-b", "--backup_csv"), action = "store_true", default = FALSE,
+              help = "Save backup in csv format")
 )
-print(getwd())
+
 args <- parse_args(
   OptionParser(usage = "%script [options] input_dir output_dir",
               option_list = option_list),
@@ -94,6 +98,25 @@ if (opt$cores > 1) {
       names(output) <- confirmed_genomes_ids_split[[i]]
       save(output, file = file.path(output_dir,
                                   paste0(opt$kmers, "_kmer_data", i, ".RData")))
+
+      if (opt$backup_csv) {
+        output <- lapply(output, function(x) {
+          x <- unlist(x)
+          x})
+        output_df <- t(data.frame(output))
+        rownames(output_df) <- NULL
+        output_df <- cbind(as.character(names(output)), output_df)
+        output_df <- as.data.frame(output_df)
+
+        colnames(output_df) <- c("genome_id", paste0(
+          "kmer_", seq(from = 1, to = ncol(output_df) - 1)))
+
+        kmer_data_to_csv(
+          output_df,
+          file.path(output_dir, paste0(opt$kmers, "_kmer_data", i, ".csv")),
+          overwrite = TRUE)
+
+      }
       remove(output)
     }
   } else {

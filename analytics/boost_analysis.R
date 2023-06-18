@@ -21,7 +21,8 @@ if (!is.null(opt$restrict_antibiotics)) {
 }
 
 # paths
-input_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/6/6_kmer_backup.csv"
+#input_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/3/3_kmer_data1.csv"
+nput_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/3/3_kmer_random_projections.csv"
 meta_data_path <- "/home/agerada/molecularMIC/data/databases/patric/PATRIC_genomes_AMR.txt"
 antibiotic_target <- "ciprofloxacin"
 
@@ -30,14 +31,14 @@ database_path <- meta_data_path
 kmers_path <- input_data_path
 database <- read_delim(database_path, col_types = cols(.default = "c"))
 
-if(!is.null(antibiotic_process_restrict)){
+if (!is.null(antibiotic_process_restrict)){
   antibiotic_names <- antibiotic_process_restrict
 } else {
   antibiotic_names <- unique(database$antibiotic)
 }
 
 kmers <- read_csv(kmers_path,
-                  col_types = cols(V1 = col_character()))
+                  col_types = cols(genome_id = col_character()))
 
 names(kmers) <- c("genome_id", paste0("kmer_", seq(ncol(kmers) - 1)))
 kmers <- distinct(kmers, genome_id, .keep_all = TRUE)
