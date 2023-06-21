@@ -8,6 +8,8 @@ r-rcurl
 r-optparse
 r-rcppparallel
 r-xgboost
+r-arrow
+
 Run install_r_dependencies.R
 
 when running on cluster, also needed to install r-ragg

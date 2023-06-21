@@ -10,31 +10,31 @@ clean_raw_mic <- function(mic) {
   stringr::str_remove(mic, "/(.)+")
 }
 
-make_meta_data <- function(patric_meta_data, 
-                           kmers_database, 
+make_meta_data <- function(patric_meta_data,
+                           kmers_database,
                            measurement_unit_filter = "mg/L") {
   # meta_data = dataframe of PATRIC meta data
-  # kmers = dataframe of kmer reads, needs to include genome_id and 
-  # kmer reads in wide format, columns must be named kmer_1 .. kmer_n
+  # kmers = dataframe of kmer reads, needs to include genome_id and
+  # kmer reads in wide format, columns must be named feature_1 .. feature_n
   # where n = number of kmers read per organism
-  
+
   # Remove isolates where there are multiple readings for the same organism and
   # antibiotic combo. Unable to determine which to use
-  database_filtered <- patric_meta_data %>% 
-    group_by(genome_id, antibiotic) %>% 
-    filter(n() == 1) 
-  
-  meta_data <- tibble(genome_id = kmers$genome_id)
+  database_filtered <- patric_meta_data %>%
+    group_by(genome_id, antibiotic) %>%
+    filter(n() == 1)
+
+  meta_data <- tibble(genome_id = kmers_database$genome_id)
   meta_data <- inner_join(database_filtered, meta_data) %>%
-    filter(measurement_unit == measurement_unit_filter) 
-  
-  meta_data <- meta_data %>% 
-    pivot_wider(id_cols = genome_id, 
-                names_from = antibiotic, 
-                values_from = measurement) %>% 
-    left_join(distinct(patric_meta_data, genome_id, .keep_all = T))
-  
-  meta_data <- meta_data %>% 
+    filter(measurement_unit == measurement_unit_filter)
+
+  meta_data <- meta_data %>%
+    pivot_wider(id_cols = genome_id,
+                names_from = antibiotic,
+                values_from = measurement) %>%
+    left_join(distinct(patric_meta_data, genome_id, .keep_all = TRUE))
+
+  meta_data <- meta_data %>%
     mutate(across(any_of(antibiotic_names), clean_raw_mic))
 }
 
@@ -100,26 +100,54 @@ combine_kmer_meta_data <- function(meta_data,
   return(meta_data)
 }
 
-split_combined <- function(meta_kmer_data, antibiotic, train_frac = 0.8) {
-  train_test_dataset <- ungroup(meta_kmer_data)
+split_combined <- function(
+  meta_kmer_data, antibiotic, train_frac = 0.8, config = "DMatrix") {
+  message("ungrouping")
+  system.time(
+    train_test_dataset <- ungroup(meta_kmer_data)
+  )
+
+  message("slicing")
+  system.time(
   train_ds <- train_test_dataset %>% 
     slice_sample(prop = train_frac, replace = FALSE)
+  )
   train_ds_names <- train_ds$genome_id
   train_ds_labels <- train_ds[[antibiotic]]
-  
 
-  test_ds <- anti_join(train_test_dataset, train_ds)
+  message("anti-join")
+  system.time(
+    test_ds <- anti_join(train_test_dataset, train_ds)
+  )
   test_ds_names <- test_ds$genome_id
   test_ds_labels <- test_ds[[antibiotic]]
-  train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("kmer"))), 
-                          label = train_ds_labels)
-  test_ds <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("kmer"))), 
-                         label = test_ds_labels)
-  
-  return(list('train' = train_ds,
-              'train_names' = train_ds_names, 
-              'test' = test_ds, 
-              'test_names' = test_ds_names))
+
+  if (config == "DMatrix") {
+    print((select(train_ds, starts_with("feature_"))))
+    train_ds <- xgb.DMatrix(data = as.matrix(select(train_ds, starts_with("feature_"))), 
+                            label = train_ds_labels)
+    test_ds <- xgb.DMatrix(data = as.matrix(select(test_ds, starts_with("feature_"))), 
+                          label = test_ds_labels)
+  } else if (config == "matrix") {
+    message("converting to matrix")
+    system.time(
+      {
+      train_ds_data <- train_ds
+      test_ds_data <- test_ds
+      train_ds <- list()
+      test_ds <- list()
+      train_ds$features <- as.matrix(select(train_ds_data, starts_with("feature_")))
+      test_ds$features <- as.matrix(select(test_ds_data, starts_with("feature_")))
+      }
+    )
+  }
+
+  return(list('train_data' = train_ds,
+              'train_names' = train_ds_names,
+              'train_labels' = train_ds_labels,
+              'test_data' = test_ds,
+              'test_names' = test_ds_names,
+              'test_labels' = test_ds_labels))
 }
 
 make_xgmodel_binary <- function(training_data, iterations = 100, cores = 1) {
