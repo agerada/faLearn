@@ -14,6 +14,12 @@ BiocManager::install()
 message("Installing Biostrings")
 BiocManager::install("Biostrings")
 
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("ShortRead")
+
+#
 install.packages(setdiff(packages, installed), repos = "http://cran.us.r-project.org")
 
 # test Rcpp

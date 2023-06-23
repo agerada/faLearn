@@ -2,6 +2,7 @@
 # Copyright 2022 Alessandro Gerada alessandro.gerada@liverpool.ac.uk
 library(optparse)
 library(here)
+library(ShortRead)
 
 source("src/R/_data_converters.R")
 
@@ -69,7 +70,8 @@ if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 convert_to_kmers <- function(x) {
   if (opt$verbose) print(paste("Working on", x))
-  x <- as.character(unlist(Biostrings::readDNAStringSet(x)))
+  x <- as.character(unlist(clean(Biostrings::readDNAStringSet(x))))
+
   x <- kmers_pointed(x,
                      kmer = opt$kmers,
                      anchor = opt$anchor,
@@ -100,22 +102,24 @@ if (opt$cores > 1) {
                                   paste0(opt$kmers, "_kmer_data", i, ".RData")))
 
       if (opt$backup_csv) {
-        output <- lapply(output, function(x) {
-          x <- unlist(x)
-          x})
-        output_df <- t(data.frame(output))
-        rownames(output_df) <- NULL
-        output_df <- cbind(as.character(names(output)), output_df)
-        output_df <- as.data.frame(output_df)
+        if (opt$simplify) {
+          output <- lapply(output, function(x) {
+            x <- unlist(x)
+            x})
+          output_df <- t(data.frame(output))
+          rownames(output_df) <- NULL
+          output_df <- cbind(as.character(names(output)), output_df)
+          output_df <- as.data.frame(output_df)
+          colnames(output_df) <- c("genome_id", paste0(
+            "kmer_", seq(from = 1, to = ncol(output_df) - 1)))
 
-        colnames(output_df) <- c("genome_id", paste0(
-          "kmer_", seq(from = 1, to = ncol(output_df) - 1)))
-
-        kmer_data_to_csv(
-          output_df,
-          file.path(output_dir, paste0(opt$kmers, "_kmer_data", i, ".csv")),
-          overwrite = TRUE)
-
+          kmer_data_to_csv(
+            output_df,
+            file.path(output_dir, paste0(opt$kmers, "_kmer_data", i, ".csv")),
+            overwrite = TRUE)
+        } else {
+          message("CSV save without --simplify is not implemented")
+        }
       }
       remove(output)
     }

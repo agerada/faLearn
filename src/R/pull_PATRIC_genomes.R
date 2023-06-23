@@ -62,7 +62,7 @@ filtered_data <- patric_amr_list %>%
 filtered_data <- filtered_data %>% filter(case_when(
   opt$filter == "mic" & measurement_unit == "mg/L" ~ TRUE,
   opt$filter == "disc" & laboratory_typing_method == "Disk diffusion" ~ TRUE,
-  TRUE ~ FALSE
+  opt$filter == "all" ~ TRUE
 ))
 
 genome_ids <- unique(filtered_data$genome_id)
