@@ -25,7 +25,7 @@ if (!is.null(opt$restrict_antibiotics)) {
 
 # paths
 #input_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/3/3_kmer_data1.csv"
-input_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/10/10_kmer_backup.csv"
+input_data_path <- "/volatile/agerada/molecularMIC/kmers/e_coli/7/7_kmer_data1.csv"
 meta_data_path <- "/home/agerada/molecularMIC/data/databases/patric/PATRIC_genomes_AMR.txt"
 antibiotic_target <- "ciprofloxacin"
 
@@ -94,7 +94,7 @@ if (model_type == "binary") {
 } else if (model_type == "regression") {
   xgmodel <- make_xgmodel_regression(
     training_data,
-    iterations = 1000,
+    iterations = opt$iterations,
     cores = opt$cores
   )
 }
@@ -104,5 +104,10 @@ if (!is.null(opt$save)) {
 }
 
 predictions <- predict(xgmodel, testing_data)
-predictions <- if_else(predictions < 0, 0, predictions)
+if (model_type == "binary") {
+  predictions <- if_else(predictions < 0.5, 0, 1)
+} else if (model_type == "regression") {
+  predictions <- if_else(predictions < 0, 0, predictions)
+}
 plot(predictions, split_data$test_labels)
+table(data.frame(predict = predictions, labels = split_data$test_labels))
