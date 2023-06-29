@@ -3,7 +3,7 @@
 
 packages <- c("tidyverse", "parallel", "glue", "Rcpp", "snow", "pbapply",
               "optparse", "here",
-              "AMR", "multidplyr")
+              "AMR", "multidplyr", "bench")
 installed <- installed.packages()
 
 if(!("BiocManager" %in% installed)) install.packages("BiocManager", repos = "http://cran.us.r-project.org")

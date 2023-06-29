@@ -12,6 +12,7 @@ clean_raw_mic <- function(mic) {
 
 make_meta_data <- function(patric_meta_data,
                            kmers_database,
+                           binary = FALSE,
                            measurement_unit_filter = "mg/L") {
   # meta_data = dataframe of PATRIC meta data
   # kmers = dataframe of kmer reads, needs to include genome_id and
@@ -23,19 +24,38 @@ make_meta_data <- function(patric_meta_data,
   database_filtered <- patric_meta_data %>%
     group_by(genome_id, antibiotic) %>%
     filter(n() == 1)
-
   meta_data <- tibble(genome_id = kmers_database$genome_id)
-  meta_data <- inner_join(database_filtered, meta_data) %>%
-    filter(measurement_unit == measurement_unit_filter)
+  meta_data <- inner_join(database_filtered, meta_data)
 
-  meta_data <- meta_data %>%
-    pivot_wider(id_cols = genome_id,
+  if (binary) {
+    meta_data <- filter(meta_data, !is.na(resistant_phenotype))
+  } else {
+    meta_data <- filter(meta_data, measurement_unit == measurement_unit_filter)
+
+  }
+
+  if (binary) {
+    # NAs introduced at this point for missing susceptibilities
+    meta_data <- meta_data %>%
+      pivot_wider(id_cols = c(genome_id, genome_name),
                 names_from = antibiotic,
-                values_from = measurement) %>%
-    left_join(distinct(patric_meta_data, genome_id, .keep_all = TRUE))
+                values_from = resistant_phenotype)
+  } else {
+    meta_data <- meta_data %>%
+      pivot_wider(id_cols = c(genome_id, genome_name),
+                  names_from = antibiotic,
+                  values_from = mic)
+  }
 
-  meta_data <- meta_data %>%
-    mutate(across(any_of(antibiotic_names), clean_raw_mic))
+  #meta_data <- left_join(
+  #  meta_data,
+  #  distinct(patric_meta_data, genome_id, .keep_all = TRUE))
+
+  #if (!binary) {
+  #  meta_data <- meta_data %>%
+  #    mutate(across(any_of(antibiotic_names), clean_raw_mic))
+  #}
+  return(meta_data)
 }
 
 clean_up_mics <- function(data, abx_names, cores = 1) {
@@ -201,5 +221,36 @@ mic_categorical_to_numeric <- function(data, cols) {
     ungroup %>% 
     mutate(across(any_of(cols), mic_double_and_halve)) %>%
     mutate(across(any_of(cols), as.numeric))
+  return(data)
+}
+
+mic_categorical_to_softmax <- function(data, cols) {
+
+}
+
+populate_sir <- function(data, cores = 1) {
+  if (cores > 1) {
+    future::plan(future::multisession, workers = cores)
+    pmap_override <- furrr::future_pmap_chr
+  } else {
+    pmap_override <- purrr::pmap_vec
+  }
+  message(paste(c("Calculating SIR for", nrow(data),"antibiotics")))
+  mic_sir <- pmap_override(
+    .l = list(
+      data$mic,
+      data$antibiotic,
+      data$amr_org),
+    function(mic, ab, mo) as.sir(mic, mo = mo, ab = as.ab(ab)))
+  disk_sir <- pmap_override(
+    .l = list(
+      data$zone,
+      data$antibiotic,
+      data$amr_org),
+      function(zone, ab, mo) as.sir(zone, mo = mo, ab = as.ab(ab))
+  )
+
+  data$mic_sir <- as.sir(mic_sir)
+  data$disk_sir <- as.sir(disk_sir)
   return(data)
 }

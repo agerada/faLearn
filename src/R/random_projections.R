@@ -92,7 +92,7 @@ if (opt$backup) {
   backup_df <- cbind(as.character(names(data)), backup_df)
   colnames(backup_df) <- c("genome_id", paste0(
     "kmer_", seq(from = 1, to = ncol(backup_df) - 1)))
-  kmer_data_to_csv(backup_df, backup_file,
+  backup_kmer_data(backup_df, backup_file,
                     overwrite = opt$overwrite)
 }
 

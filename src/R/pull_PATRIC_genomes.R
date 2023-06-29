@@ -67,7 +67,6 @@ filtered_data <- filtered_data %>% filter(case_when(
 
 genome_ids <- unique(filtered_data$genome_id)
 
-
 if (opt$n_genomes < 0) {
   n_downloads <- 0
 } else if (opt$n_genomes > 0 & opt$n_genomes < length(genome_ids)) {

@@ -9,7 +9,7 @@ source("src/R/_xgboost_training_helpers.R")
 # options
 opt <- list()
 opt$restrict_antibiotics <- "ciprofloxacin,gentamicin,meropenem"
-opt$type <- "regression"
+opt$type <- "parquet"
 opt$cores <- 56
 opt$iterations <- 100
 opt$verbose <- TRUE
@@ -24,17 +24,17 @@ if (!is.null(opt$restrict_antibiotics)) {
 }
 
 # paths
-#input_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/3/3_kmer_data1.csv"
-input_data_path <- "/volatile/agerada/molecularMIC/kmers/e_coli/7/7_kmer_data1.csv"
+#input_data_path <- "/volatile/agerada/molecularMIC/kmers/acinetobacter/10/split/10_kmer_data1.csv"
+input_data_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_all/3/"
 meta_data_path <- "/home/agerada/molecularMIC/data/databases/patric/PATRIC_genomes_AMR.txt"
 antibiotic_target <- "ciprofloxacin"
-
+input_format <- "csv"
 
 database_path <- meta_data_path
 kmers_path <- input_data_path
 
 if (opt$verbose) message("Reading meta database")
-database <- read_delim(database_path, col_types = cols(.default = "c"))
+database_raw <- read_delim(database_path, col_types = cols(.default = "c"))
 
 if (!is.null(antibiotic_process_restrict)) {
   if (opt$verbose) message(paste("Restricting further antibiotic processing to",antibiotic_process_restrict))
@@ -44,33 +44,57 @@ if (!is.null(antibiotic_process_restrict)) {
 }
 
 if (opt$verbose) message("Reading kmers csv")
-kmers <- arrow::read_csv_arrow(kmers_path, col_types = schema(genome_id = string()))
-
+kmer_files <- list.files(
+  kmers_path,
+  pattern = paste0("*.", input_format),
+  full.names = TRUE)
+input_schema <- schema(genome_id = string())
+kmers <- arrow::open_dataset(
+  kmer_files,
+  format = input_format)
+kmers <- data.frame(kmers)
 names(kmers) <- c("genome_id", paste0("feature_", seq(ncol(kmers) - 1)))
 
 if (opt$verbose) message("Keeping only unique genome_ids")
 kmers <- distinct(kmers, genome_id, .keep_all = TRUE)
 
 if (opt$verbose) message("Creating meta data for kmers")
-meta_data <- make_meta_data(database, kmers)
-meta_data <- meta_data %>% select(any_of(c('genome_id', 'genome_name', antibiotic_names)))
-
-if (opt$verbose) message("Cleaning up MICs")
-meta_data_clean_mics <- clean_up_mics(meta_data, antibiotic_names, 
-                                      cores = opt$cores)
+database <- filter(database_raw, genome_id %in% kmers$genome_id)
+if (!is.null(opt$restrict_antibiotics)) {
+  database <- filter(database, antibiotic %in% antibiotic_process_restrict)
+}
+database <- mutate(database, amr_org = AMR::as.mo(genome_name))
+database <- mutate(
+  database, 
+  measurement = if_else(measurement_unit == "mg/L", clean_raw_mic(measurement), measurement))
+database <- mutate(database, mic = if_else(measurement_unit == "mg/L", AMR::as.mic(measurement), NA))
+database <- mutate(database, zone = if_else(measurement_unit == "mm", AMR::as.disk(measurement), NA))
 
 if (model_type == "binary") {
-  if (opt$verbose) message("Converting MIC to SIR for binary model")
-  meta_data_sir <- convert_mic_to_sir(meta_data_clean_mics, antibiotic_names,
-                                      cores = opt$cores)
+  database <- populate_sir(database, cores = opt$cores)
+  database <- database %>% mutate(resistant_phenotype =
+    case_when(
+      !is.na(mic_sir) ~ mic_sir,
+      !is.na(disk_sir) ~ disk_sir,
+      .default = resistant_phenotype
+    )
+  )
+}
+
+#write_csv(database, "/volatile/agerada/molecularMIC/binary_database_bak.csv")
+
+meta_data <- make_meta_data(
+  database, kmers, binary = if_else(
+    model_type == "binary", TRUE, FALSE))
+meta_data <- meta_data %>% select(any_of(c('genome_id', 'genome_name', antibiotic_names)))
+
+if (model_type == "binary") {
   if (opt$verbose) message("Converting SIR to binary")
-  meta_data_binary <- sir_to_binary(meta_data_sir, antibiotic_names)
-  meta_data <- meta_data_binary
+  meta_data <- sir_to_binary(meta_data, antibiotic_names)
 } else if (model_type == "regression") {
-  if (opt$verbose) message("Converting MIC to numeric")
-  meta_data_mic_numeric <- mic_categorical_to_numeric(meta_data_clean_mics,
+  if (opt$verbose) message("Converting MIC to numeric (doubling if >=, halving if <=)")
+  meta_data <- mic_categorical_to_numeric(meta_data,
                                                       antibiotic_names)
-  meta_data <- meta_data_mic_numeric
 }
 
 if (opt$verbose) message("Combining meta data and kmers")
@@ -95,9 +119,8 @@ if (model_type == "binary") {
   xgmodel <- make_xgmodel_regression(
     training_data,
     iterations = opt$iterations,
-    cores = opt$cores
-  )
-}
+    cores = opt$cores)
+  }
 
 if (!is.null(opt$save)) {
   save(xgmodel, file = opt$save)

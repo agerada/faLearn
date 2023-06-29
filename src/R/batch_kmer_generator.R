@@ -3,6 +3,7 @@
 library(optparse)
 library(here)
 library(ShortRead)
+library(data.table)
 
 source("src/R/_data_converters.R")
 
@@ -24,9 +25,9 @@ option_list <- list(
   make_option(c("-s", "--simplify"), action = "store_true", default = FALSE,
               help = "Store only the kmer counts (key: value -> value)"),
   make_option(c("-d", "--drop_n"), action = "store_true", default = FALSE,
-              help = "Drop kmers that have N [default false]"), 
-  make_option(c("-b", "--backup_csv"), action = "store_true", default = FALSE,
-              help = "Save backup in csv format")
+              help = "Drop kmers that have N [default false]"),
+  make_option(c("-f", "--formats"), type = "character", default = "RData",
+              help = "Comma-separated list of formats to export")
 )
 
 args <- parse_args(
@@ -38,6 +39,7 @@ opt <- args$options
 dirs <- args$args
 input_dir <- dirs[[1]]
 output_dir <- dirs[[2]]
+save_formats <- tolower(unlist(strsplit(opt$formats, split = ",")))
 
 confirmed_genomes_paths <- list.files(input_dir,
                                       pattern = "\\.fna$", full.names = TRUE)
@@ -70,6 +72,7 @@ if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 convert_to_kmers <- function(x) {
   if (opt$verbose) print(paste("Working on", x))
+  # clean will remove any contigs with bad reads (e.g., N, Y)
   x <- as.character(unlist(clean(Biostrings::readDNAStringSet(x))))
 
   x <- kmers_pointed(x,
@@ -98,27 +101,54 @@ if (opt$cores > 1) {
       output <- parallel::mclapply(confirmed_genomes_paths_split[[i]],
                          convert_to_kmers, mc.cores = opt$cores)
       names(output) <- confirmed_genomes_ids_split[[i]]
-      save(output, file = file.path(output_dir,
-                                  paste0(opt$kmers, "_kmer_data", i, ".RData")))
 
-      if (opt$backup_csv) {
+      if ("rdata" %in% save_formats) {
+        save(output, file = file.path(output_dir,
+                                    paste0(opt$kmers, "_kmer_data", i, ".RData")))
+      }
+
+      if ("csv" %in% save_formats | "parquet" %in% save_formats) {
+        # further processing required for these formats
         if (opt$simplify) {
           output <- lapply(output, function(x) {
             x <- unlist(x)
             x})
-          output_df <- t(data.frame(output))
-          rownames(output_df) <- NULL
-          output_df <- cbind(as.character(names(output)), output_df)
-          output_df <- as.data.frame(output_df)
-          colnames(output_df) <- c("genome_id", paste0(
-            "kmer_", seq(from = 1, to = ncol(output_df) - 1)))
 
-          kmer_data_to_csv(
-            output_df,
-            file.path(output_dir, paste0(opt$kmers, "_kmer_data", i, ".csv")),
-            overwrite = TRUE)
+          # keep only items with length == 4 ^ kmers
+          target_length <- 4 ^ opt$kmers
+          output <- subset(
+            output,
+            sapply(output, function(x) {
+              ifelse(length(x) == target_length, TRUE, FALSE)
+              }))
+
+          genome_ids <- as.character(names(output))
+          data.table::setDT(output)
+          output <- data.table::transpose(output)
+          output <- data.table(genome_id = genome_ids, output)
+          colnames(output) <- c("genome_id", paste0(
+            "kmer_", seq(from = 1, to = ncol(output) - 1)))
+          output[, genome_id := genome_ids]
+
+          if ("parquet" %in% save_formats) {
+            backup_kmer_data(
+              output,
+              file.path(
+                output_dir, 
+                paste0(opt$kmers, "_kmer_data", i, ".parquet")),
+              file_format = "parquet")
+          }
+
+          if ("csv" %in% save_formats) {
+            backup_kmer_data(
+              output,
+              file.path(output_dir, paste0(opt$kmers, "_kmer_data", i, ".csv")),
+              overwrite = TRUE)
+          }
+
+          remove(output)
         } else {
-          message("CSV save without --simplify is not implemented")
+          message("CSV or parquet save without --simplify is not implemented")
         }
       }
       remove(output)
