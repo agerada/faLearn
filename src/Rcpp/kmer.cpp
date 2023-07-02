@@ -1,7 +1,39 @@
 #include <Rcpp.h>
 #include <map>
 #include <string>
+#include <iostream>
 using namespace Rcpp;
+
+List wrap_custom(const std::map<std::string, unsigned long long int> dict){ 
+  std::vector<unsigned long long int> kmer_output;
+  std::vector<std::string> kmer_string;
+  for(auto i = dict.begin(), n = dict.end(); i != n; i++){
+    kmer_string.push_back(i->first); 
+    kmer_output.push_back(i->second); 
+  }
+  return List::create(Named("kmer_string") = kmer_string, 
+                      Named("kmer_value") = kmer_output); 
+}
+
+List wrap_custom(const std::map<unsigned long long int, unsigned long long int> dict){
+  std::vector<unsigned long long int> kmer_index;
+  std::vector<unsigned long long int> kmer_output;
+  for(auto i = dict.begin(), n = dict.end(); i != n; i++){
+    kmer_index.push_back(i->first);
+    kmer_output.push_back(i->second);
+  }
+  return List::create(Named("kmer_index") = kmer_index,
+                      Named("kmer_value") = kmer_output);
+}
+
+List wrap_custom(const std::vector<unsigned long long int> v){
+  return List::create(v);
+}
+
+CharacterVector wrap_custom(const std::vector<std::string> s){
+  std::cout << "applying custom wrapper to char vec" << std::endl;
+  return(Rcpp::wrap(s));
+}
 
 // [[Rcpp::export]]
 List kmers(const CharacterVector& x, int kmer = 3) {
@@ -28,12 +60,7 @@ List kmers(const CharacterVector& x, int kmer = 3) {
                       Named("kmer_value") = kmer_output); 
 }
 
-// [[Rcpp::export]]
-CharacterVector generate_kmer_perms(int k, const CharacterVector& bases){
-  /* This is my own algorithm, that lexiconographically increments
-   * a string of length k to find all permutations with repetition of 
-   * provided bases. Returns an R CharacterVector of all permutations */
-  std::string b = Rcpp::as<std::string>(bases); 
+std::vector<std::string> permute_kmers(int k, std::string& b){
   std::sort(b.begin(), b.end()); 
   std::vector<std::string> output_s; 
   char max_char = b.back(); 
@@ -66,16 +93,17 @@ CharacterVector generate_kmer_perms(int k, const CharacterVector& bases){
     *working_char = new_char; 
     output_s.push_back(working_string); 
   }
-  return Rcpp::wrap(output_s); 
-  /*
-  std::string s = Rcpp::as<std::string>(bases); 
-  std::sort(s.begin(), s.end());
-  std::vector<std::string> output_s; 
-  do {
-    output_s.push_back(s); 
-  } while (std::next_permutation(s.begin(), s.end()));
-  return Rcpp::wrap(output_s);
-   */
+  return output_s;
+}
+
+// [[Rcpp::export]]
+CharacterVector generate_kmer_perms(int k, const CharacterVector& bases){
+  /* This is my own algorithm, that lexiconographically increments
+   * a string of length k to find all permutations with repetition of 
+   * provided bases. Returns an R CharacterVector of all permutations */
+  std::string input_bases = Rcpp::as<std::string>(bases); 
+  std::vector<std::string> perms = permute_kmers(k, input_bases);
+  return wrap_custom(perms); 
 }
 
 
@@ -117,20 +145,6 @@ std::map<std::string, unsigned long long int> generate_kmer_perm_dict(int k, std
   return output_s; 
 }
 
-List wrap_custom(const std::map<std::string, unsigned long long int> dict){ 
-  std::vector<unsigned long long int> kmer_output;
-  std::vector<std::string> kmer_string;
-  for(auto i = dict.begin(), n = dict.end(); i != n; i++){
-    kmer_string.push_back(i->first); 
-    kmer_output.push_back(i->second); 
-  }
-  return List::create(Named("kmer_string") = kmer_string, 
-                      Named("kmer_value") = kmer_output); 
-}
-
-List wrap_custom(const std::vector<unsigned long long int> v){
-  return List::create(v);
-}
 
 std::map<std::string, unsigned long long int> make_kmer_paired_list(
     const std::string& x, int kmer, bool drop_n = false, 
@@ -161,11 +175,30 @@ bool is_valid_dna_string(T dna){
   return dna.size() > 0 ? true : false; 
 }
 
+std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_index(
+  std::map<std::string, unsigned long long int> x, 
+  int k,
+  int index) {
+    std::map<unsigned long long int, unsigned long long int> output_dict;
+    auto perms_dict = generate_kmer_perm_dict(k);
+    for(auto i = perms_dict.begin(), n = perms_dict.end(); i != n; i++){
+      i->second = index; 
+      index++;
+    }
+    for(auto i = x.begin(), n = x.end(); i != n; i++) {
+      unsigned long long int key_as_index = perms_dict[i->first]; 
+      output_dict[key_as_index] = i->second;
+    }
+    return output_dict;
+  }
+
 // [[Rcpp::export]]
 List kmers_pointed(const CharacterVector& x, int kmer = 3, 
                    bool simplify = false, 
                    bool anchor = true, 
-                   bool clean_up = true) {
+                   bool clean_up = true,
+                   bool key_as_int = false,
+                   bool starting_index = 0) {
   // "Public" function that returns an R list of kmers. By default this is anchored
   // with all possible kmers (if none recorded in genome then = 0). If anchor=false
   // then currently behaves identically to kmers()
@@ -176,6 +209,11 @@ List kmers_pointed(const CharacterVector& x, int kmer = 3,
   std::string dna_string = as<std::string>(x); 
   if (!is_valid_dna_string(dna_string)) return List(); 
 
+  if (key_as_int) {
+    auto string_key = make_kmer_paired_list(dna_string, kmer, clean_up);
+    auto int_key = convert_kmer_string_to_index(string_key, kmer, starting_index);
+    return wrap_custom(int_key);
+  }
   if (anchor) {
     std::map<std::string, unsigned long long int> mapped = generate_kmer_perm_dict(kmer, "ACTG"); 
     if (simplify) {
@@ -202,4 +240,9 @@ List kmers_pointed(const CharacterVector& x, int kmer = 3,
     }
     return wrap_custom(make_kmer_paired_list(dna_string, kmer, clean_up)); 
   }
+}
+
+// [[Rcpp::export]]
+void kmer_hash_table(const CharacterVector& x, int k, int index = 0){
+
 }
