@@ -198,7 +198,7 @@ List kmers_pointed(const CharacterVector& x, int kmer = 3,
                    bool anchor = true, 
                    bool clean_up = true,
                    bool key_as_int = false,
-                   bool starting_index = 0) {
+                   bool starting_index = 1) {
   // "Public" function that returns an R list of kmers. By default this is anchored
   // with all possible kmers (if none recorded in genome then = 0). If anchor=false
   // then currently behaves identically to kmers()
