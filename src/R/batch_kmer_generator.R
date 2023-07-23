@@ -140,6 +140,13 @@ if (opt$cores > 1) {
           write_sparse_batch(
             output,
             file.path(output_dir, paste0(opt$kmers, "libsvm", i, ".txt")))
+
+          # write meta data separately for libsvm
+          meta_data <- data.frame(genome_id = names(output))
+          write.csv(
+            meta_data,
+            file.path(output_dir, paste0(
+              opt$kmers, "libsvm", i, "_meta_data.csv")))
         }
 
         if ("rdata" %in% save_formats) {
