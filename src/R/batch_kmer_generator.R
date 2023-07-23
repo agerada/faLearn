@@ -102,7 +102,7 @@ convert_to_kmers <- function(x) {
 
 convert_to_int_indexed_kmers <- function(x) {
   verbose_message(paste("Working on", x), opt$verbose)
-  x <- as.character(unlist(clean(Biostrings::readDNAStringSet(x))))
+  x <- as.character(unlist(Biostrings::readDNAStringSet(x)))
 
   kmers_pointed(x,
                 kmer = opt$kmers,

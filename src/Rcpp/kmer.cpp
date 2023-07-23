@@ -186,8 +186,12 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
       index++;
     }
     for(auto i = x.begin(), n = x.end(); i != n; i++) {
-      unsigned long long int key_as_index = perms_dict[i->first]; 
-      output_dict[key_as_index] = i->second;
+      /* drop kmers that are not in permutations
+      (i.e., ones that contain non-ACTG chars) */ 
+      if(perms_dict.find(i->first) != perms_dict.end()) {
+        unsigned long long int key_as_index = perms_dict[i->first]; 
+        output_dict[key_as_index] = i->second;
+      }
     }
     return output_dict;
   }
@@ -206,6 +210,9 @@ List kmers_pointed(const CharacterVector& x, int kmer = 3,
   // associated string. This is useful to save memory, but should always be used
   // with anchor = true. 
   // clean_up deals with missing data ("N") by dropping respective kmers
+  // key_as_int converts the kmer string to an integer starting at starting_index, which
+  // is useful for sparse matrices. 
+  // Note that if key_as_int=T, clean_up is implicit
   std::string dna_string = as<std::string>(x); 
   if (!is_valid_dna_string(dna_string)) return List(); 
 
