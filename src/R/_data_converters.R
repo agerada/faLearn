@@ -68,8 +68,13 @@ load_pre_processed_patric_db <- function(path) {
   )
 }
 
-list_filenames <- function(path, input_format, as_kmer_paths = TRUE) {
+list_filenames <- function(path, input_format, as_kmer_paths = FALSE) {
   # as_kmer_paths returns kmer_paths object
+
+  if (as_kmer_paths) {
+    warning("kmer_paths S3 object is deprecated.
+    Sorting may not work as intended")
+  }
 
   files_list <- list.files(
     path,
@@ -92,6 +97,8 @@ strip_filename <- function(paths, extension) {
 }
 
 sort.kmer_paths <- function(x, decreasing = FALSE) {
+  warning("kmer_paths S3 sorting methods are deprecated.
+  May not work as intended, recommend rename files to 0001_k12_data.txt format")
   extension <- sub(".*\\.(.*?)$", "\\1", x)
   filename_prefix <- as.integer(
     stringr::str_extract(strip_filename(x, extension), "\\d+$"))
@@ -146,4 +153,16 @@ train_test_filesystem <- function(
   out_paths <- normalizePath(file.path(path_to_files, c(train_folder, test_folder)))
   names(out_paths) <- c(train_folder, test_folder)
   return(out_paths)
+}
+
+batch_filename <- function(dir, batch_num, suffix, ext, batch_lead = 4) {
+  # make filename for saving batches
+  # batch_num = integer 
+  # suffix = string descriptor of run, e.g., "k11_meta_data" indicates meta data for
+  # 11-kmer run
+  # batch_lead = including leading zeros, num of "chars" of batch_num, e.g., 
+  # for batch_lead = 4 would result 0001, 0002, etc. 
+  batch_num_with_lead <- sprintf(paste0("%0", batch_lead, "d"), batch_num)
+  path <- file.path(dir, paste0(batch_num_with_lead, suffix, ext))
+  return(path)
 }

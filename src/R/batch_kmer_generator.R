@@ -39,6 +39,8 @@ option_list <- list(
               "Randomly shuffle genomes - useful for test train split with -p")
 )
 
+max_batch_split <- 9999 # filenames break if greater
+
 verbose_message <- function(s, verbosity = FALSE){
   if (verbosity) message(s)
 }
@@ -53,6 +55,10 @@ dirs <- args$args
 input_dir <- dirs[[1]]
 output_dir <- dirs[[2]]
 save_formats <- tolower(unlist(strsplit(opt$formats, split = ",")))
+
+if (opt$split > max_batch_split) {
+  stop(paste("Max number of batches =", max_batch_split))
+}
 
 confirmed_genomes_paths <- list.files(input_dir,
                                       pattern = "\\.fna$", full.names = TRUE)
@@ -139,24 +145,25 @@ if (opt$cores > 1) {
         if ("libsvm" %in% save_formats) {
           write_sparse_batch(
             output,
-            file.path(output_dir, paste0(opt$kmers, "libsvm", i, ".txt")))
+            batch_filename(
+              output_dir, i, paste0("_k", opt$kmers, "_libsvm"), ".txt"))
 
           # write meta data separately for libsvm
           meta_data <- data.frame(genome_id = names(output))
           write.csv(
             meta_data,
-            file.path(output_dir, paste0(
-              opt$kmers, "libsvm", i, "_meta_data.csv")))
+            batch_filename(
+              output_dir, i, paste0("_k", opt$kmers, "_meta_data"), ".csv"))
         }
 
         if ("rdata" %in% save_formats) {
-        save(output, file = file.path(
-          output_dir, paste0(opt$kmers, "_kmer_data", i, ".RData")))
+        save(output, file = batch_filename(
+          output_dir, i, paste0("_k", opt$kmers, "_kmer_data"), ".RData"))
         }
 
         if ("rds" %in% save_formats) {
-          rds_filepath <- file.path(
-            output_dir, paste0(opt$kmers, "_kmer_data", i, ".rds"))
+          rds_filepath <- batch_filename(
+            output_dir, i, paste0("_k", opt$kmers, "_kmer_data"), ".rds")
           verbose_message(paste("Writing rds file to", rds_filepath), opt$verbose)
           saveRDS(output, file = rds_filepath)
         }
@@ -172,7 +179,7 @@ if (opt$cores > 1) {
       non_integer_indexed_formats <- c("rdata", "rds", "csv", "parquet")
       if (any(save_formats %in% non_integer_indexed_formats)) {
         verbose_message(
-          paste("Working on chunk", i, "of", opt$split), 
+          paste("Working on chunk", i, "of", opt$split),
           opt$verbose)
 
         output <- parallel::mclapply(confirmed_genomes_paths_split[[i]],
@@ -181,17 +188,16 @@ if (opt$cores > 1) {
       }
 
       if ("rdata" %in% save_formats) {
-        save(output, file = file.path(
-          output_dir,
-          paste0(opt$kmers, "_kmer_data", i, ".RData")))
+        save(output, file = batch_filename(
+          output_dir, i, paste0("_k", opt$kmers, "_kmer_data"), ".RData"))
       }
 
       if ("rds" %in% save_formats) {
-        saveRDS(output, file = file.path(
-          output_dir, paste0(opt$kmers, "_kmer_data", i, ".rds")))
+        saveRDS(output, file = batch_filename(
+          output_dir, i, paste0("_k", opt$kmers, "_kmer_data"), ".rds"))
       }
 
-      if ("csv" %in% save_formats | "parquet" %in% save_formats) {
+      if ("csv" %in% save_formats || "parquet" %in% save_formats) {
         # further processing required for these formats
         if (!opt$simplify) {
           message("CSV or parquet save without --simplify is not implemented")
@@ -219,16 +225,22 @@ if (opt$cores > 1) {
           if ("parquet" %in% save_formats) {
             backup_kmer_data(
               output,
-              file.path(
-                output_dir, 
-                paste0(opt$kmers, "_kmer_data", i, ".parquet")),
+              batch_filename(
+                output_dir,
+                i,
+                paste0("_k", opt$kmers, "_kmer_data"),
+                ".parquet"),
               file_format = "parquet")
           }
 
           if ("csv" %in% save_formats) {
             backup_kmer_data(
               output,
-              file.path(output_dir, paste0(opt$kmers, "_kmer_data", i, ".csv")),
+              batch_filename(
+                output_dir,
+                i,
+                paste0("_k", opt$kmers, "_kmer_data"),
+                ".csv"),
               overwrite = TRUE)
           }
 
@@ -250,9 +262,8 @@ if (opt$cores > 1) {
         output <- pbapply::pblapply(confirmed_genomes_paths_split[[i]],
                           convert_to_kmers, cl = cl)
         names(output) <- confirmed_genomes_ids_split[[i]]
-        save(output, file = file.path(output_dir,
-                                    paste0(opt$kmers,
-                                    "_kmer_data", i, ".RData")))
+        save(output, file = batch_filename(
+          output_dir, i, paste0("_k", opt$kmers, "_kmer_data"), ".RData"))
         remove(output)
       }
       snow::stopCluster(cl)
@@ -262,8 +273,8 @@ if (opt$cores > 1) {
       verbose_message(paste("Working on chunk", i, "of", opt$split), opt$verbose)
       output <- lapply(confirmed_genomes_paths_split[[i]], convert_to_kmers)
       names(output) <- confirmed_genomes_ids_split[[i]]
-      save(output, file = file.path(output_dir,
-                                  paste0(opt$kmers, "_kmer_data", i, ".RData")))
+      save(output, file = batch_filename(
+        output_dir, i, paste0("_k", opt$kmers, "_kmer_data"), ".RData"))
       remove(output)
   }
 }
