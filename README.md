@@ -14,6 +14,7 @@ Install the following conda-forge packages:
 Install the following bioconda packages:
 
 * jellyfish
+* prokka
 
 Run install_r_dependencies.R
 
