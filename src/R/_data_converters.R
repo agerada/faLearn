@@ -44,6 +44,9 @@ write_sparse_batch <- function(x, file_path, labels = NULL, overwrite = TRUE) {
     }
   }
   file_conn <- file(file_path, open = "a")
+  if (is.null(labels)) {
+    labels <- rep(0, length(x))
+  }
   for (i in seq_along(x)) {
     features <- paste0(x[[i]]$kmer_index, ":", x[[i]]$kmer_value)
     features <- paste(features, collapse = " ")

@@ -6,24 +6,55 @@ library(AMR)
 source("src/R/_xgboost_training_helpers.R")
 source("src/R/_data_converters.R")
 
-database_path <- "/volatile/agerada/molecularMIC/db_backups/esco_all.csv"
+database_path <- "~/combined.csv"
 #kmers_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_mic/11/rds"
-kmers_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_mic/10/rds"
-libsvm_out_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_mic/11/libsvm_gent_mic/"
+#kmers_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_mic/10/rds"
+kmers_path <- "/volatile/agerada/molecularMIC/kmers/adapt/11/libsvm/data"
+meta_data_path <- "/volatile/agerada/molecularMIC/kmers/adapt/11/libsvm/meta_data"
+#libsvm_out_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_mic/11/libsvm_gent_mic/"
 #libsvm_out_path <- "/volatile/agerada/molecularMIC/kmers/e_coli_mic/10/libsvm/"
-model_save_path <- "/volatile/agerada/molecularMIC/models/e_coli/11_e_coli_mic_gent_log2.model"
+#model_save_path <- "/volatile/agerada/molecularMIC/models/e_coli/11_e_coli_mic_gent_log2.model"
 #model_save_path <- "/volatile/agerada/molecularMIC/models/e_coli/10_e_coli_mic_gent_binary.model"
-abx <- "gentamicin"
+
+sens <- read_csv(database_path, col_types = cols(.default = "c"))
+
+abx <- "ciprofloxacin"
 model_type <- "mic"
-kmers_format <- "rds"
+kmers_format <- "txt"
 train_test_split <- 0.8
 cores <- 56
 train <- FALSE
 process_files <- FALSE
-patric_db <- load_pre_processed_patric_db(database_path)
+#patric_db <- load_pre_processed_patric_db(database_path)
 
 kmers_filepaths <- list_filenames(kmers_path, kmers_format)
 kmers_filepaths <- sort(kmers_filepaths)
+features <- xgb.DMatrix(kmers_path)
+meta_data <- read_csv(list.files(meta_data_path, ".csv", full.names = TRUE), col_types = cols(.default = "c"))
+meta_data <- meta_data %>%
+    mutate(genome_id = str_remove(genome_id, ".scaffolds|_2.scaffolds")) %>%
+    mutate(genome_id = str_extract(genome_id, "(?<=_)[A-Z]+\\d+"))
+
+train_slices <- 1:(0.8 * nrow(features))
+test_slices <- (nrow(train) + 1) : nrow(features)
+train <- slice(features, train_slices)
+test <- slice(features, test_slices)
+train_ids <- meta_data$genome_id[train_slices]
+test_ids <- meta_data$genome_id[test_slices]
+
+sens_train <- data.frame(research_code = train_ids) %>%
+    left_join(sens)
+
+sens_test <- data.frame(research_code = test_ids) %>%
+    left_join(sens)
+
+train <- slice(train, !is.na(sens_train$research_code))
+test <- slice(test, !is.na(sens_test$research_code))
+
+mic_cip_train <- as.mic(sens_train$MIC_ciprofloxacin)
+mic_cip_train <- as.sir(mic_cip_train, mo = as.mo("E. cli"))
+
+setinfo(train, 'label', )
 
 get_phenotype <- function(id, database, ab, value = "resistant_phenotype") {
     pheno_index <- database$genome_id == id & database$antibiotic == ab
