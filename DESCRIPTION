@@ -1,12 +1,12 @@
 Package: molMIC
-Title: What the Package Does (One Line, Title Case)
+Title: Perform MIC predictions using assembled genomes
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6743-4271"))
+Description: Make phenotypic MIC predictions using assembled bacterial genomes. Package contains helper functions to collect genomes from PATRIC database and analyse results.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
-Imports: glue, readr
+Imports: glue, readr, dplyr
