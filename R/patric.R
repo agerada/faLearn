@@ -23,6 +23,14 @@ load_patric_db <- function(
   patric_db
 }
 
+#' Save PATRIC database locally
+#'
+#' @param save_path Save path (should be .txt)
+#' @param ftp_path PATRIC database FTP path to download
+#' @param overwrite Force overwrite
+#'
+#' @export
+#'
 save_patric_db <- function(save_path,
                            ftp_path = patric_ftp_path,
                            overwrite = FALSE) {
@@ -39,6 +47,15 @@ save_patric_db <- function(save_path,
   if (return_val != 0) warning("Non-zero return value on file download")
 }
 
+#' Automated download of genomes from PATRIC database
+#'
+#' @param database local or ftp path to PATRIC database, or loaded database using load__patric_db()
+#' @param taxonomic_name character of taxonomic bacterial name to download
+#' @param filter "MIC" or "disk" or "all" phenotypes
+#' @param output_directory local directory to save to
+#' @param n_genomes number of genomes (0 = all)
+#'
+#' @export
 pull_PATRIC_genomes <- function(database = patric_ftp_path,
                                 taxonomic_name,
                                 filter = "MIC",

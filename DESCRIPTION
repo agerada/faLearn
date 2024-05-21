@@ -9,4 +9,17 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
-Imports: glue, readr, dplyr
+Imports: 
+    glue,
+    readr,
+    dplyr,
+    Rcpp,
+    data.table
+Depends: 
+    R (>= 2.10)
+LazyData: true
+LinkingTo: 
+    Rcpp
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
