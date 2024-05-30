@@ -17,15 +17,18 @@ option_list <- list(
               help = "Include unobserved permutations"),
   optparse::make_option(c("-s", "--simplify"), action = "store_true", default = FALSE,
               help = "Store only the kmer counts (key: value -> value)"),
-  optparse::make_option(c("-d", "--drop_n"), action = "store_true", default = FALSE,
+  optparse::make_option(c("-d", "--drop_n"), action = "store_true", default = TRUE,
               help = "Drop kmers that have N [default false]"),
   optparse::make_option(c("-f", "--formats"), type = "character",
-              default = "RData",
+              default = "libsvm",
               help =
                 "Comma-separated list of formats to export, currently support:
               csv libsvm rds rdata parquet"),
   optparse::make_option(c("-i", "--integer_index"), action = "store_true",
-              default = FALSE, help = "Force integer index"),
+              default = TRUE, help = "Force integer index"),
+  optparse::make_option("--starting_index", type = "integer",
+                        default = 1,
+                        help = "Starting integer index, if integer_index TRUE"),
   optparse::make_option(c("-r", "--random_shuffle"), action = "store_true",
               default = FALSE,
               help =

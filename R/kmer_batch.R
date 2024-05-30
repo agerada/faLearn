@@ -52,7 +52,7 @@ genomes_to_kmer_dataset <- function(input_dir,
                               anchor = FALSE,
                               simplify = FALSE,
                               drop_n = TRUE,
-                              integer_index = FALSE,
+                              integer_index = TRUE,
                               starting_index = 1,
                               random_shuffle = FALSE,
                               formats = "libsvm") {
