@@ -13,7 +13,8 @@ genome_to_kmers <- function(x,
                              simplify =T,
                              anchor= T,
                              drop_n=T,
-                             integer_index = F) {
+                             integer_index = F,
+                            starting_index = 1) {
   message(paste("Working on", x))
   x <- flat_stringset(x)
   kmers(x,
@@ -21,9 +22,27 @@ genome_to_kmers <- function(x,
         anchor = anchor,
         simplify = simplify,
         clean_up = drop_n,
-        key_as_int = integer_index)
+        key_as_int = integer_index,
+        starting_index = starting_index)
 }
 
+#' Convert genomes to kmer dataset
+#'
+#' @param input_dir directory containing .fna files
+#' @param output_dir directory to store output
+#' @param cores number of cores for parallel processing (1 for sequential)
+#' @param kmers kmer length
+#' @param n_genomes number of genomes to process (default all)
+#' @param split split disk storage of dataset into multiple files
+#' @param anchor kmer algorithm parameter (see ?molMIC::kmers)
+#' @param simplify kmer algorithm parameter (see ?molMIC::kmers)
+#' @param drop_n kmer algorithm parameter (see ?molMIC::kmers)
+#' @param integer_index kmer algorithm parameter (see ?molMIC::kmers)
+#' @param starting_index kmer algorithm parameter (see ?molMIC::kmers)
+#' @param random_shuffle randomise dataset
+#' @param formats character vector of formats. Supports libsvm (default), parquet, csv, rds, rdata.
+#'
+#' @export
 genomes_to_kmer_dataset <- function(input_dir,
                               output_dir,
                               cores = 1,
@@ -34,12 +53,17 @@ genomes_to_kmer_dataset <- function(input_dir,
                               simplify = FALSE,
                               drop_n = TRUE,
                               integer_index = FALSE,
+                              starting_index = 1,
                               random_shuffle = FALSE,
                               formats = "libsvm") {
   formats <- tolower(formats)
   if ("libsvm" %in% formats & !integer_index) {
     stop("libsvm format only support integer-indexed features,
          set using integer_index")
+  }
+  if ("parquet" %in% formats & !anchor) {
+    warning("Parquet format is dense, only compatible with anchor = TRUE")
+    return()
   }
 
   if (split > max_batch_split) {
@@ -65,7 +89,8 @@ genomes_to_kmer_dataset <- function(input_dir,
                        simplify = simplify,
                        anchor= anchor,
                        drop_n=drop_n,
-                       integer_index = integer_index)
+                       integer_index = integer_index,
+                       starting_index = starting_index)
     }
 
     if (cores > 1 & Sys.info()["sysname"] != "Windows") {
@@ -76,6 +101,7 @@ genomes_to_kmer_dataset <- function(input_dir,
                                    anchor= anchor,
                                    drop_n=drop_n,
                                    integer_index = integer_index,
+                                   starting_index = starting_index,
                                    mc.cores = cores)
     }
 
@@ -90,7 +116,13 @@ genomes_to_kmer_dataset <- function(input_dir,
       for (i in seq_along(split_genome_paths)) {
         message(paste("Working on chunk", i, "of", split))
         output <- pbapply::pblapply(split_genome_paths[[i]],
-                                    convert_to_kmers, cl = cl)
+                                    genome_to_kmers, cl = cl,
+                                    kmers = kmers,
+                                    simplify = simplify,
+                                    anchor= anchor,
+                                    drop_n=drop_n,
+                                    integer_index = integer_index,
+                                    starting_index = starting_index)
       }
     }
     names(output) <- split_genome_ids[[i]]
@@ -113,7 +145,7 @@ genomes_to_kmer_dataset <- function(input_dir,
           output_dir, i, paste0("_k", kmers, "_libsvm"), ".txt"))
 
       meta_data <- data.frame(genome_id = names(output))
-      write.csv(
+      utils::write.csv(
         meta_data,
         batch_filename(
           output_dir, i, paste0("_k", kmers, "_meta_data"), ".csv"))

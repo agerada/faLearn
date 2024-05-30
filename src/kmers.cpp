@@ -122,9 +122,12 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 //'
 //' @param x genome in string format
 //' @param k kmer length
-//' @param simplify returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true
-//'
-//' @return list of kmer values
+//' @param simplify returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.
+//' @param anchor includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.
+//' @param clean_up only include valid bases (ACTG) in kmer counts (excludes non-coding results such as N)
+//' @param key_as_int return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.
+//' @param starting_index the starting index, only used if key_as_int = TRUE.
+//' @return list of kmer values, either as a list of a single vector (if simplify = TRUE), or as a named list containing "kmer_string" and "kmer_value".
 // [[Rcpp::export]]
 List kmers(const CharacterVector& x,
           int k = 3,

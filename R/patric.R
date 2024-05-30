@@ -8,7 +8,9 @@ patric_ftp_path <- "ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' patric_db <- load_patric_db()
+#' }
 load_patric_db <- function(
     path = patric_ftp_path) {
   if (!endsWith(path, ".txt")) {

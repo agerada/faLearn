@@ -16,5 +16,7 @@ PATRIC database (S3 class 'patric_db')
 Load PATRIC database
 }
 \examples{
+\dontrun{
 patric_db <- load_patric_db()
+}
 }

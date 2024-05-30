@@ -62,9 +62,10 @@ write_non_sparse_batch <- function(
   writing_function <- switch(
     file_format,
     csv = function(x, path) {
-      write.csv(x, path, row.names = FALSE)
+      utils::write.csv(x, path, row.names = FALSE)
     },
     parquet = function(x, path) {
+      rlang::check_installed("arrow", "Writing parquet format needs arrow library")
       arrow::write_parquet(x, path)
     }
   )
