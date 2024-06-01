@@ -1,0 +1,24 @@
+{
+    "id": "5B6D11ED",
+    "path": "~/code/molecularMIC/src/R/kmer.R",
+    "project_path": "src/R/kmer.R",
+    "type": "r_source",
+    "hash": "454021575",
+    "contents": "",
+    "dirty": false,
+    "created": 1715776712797.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1715264164,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1715264164,
+    "read_only": false,
+    "read_only_alternatives": []
+}

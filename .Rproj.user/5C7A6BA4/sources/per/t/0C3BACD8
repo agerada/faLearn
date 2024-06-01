@@ -1,0 +1,26 @@
+{
+    "id": "0C3BACD8",
+    "path": "~/code/molecularMIC/src/R/boost.R",
+    "project_path": "src/R/boost.R",
+    "type": "r_source",
+    "hash": "3549476033",
+    "contents": "",
+    "dirty": false,
+    "created": 1717064696812.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "19,33",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1715264164,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1715264164,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -1,0 +1,7 @@
+install.packages('devtools')
+library(devtools)
+create_package()
+create_package("~/code/molMIC")
+library(molMIC)
+library(molMIC)
+library(molMIC)

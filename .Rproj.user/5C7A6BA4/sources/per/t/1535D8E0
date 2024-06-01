@@ -1,0 +1,24 @@
+{
+    "id": "1535D8E0",
+    "path": "~/code/molecularMIC/src/R/install_r_dependencies.R",
+    "project_path": "src/R/install_r_dependencies.R",
+    "type": "r_source",
+    "hash": "2737016659",
+    "contents": "",
+    "dirty": false,
+    "created": 1715776718262.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1715264164,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1715264164,
+    "read_only": false,
+    "read_only_alternatives": []
+}
