@@ -30,7 +30,7 @@ option_list <- list(
                         default = 1,
                         help = "Starting integer index, if integer_index TRUE"),
   optparse::make_option(c("-r", "--random_shuffle"), action = "store_true",
-              default = FALSE,
+              default = TRUE,
               help =
                 "Randomly shuffle genomes - useful for test train split with -p")
 )

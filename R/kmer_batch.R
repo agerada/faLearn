@@ -54,7 +54,7 @@ genomes_to_kmer_dataset <- function(input_dir,
                               drop_n = TRUE,
                               integer_index = TRUE,
                               starting_index = 1,
-                              random_shuffle = FALSE,
+                              random_shuffle = TRUE,
                               formats = "libsvm") {
   formats <- tolower(formats)
   if ("libsvm" %in% formats & !integer_index) {
@@ -192,3 +192,5 @@ genomes_to_kmer_dataset <- function(input_dir,
     }
   }
 }
+
+

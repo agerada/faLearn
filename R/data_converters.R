@@ -124,3 +124,55 @@ split_paths <- function(paths, split) {
   })
   return(confirmed_genomes_paths_split)
 }
+
+train_test_filesystem <- function(path_to_files,
+                                  file_ext,
+                                  split = 0.8,
+                                  train_folder = "train",
+                                  test_folder = "test") {
+  file_ext <- gsub("^\\.", "", file_ext)
+  libsvm_filepaths <- list.files(path_to_files,
+                                 pattern = paste0("*.", file_ext),
+                                 full.names = TRUE,
+                                 ignore.case = TRUE)
+
+  if (
+    length(libsvm_filepaths) == 0 &&
+    dir.exists(file.path(path_to_files, train_folder)) &&
+    dir.exists(file.path(path_to_files, test_folder))) {
+    message("files already appear to be in train test subdirectories")
+    out_paths <- normalizePath(file.path(path_to_files, c(train_folder, test_folder)))
+    names(out_paths) <- c(train_folder, test_folder)
+    return(out_paths)
+  }
+
+  libsvm_filepaths <- sort(libsvm_filepaths)
+
+  dir.create(file.path(path_to_files, train_folder))
+  dir.create(file.path(path_to_files, test_folder))
+
+  splitting_index <- split * length(libsvm_filepaths)
+  train_libsvm_paths <- head(libsvm_filepaths, splitting_index)
+  test_libsvm_paths <- tail(libsvm_filepaths, length(libsvm_filepaths) - splitting_index)
+
+  target_ext <- paste0(".", file_ext)
+
+  file.rename(
+    from = train_libsvm_paths,
+    to = file.path(
+      path_to_files,
+      train_folder,
+      paste0(strip_filename(train_libsvm_paths, file_ext), target_ext)))
+
+  file.rename(
+    from = test_libsvm_paths,
+    to = file.path(
+      path_to_files,
+      test_folder,
+      paste0(strip_filename(test_libsvm_paths, file_ext), target_ext)))
+
+  out_paths <- normalizePath(file.path(path_to_files, c(train_folder, test_folder)))
+  names(out_paths) <- c(train_folder, test_folder)
+  return(out_paths)
+}
+
