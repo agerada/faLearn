@@ -14,9 +14,9 @@ genomes_to_kmer_dataset(
   anchor = FALSE,
   simplify = FALSE,
   drop_n = TRUE,
-  integer_index = FALSE,
+  integer_index = TRUE,
   starting_index = 1,
-  random_shuffle = FALSE,
+  random_shuffle = TRUE,
   formats = "libsvm"
 )
 }

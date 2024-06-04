@@ -29,5 +29,6 @@ LinkingTo:
 Suggests: 
     testthat (>= 3.0.0),
     snow,
-    xgboost
+    xgboost,
+    AMR
 Config/testthat/edition: 3

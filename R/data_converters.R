@@ -129,7 +129,8 @@ train_test_filesystem <- function(path_to_files,
                                   file_ext,
                                   split = 0.8,
                                   train_folder = "train",
-                                  test_folder = "test") {
+                                  test_folder = "test",
+                                  overwrite = FALSE) {
   file_ext <- gsub("^\\.", "", file_ext)
   libsvm_filepaths <- list.files(path_to_files,
                                  pattern = paste0("*.", file_ext),
@@ -152,27 +153,88 @@ train_test_filesystem <- function(path_to_files,
   dir.create(file.path(path_to_files, test_folder))
 
   splitting_index <- split * length(libsvm_filepaths)
-  train_libsvm_paths <- head(libsvm_filepaths, splitting_index)
-  test_libsvm_paths <- tail(libsvm_filepaths, length(libsvm_filepaths) - splitting_index)
+  train_libsvm_paths <- utils::head(libsvm_filepaths, splitting_index)
+  test_libsvm_paths <- utils::tail(libsvm_filepaths, length(libsvm_filepaths) - splitting_index)
 
   target_ext <- paste0(".", file_ext)
 
+  target_train_paths <- file.path(
+    path_to_files,
+    train_folder,
+    basename(train_libsvm_paths))
+
+  target_test_paths <- file.path(
+    path_to_files,
+    test_folder,
+    basename(test_libsvm_paths))
+
+  if (any(file.exists(target_train_paths)) | any(file.exists(target_test_paths))) {
+    message("The following target paths already exist:")
+    sapply(c(target_train_paths[file.exists(target_train_paths)],
+             target_test_paths[file.exists(target_test_paths)]),
+           message)
+    if (!overwrite) {
+      stop("Aborting, force using overwrite = TRUE")
+    }
+  }
+
   file.rename(
     from = train_libsvm_paths,
-    to = file.path(
-      path_to_files,
-      train_folder,
-      paste0(strip_filename(train_libsvm_paths, file_ext), target_ext)))
+    to = target_train_paths)
 
   file.rename(
     from = test_libsvm_paths,
-    to = file.path(
-      path_to_files,
-      test_folder,
-      paste0(strip_filename(test_libsvm_paths, file_ext), target_ext)))
+    to = target_test_paths)
 
   out_paths <- normalizePath(file.path(path_to_files, c(train_folder, test_folder)))
   names(out_paths) <- c(train_folder, test_folder)
   return(out_paths)
 }
 
+combined_file_system <- function(path_to_folders,
+                                 file_ext,
+                                 train_folder = "train",
+                                 test_folder = "test",
+                                 overwrite = FALSE) {
+  file_ext <- gsub("^\\.", "", file_ext)
+  train_files <- list.files(file.path(path_to_folders, train_folder),
+                            pattern = paste0("*.", file_ext),
+                            full.names = TRUE,
+                            ignore.case = TRUE)
+  test_files <- list.files(file.path(path_to_folders, test_folder),
+                           pattern = paste0("*.", file_ext),
+                           full.names = TRUE,
+                           ignore.case = TRUE)
+  if (length(train_folder) == 0) {
+    warning("No files found in train folder.")
+  }
+  if (length(test_folder) == 0) {
+    warning("No files found in test folder.")
+  }
+
+  target_train_paths <- file.path(
+    path_to_folders,
+    basename(train_files))
+
+  target_test_paths <- file.path(
+    path_to_folders,
+    basename(test_files))
+
+  if (any(file.exists(target_train_paths)) | any(file.exists(target_test_paths))) {
+    message("The following target paths already exist:")
+    sapply(c(target_train_paths[file.exists(target_train_paths)],
+             target_test_paths[file.exists(target_test_paths)]),
+           message)
+    if (!overwrite) {
+      stop("Aborting, force using overwrite = TRUE")
+    }
+  }
+
+  file.rename(
+    from = train_files,
+    to = target_train_paths)
+
+  file.rename(
+    from = test_files,
+    to = target_test_paths)
+}
