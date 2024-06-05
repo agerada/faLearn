@@ -20,3 +20,8 @@ NULL
 #' @importFrom data.table .EACHI
 ## usethis namespace: end
 NULL
+
+## usethis namespace: start
+#' @importFrom rlang .data
+## usethis namespace: end
+NULL

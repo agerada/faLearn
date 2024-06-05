@@ -123,3 +123,75 @@ pull_PATRIC_genomes <- function(database = patric_ftp_path,
     i <- i + 1
   }
 }
+
+#' Tidy PATRIC data
+#'
+#' @param x PATRIC database loaded using molMIC::load_patric_db
+#' @param prefer_more_resistant High MICs, narrow zones, or resistant phenotypes
+#' will be preferred where multiple reported for the same isolate
+#' @param as_ab convert antibiotics to AMR::ab class (column names are antibiotic
+#' codes)
+#' @param filter_abx filter antibiotics of interest, provided as a vector of
+#' antibiotics character names/codes, or ideally, as AMR::ab classes, created
+#' using AMR::as.ab
+#'
+#' @return Tidy data, with antimicrobials in wide format, column names describing
+#' methodology ("mic_", "disk_", "pheno_")
+#' @export
+tidy_patric_meta_data <- function(x,
+                                  prefer_more_resistant = TRUE,
+                                  as_ab = TRUE,
+                                  filter_abx = NULL) {
+  if (!inherits(x, "patric_db")) {
+    stop("Please load data using molMIC::load_patric_db()")
+  }
+
+  if (isTRUE(as_ab) | !is.null(filter_abx)) {
+    rlang::check_installed("AMR", "Antibiotic-specific arguments need AMR package")
+  }
+
+  if (as_ab) {
+    x$antibiotic <- AMR::as.ab(x$antibiotic)
+  }
+
+  if (!is.null(filter_abx)) {
+    filter_abx <- AMR::as.ab(filter_abx)
+    x <- dplyr::filter(x, .data[["antibiotic"]] %in% filter_abx)
+  }
+
+  aggregate_mic <- list(which.min, which.max)
+  mic_data <- x |>
+    dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Agar dilution", "Broth dilution")) |>
+    dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
+    dplyr::group_by(.data[["genome_id"]], .data[["antibiotic"]]) |>
+    dplyr::slice(aggregate_mic[[prefer_more_resistant + 1]](.data[["measurement"]])) |>
+    tidyr::pivot_wider(id_cols = c(.data[["genome_id"]], .data[["genome_name"]]),
+                names_from = .data[["antibiotic"]],
+                values_from = .data[["measurement"]],
+                names_prefix = "mic_")
+
+  aggregate_disk <- list(which.max, which.min)
+  disk_data <- x |>
+    dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Disk diffusion")) |>
+    dplyr::mutate(measurement = AMR::as.disk(.data[["measurement"]])) |>
+    dplyr::group_by(.data[["genome_id"]], .data[["antibiotic"]]) |>
+    dplyr::slice(aggregate_disk[[prefer_more_resistant + 1]](.data[["measurement"]])) |>
+    tidyr::pivot_wider(id_cols = c(.data[["genome_id"]], .data[["genome_name"]]),
+                       names_from = .data[["antibiotic"]],
+                       values_from = .data[["measurement"]],
+                       names_prefix = "disk_")
+  output <- dplyr::full_join(mic_data, disk_data, by = c("genome_id", "genome_name"))
+
+  aggregate_sir <- list(which.min, which.max)
+  pheno_data <- x |>
+    dplyr::filter(!is.na(.data[["resistant_phenotype"]])) |>
+    dplyr::mutate(resistant_phenotype = AMR::as.sir(.data[["resistant_phenotype"]])) |>
+    dplyr::group_by(.data[["genome_id"]], .data[["antibiotic"]]) |>
+    dplyr::slice(aggregate_sir[[prefer_more_resistant + 1]](.data[["resistant_phenotype"]])) |>
+    tidyr::pivot_wider(id_cols = c(.data[["genome_id"]], .data[["genome_name"]]),
+                       names_from = .data[["antibiotic"]],
+                       values_from = .data[["resistant_phenotype"]],
+                       names_prefix = "pheno_")
+
+  dplyr::full_join(output, pheno_data, by = c("genome_id", "genome_name"))
+}

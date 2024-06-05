@@ -125,6 +125,19 @@ split_paths <- function(paths, split) {
   return(confirmed_genomes_paths_split)
 }
 
+#' Organise files into a train-test filesystem
+#'
+#' @param path_to_files directory containing files
+#' @param file_ext file extension to filter
+#' @param split training data split
+#' @param train_folder name of training folder (subdirectory), will be created
+#' if does not exist
+#' @param test_folder name of testing folder (subdirectory), will be created
+#' if does not exist
+#' @param overwrite force overwrite of files that already exist
+#'
+#' @return named vector of train and test directories
+#' @export
 train_test_filesystem <- function(path_to_files,
                                   file_ext,
                                   split = 0.8,
@@ -191,6 +204,16 @@ train_test_filesystem <- function(path_to_files,
   return(out_paths)
 }
 
+#' Combine train and test filesystem into single folder
+#'
+#' @param path_to_folders path containing test and train folders; files will be
+#' moved here
+#' @param file_ext file extension to filter
+#' @param train_folder train folder subdirectory name
+#' @param test_folder test folder subdirectory name
+#' @param overwrite force overwrite of files that already exist
+#'
+#' @export
 combined_file_system <- function(path_to_folders,
                                  file_ext,
                                  train_folder = "train",
@@ -237,4 +260,5 @@ combined_file_system <- function(path_to_folders,
   file.rename(
     from = test_files,
     to = target_test_paths)
+  return(NULL)
 }
