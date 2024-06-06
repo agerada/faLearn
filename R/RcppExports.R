@@ -15,3 +15,7 @@ kmers <- function(x, k = 3L, simplify = FALSE, anchor = TRUE, clean_up = TRUE, k
     .Call(`_molMIC_kmers`, x, k, simplify, anchor, clean_up, key_as_int, starting_index)
 }
 
+kmers_to_libsvm <- function(x, target_path, label = as.character( c(0)), k = 3L) {
+    .Call(`_molMIC_kmers_to_libsvm`, x, target_path, label, k)
+}
+

@@ -27,9 +27,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// kmers_to_libsvm
+bool kmers_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k);
+RcppExport SEXP _molMIC_kmers_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const CharacterVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const CharacterVector& >::type target_path(target_pathSEXP);
+    Rcpp::traits::input_parameter< const CharacterVector& >::type label(labelSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(kmers_to_libsvm(x, target_path, label, k));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_molMIC_kmers", (DL_FUNC) &_molMIC_kmers, 7},
+    {"_molMIC_kmers_to_libsvm", (DL_FUNC) &_molMIC_kmers_to_libsvm, 4},
     {NULL, NULL, 0}
 };
 
