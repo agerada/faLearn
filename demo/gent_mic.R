@@ -31,3 +31,29 @@ gent_model <- xgb.train(data = train,
 predictions <- 2 ** predict(gent_model, test)
 test_mics <- get_mic(tidy_meta, test_ids$genome_id, "genome_id", "mic_GEN")
 predictions[is.na(test_mics)] <- NA
+
+
+# binary
+
+labels <- get_mic(tidy_meta, train_ids$genome_id, "genome_id", "mic_GEN") |>
+  as.sir(mo = "Escherichia coli", ab = "GEN")
+labels <- ifelse(labels == "S", 0,
+                 ifelse(labels == "R", 1,
+                        labels))
+weights <- ifelse(is.na(labels), 0, 1)
+labels[is.na(labels)] <- 0
+xgboost::setinfo(train, "label", labels)
+xgboost::setinfo(train, "weight", weights)
+
+gent_model <- xgb.train(data = train,
+                        nrounds = 100,
+                        nthread = 9,
+                        max.depth = 6,
+                        eta = 0.3)
+predictions <- predict(gent_model, test)
+test_disks <- get_mic(tidy_meta, test_ids$genome_id, "genome_id", "mic_GEN") |>
+  as.sir(mo = "Escherichia coli", ab = "GEN")
+test_disks <- ifelse(test_disks == "S", 0,
+                 ifelse(test_disks == "R", 1,
+                        test_disks))
+predictions[is.na(test_disks)] <- NA
