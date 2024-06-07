@@ -184,22 +184,22 @@ List kmers(const CharacterVector& x,
  }
 }
 
-// [[Rcpp::export]]
-bool kmers_to_libsvm(const CharacterVector &x,
-                    const CharacterVector &target_path,
-                    const CharacterVector &label = CharacterVector::create(0),
-                    int k = 3) {
-  std::string dna_string = as<std::string>(x);
-  std::ofstream file;
-  std::string path = as<std::string>(target_path);
-  file.open(path);
-  file << as<std::string>(label) << " ";
-  auto string_key = make_kmer_paired_list(dna_string, k, true);
-  auto int_key = convert_kmer_string_to_index(string_key, k, 1);
-  for (auto const& i : int_key) {
-    file << i.first << ": " << i.second << " ";
-  }
-  file << std::endl;
-  file.close();
-  return true;
-}
+// // [[Rcpp::export]]
+// bool kmers_to_libsvm(const CharacterVector &x,
+//                     const CharacterVector &target_path,
+//                     const CharacterVector &label = CharacterVector::create(0),
+//                     int k = 3) {
+//   std::string dna_string = as<std::string>(x);
+//   std::ofstream file;
+//   std::string path = as<std::string>(target_path);
+//   file.open(path);
+//   file << as<std::string>(label) << " ";
+//   auto string_key = make_kmer_paired_list(dna_string, k, true);
+//   auto int_key = convert_kmer_string_to_index(string_key, k, 1);
+//   for (auto const& i : int_key) {
+//     file << i.first << ": " << i.second << " ";
+//   }
+//   file << std::endl;
+//   file.close();
+//   return true;
+// }
