@@ -196,12 +196,22 @@ genomes_to_kmer_dataset <- function(input_dir,
 genomes_to_kmer_libsvm <- function(source_dir,
                                    target_dir,
                                    k = 3,
-                                   ext = ".fna") {
+                                   ext = ".fna",
+                                   cores = 1) {
   ext <- gsub("^\\.", "", ext)
   genome_paths <- list.files(source_dir,
                              pattern = paste0("*.", ext),
                              full.names = TRUE,
                              ignore.case = TRUE)
+  if (cores > 1) {
+    parallel::mclapply(genome_paths, \(x) {
+      kmers_to_libsvm(flat_stringset(x),
+                      file.path(target_dir,
+                                paste0(strip_filename(x), ".txt")),
+                      k = k)
+    })
+    return(NULL)
+  }
   lapply(genome_paths, \(x) {
     kmers_to_libsvm(flat_stringset(x),
                    file.path(target_dir,
