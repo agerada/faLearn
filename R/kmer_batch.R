@@ -207,6 +207,9 @@ genomes_to_kmer_libsvm <- function(source_dir,
                                    k = 3,
                                    ext = ".fna",
                                    cores = 1) {
+  if (!dir.exists(target_dir)) {
+    dir.create(target_dir)
+  }
   ext <- gsub("^\\.", "", ext)
   genome_paths <- list.files(source_dir,
                              pattern = paste0("*.", ext),
@@ -230,4 +233,5 @@ genomes_to_kmer_libsvm <- function(source_dir,
                    k = k)
     p()
   })
+  return(NULL)
 }
