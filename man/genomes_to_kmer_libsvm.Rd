@@ -4,7 +4,7 @@
 \alias{genomes_to_kmer_libsvm}
 \title{Convert genomes to kmers (libsvm format)}
 \usage{
-genomes_to_kmer_libsvm(source_dir, target_dir, k = 3, ext = ".fna", cores = 1)
+genomes_to_kmer_libsvm(source_dir, target_dir, k = 3, ext = ".fna")
 }
 \arguments{
 \item{source_dir}{directory containing genomes}
@@ -14,8 +14,6 @@ genomes_to_kmer_libsvm(source_dir, target_dir, k = 3, ext = ".fna", cores = 1)
 \item{k}{kmer count}
 
 \item{ext}{file extension to filter}
-
-\item{cores}{number of parallel cores}
 }
 \description{
 Convert genomes to kmers (libsvm format)

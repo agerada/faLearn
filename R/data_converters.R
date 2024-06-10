@@ -262,3 +262,38 @@ combined_file_system <- function(path_to_folders,
     to = target_test_paths)
   return(NULL)
 }
+
+#' Move or copy files using logical vector
+#'
+#' @param source_dir move from directory
+#' @param target_dir move to directory
+#' @param move_which logical vector to filter (or use TRUE to move all)
+#' @param ext file extension to filter
+#' @param copy copy files (rather than move)
+#'
+#' @export
+move_files <- function(source_dir,
+                       target_dir,
+                       move_which,
+                       ext = ".txt",
+                       copy = FALSE) {
+  if (!dir.exists(target_dir)) {
+    dir.create(target_dir, recursive = TRUE)
+  }
+  ext <- gsub("^\\.", "", ext)
+  file_paths <- list.files(source_dir,
+                           pattern = paste0("*.", ext),
+                           full.names = TRUE,
+                           ignore.case = TRUE)
+  filtered_paths <- subset(file_paths, move_which)
+  if (isTRUE(copy)) {
+    file.copy(from = filtered_paths,
+              to = file.path(target_dir,
+                             basename(filtered_paths)))
+    return()
+  }
+  file.rename(from = filtered_paths,
+              to = file.path(target_dir,
+                             basename(filtered_paths)))
+  return()
+}

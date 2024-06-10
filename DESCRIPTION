@@ -21,7 +21,9 @@ Imports:
     pbapply,
     stringr,
     rlang,
-    tidyr
+    tidyr,
+    future.apply,
+    progressr
 Depends: 
     R (>= 2.10)
 LazyData: true
