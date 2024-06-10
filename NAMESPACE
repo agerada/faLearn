@@ -3,6 +3,7 @@
 export(clean_raw_mic)
 export(combined_file_system)
 export(genomes_to_kmer_dataset)
+export(genomes_to_kmer_libsvm)
 export(get_mic)
 export(load_patric_db)
 export(mic_uncensor)

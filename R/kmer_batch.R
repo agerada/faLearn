@@ -193,6 +193,15 @@ genomes_to_kmer_dataset <- function(input_dir,
   }
 }
 
+#' Convert genomes to kmers (libsvm format)
+#'
+#' @param source_dir directory containing genomes
+#' @param target_dir target directory to store kmers in libsvm format
+#' @param k kmer count
+#' @param ext file extension to filter
+#' @param cores number of parallel cores
+#'
+#' @export
 genomes_to_kmer_libsvm <- function(source_dir,
                                    target_dir,
                                    k = 3,
