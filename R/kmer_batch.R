@@ -203,12 +203,14 @@ genomes_to_kmer_libsvm <- function(source_dir,
                              pattern = paste0("*.", ext),
                              full.names = TRUE,
                              ignore.case = TRUE)
+  p <- progressr::progressor(along = genome_paths)
   if (cores > 1) {
     parallel::mclapply(genome_paths, \(x) {
       kmers_to_libsvm(flat_stringset(x),
                       file.path(target_dir,
                                 paste0(strip_filename(x), ".txt")),
                       k = k)
+      p()
     })
     return(NULL)
   }
@@ -217,5 +219,6 @@ genomes_to_kmer_libsvm <- function(source_dir,
                    file.path(target_dir,
                              paste0(strip_filename(x), ".txt")),
                    k = k)
+    p()
   })
 }
