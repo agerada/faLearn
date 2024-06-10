@@ -205,10 +205,9 @@ genomes_to_kmer_dataset <- function(input_dir,
 genomes_to_kmer_libsvm <- function(source_dir,
                                    target_dir,
                                    k = 3,
-                                   ext = ".fna",
-                                   cores = 1) {
+                                   ext = ".fna") {
   if (!dir.exists(target_dir)) {
-    dir.create(target_dir)
+    dir.create(target_dir, recursive = TRUE)
   }
   ext <- gsub("^\\.", "", ext)
   genome_paths <- list.files(source_dir,
@@ -216,22 +215,12 @@ genomes_to_kmer_libsvm <- function(source_dir,
                              full.names = TRUE,
                              ignore.case = TRUE)
   p <- progressr::progressor(along = genome_paths)
-  if (cores > 1) {
-    parallel::mclapply(genome_paths, \(x) {
-      kmers_to_libsvm(flat_stringset(x),
-                      file.path(target_dir,
-                                paste0(strip_filename(x), ".txt")),
-                      k = k)
-      p()
-    })
-    return(NULL)
-  }
-  lapply(genome_paths, \(x) {
+  future.apply::future_lapply(genome_paths, \(x) {
     kmers_to_libsvm(flat_stringset(x),
-                   file.path(target_dir,
-                             paste0(strip_filename(x), ".txt")),
-                   k = k)
-    p()
-  })
-  return(NULL)
+                    file.path(target_dir,
+                              paste0(strip_filename(x), ".txt")),
+                    k = k)
+    p(glue::glue("Completed: {basename(x)}"))
+  }, future.seed = TRUE)
+  return(TRUE)
 }
