@@ -10,6 +10,7 @@ train_test_filesystem(
   split = 0.8,
   train_folder = "train",
   test_folder = "test",
+  shuffle = TRUE,
   overwrite = FALSE
 )
 }
@@ -25,6 +26,8 @@ if does not exist}
 
 \item{test_folder}{name of testing folder (subdirectory), will be created
 if does not exist}
+
+\item{shuffle}{randomise files when splitting}
 
 \item{overwrite}{force overwrite of files that already exist}
 }
