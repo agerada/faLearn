@@ -291,14 +291,19 @@ move_files <- function(source_dir,
                            full.names = TRUE,
                            ignore.case = TRUE)
   filtered_paths <- subset(file_paths, move_which)
+  p <- progressr::progressor(along = filtered_paths)
   if (isTRUE(copy)) {
-    file.copy(from = filtered_paths,
-              to = file.path(target_dir,
-                             basename(filtered_paths)))
+    sapply(filtered_paths, \(x) {
+      file.copy(from = x,
+                to = file.path(target_dir, basename(x)))
+      p()
+    })
     return()
   }
-  file.rename(from = filtered_paths,
-              to = file.path(target_dir,
-                             basename(filtered_paths)))
+  sapply(filtered_paths, \(x) {
+    file.rename(from = x,
+                to = file.path(target_dir, basename(x)))
+    p()
+  })
   return()
 }
