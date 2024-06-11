@@ -4,16 +4,18 @@ if (!dir.exists(tmp_out_dir)) dir.create(tmp_out_dir)
 
 test_that("multiplication works", {
   unlink(tmp_out_dir, recursive = TRUE)
-  genomes_to_kmer_dataset(path_to_test_genomes,
-                          output_dir = tmp_out_dir,
-                          cores = 1,
-                          kmers = 3,
-                          split = 1,
-                          anchor = FALSE,
-                          simplify = FALSE,
-                          drop_n = TRUE,
-                          integer_index = TRUE,
-                          formats = "libsvm")
+  suppressMessages(
+    genomes_to_kmer_dataset(path_to_test_genomes,
+                            output_dir = tmp_out_dir,
+                            cores = 1,
+                            kmers = 3,
+                            split = 1,
+                            anchor = FALSE,
+                            simplify = FALSE,
+                            drop_n = TRUE,
+                            integer_index = TRUE,
+                            formats = "libsvm")
+  )
   libsvm_path <- file.path(tmp_out_dir, "libsvm/")
   dir.create(libsvm_path)
   libsvm_files <- list.files(tmp_out_dir, pattern = "*.txt")
