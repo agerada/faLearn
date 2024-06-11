@@ -28,19 +28,27 @@ get_mic <- function(x,
                     as_mic = TRUE,
                     prefer_high_mic = TRUE,
                     simplify = TRUE) {
-  pre_sort_ids <- data.frame(id = x[[id_col]])
+  if ("save_order" %in% names(x)) {
+    stop("Unable to work with x that contains column name 'save_order', please
+         rename.")
+  }
+
   x <- x[order(x[[id_col]], x[[ab_col]], decreasing = prefer_high_mic),]
   x <- x[!duplicated(x[[id_col]]),]
 
   output <- data.frame(ids)
   names(output) <- id_col
+  output$save_order <- 1:nrow(output)
   output <- merge(output, x,
+                  by = id_col,
         sort = FALSE,
         all.x = TRUE)
   if (as_mic) {
     rlang::check_installed("AMR", "To return as MIC class, AMR package must be installed")
     output[[ab_col]] <- AMR::as.mic(output[[ab_col]])
   }
+  output <- output[order(output$save_order),]
+  output$save_order <- NULL
   if (simplify) {
     return(output[[ab_col]])
   } else {

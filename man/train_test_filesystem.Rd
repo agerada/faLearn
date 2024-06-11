@@ -27,7 +27,8 @@ if does not exist}
 \item{test_folder}{name of testing folder (subdirectory), will be created
 if does not exist}
 
-\item{shuffle}{randomise files when splitting}
+\item{shuffle}{randomise files when splitting (if FALSE, files will be
+sorted by filename prior to splitting)}
 
 \item{overwrite}{force overwrite of files that already exist}
 }
