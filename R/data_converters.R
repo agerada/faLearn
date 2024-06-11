@@ -134,7 +134,8 @@ split_paths <- function(paths, split) {
 #' if does not exist
 #' @param test_folder name of testing folder (subdirectory), will be created
 #' if does not exist
-#' @param shuffle randomise files when splitting
+#' @param shuffle randomise files when splitting (if FALSE, files will be
+#' sorted by filename prior to splitting)
 #' @param overwrite force overwrite of files that already exist
 #'
 #' @return named vector of train and test directories
@@ -165,7 +166,9 @@ train_test_filesystem <- function(path_to_files,
     return(out_paths)
   }
 
-  libsvm_filepaths <- sort(libsvm_filepaths)
+  if (!isTRUE(shuffle)) {
+    libsvm_filepaths <- sort(libsvm_filepaths)
+  }
 
   dir.create(file.path(path_to_files, train_folder))
   dir.create(file.path(path_to_files, test_folder))
