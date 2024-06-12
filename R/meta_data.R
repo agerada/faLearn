@@ -97,3 +97,78 @@ mic_uncensor <- function(mic, scale = 2) {
     stringr::str_detect(mic, "<") ~ AMR::as.mic(mic / scale),
     .default = mic)
 }
+
+#' Generate dilution series
+#'
+#' @param start starting (highest) concentration
+#' @param dilutions number of dilutions
+#' @param min minimum (lowest) concentration
+#'
+#' @return Vector of numeric concentrations
+#' @export
+#'
+#' @examples
+#' mic_range(128)
+#' mic_range(128, dilutions = 21) # same results
+mic_range <- function(start, dilutions = Inf, min = 0.0001) {
+  if (start[length(start)] < min) {
+    return(head(start, -1))
+  }
+  if (dilutions == 0) {
+    return (start)
+  } else {
+    return(mic_range(c(start, start[length(start)] / 2),
+                     dilutions - 1,
+                     min))
+  }
+}
+
+#' Force MIC-like into MIC-compatible format
+#'
+#' @param value vector of MIC-like values (numeric or character)
+#' @param max_conc
+#' @param min_conc
+#' @param prefer
+#'
+#' @return
+#' @export
+#'
+#' @examples
+force_mic_again <- function(value, max_conc = 2048, min_conc = 0.00005, prefer = 'max') {
+  amr_levels <- levels(AMR::as.mic(NA))
+  output <- rep(NA_character_, length(value))
+  for (i in seq_along(value)) {
+
+    prefix <- NULL
+    inner_val <- value[i]
+    if (is.numeric(inner_val)) {
+      appropriate_levels <- subset(amr_levels, !stringr::str_detect(amr_levels, "[^0-9.]"))
+    }
+    if (is.character(inner_val)){
+      if (stringr::str_detect(inner_val, "<")) {
+        appropriate_levels <- subset(amr_levels, stringr::str_detect(amr_levels, "<"))
+        appropriate_levels <- stringr::str_remove_all(appropriate_levels, "[^0-9.]")
+        prefix <- "<"
+      } else if (stringr::str_detect(inner_val, ">")) {
+        appropriate_levels <- subset(amr_levels, stringr::str_detect(amr_levels, ">"))
+        appropriate_levels <- stringr::str_remove_all(appropriate_levels, "[^0-9.]")
+        prefix <- ">"
+      } else {
+        appropriate_levels <- subset(amr_levels, !stringr::str_detect(amr_levels, "[^0-9.]"))
+      }
+      inner_val <- stringr::str_remove_all(inner_val, "[^0-9.]")
+      inner_val <- as.numeric(inner_val)
+    }
+
+    mic_vector <- sort(as.numeric(appropriate_levels))
+    positions <- which(abs(mic_vector - inner_val) == min(abs(mic_vector - inner_val)))
+    if (length(positions) == 1) {
+      output[i] <- paste0(prefix, mic_vector[positions])
+    }
+    if (prefer == 'min') {
+      output[i] <- paste0(prefix, mic_vector[min(positions)])
+    }
+    output[i] <- paste0(prefix, mic_vector[max(positions)])
+  }
+  return(output)
+}
