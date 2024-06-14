@@ -310,3 +310,69 @@ move_files <- function(source_dir,
   })
   return()
 }
+
+#' Create test train files from a number of files
+#'
+#' @param path_to_files path containing files
+#' @param file_ext file extension to filter
+#' @param split train-test split
+#' @param train_filename name of train file to save as
+#' @param test_filename name of test file to save as
+#' @param shuffle randomise prior to splitting
+#' @param overwrite overwrite target files
+#'
+#' @return named list of paths to created train and test files
+#' @export
+#'
+split_and_combine_files <- function(path_to_files,
+                                    file_ext,
+                                    split = 0.8,
+                                    train_filename = "train",
+                                    test_filename = "test",
+                                    shuffle = TRUE,
+                                    overwrite = FALSE) {
+  file_ext <- gsub("^\\.", "", file_ext)
+  libsvm_filepaths <- list.files(path_to_files,
+                                 pattern = paste0("*.", file_ext),
+                                 full.names = TRUE,
+                                 ignore.case = TRUE)
+  if (isTRUE(shuffle)){
+    libsvm_filepaths <- sample(libsvm_filepaths)
+  }
+
+  train_target_path <- file.path(path_to_files, paste0(train_filename, ".", file_ext))
+  test_target_path <- file.path(path_to_files, paste0(test_filename, ".", file_ext))
+
+  libsvm_filepaths <- subset(libsvm_filepaths,
+                             !(libsvm_filepaths %in% c(train_target_path,
+                                                       test_target_path)))
+
+  if (any(
+    file.exists(c(train_target_path, test_target_path)))
+    & !overwrite
+  ) stop("Target files already exist, use overwrite to force.")
+
+  suppressWarnings(file.remove(train_target_path))
+  suppressWarnings(file.remove(test_target_path))
+  file.create(train_target_path)
+  file.create(test_target_path)
+
+  splitting_index <- split * length(libsvm_filepaths)
+  train_libsvm_paths <- utils::head(libsvm_filepaths, splitting_index)
+  test_libsvm_paths <- utils::tail(libsvm_filepaths, length(libsvm_filepaths) - splitting_index)
+
+  train_filenames <- basename(train_libsvm_paths)
+  test_filenames <- basename(test_libsvm_paths)
+
+  for (file in train_libsvm_paths) {
+    content <- readLines(file, warn = FALSE)
+    write(content, train_target_path, append = TRUE, sep = "/n")
+  }
+
+  for (file in test_libsvm_paths) {
+    content <- readLines(file, warn = FALSE)
+    write(content, test_target_path, append = TRUE, sep = "/n")
+  }
+  return(list("train" = train_target_path,
+              "test" = test_target_path))
+}

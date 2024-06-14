@@ -112,7 +112,7 @@ mic_uncensor <- function(mic, scale = 2) {
 #' mic_range(128, dilutions = 21) # same results
 mic_range <- function(start, dilutions = Inf, min = 0.0001) {
   if (start[length(start)] < min) {
-    return(head(start, -1))
+    return(utils::head(start, -1))
   }
   if (dilutions == 0) {
     return (start)
@@ -126,14 +126,14 @@ mic_range <- function(start, dilutions = Inf, min = 0.0001) {
 #' Force MIC-like into MIC-compatible format
 #'
 #' @param value vector of MIC-like values (numeric or character)
-#' @param max_conc
-#' @param min_conc
-#' @param prefer
+#' @param max_conc maximum concentration to force to
+#' @param min_conc minimum concentration to force to
+#' @param prefer where value is in between MICs (e.g., 24mg/L) chose the higher
+#' MIC ("max") or lower MIC ("min").
 #'
-#' @return
+#' @return AMR::as.mic compatible character
 #' @export
 #'
-#' @examples
 force_mic_again <- function(value, max_conc = 2048, min_conc = 0.00005, prefer = 'max') {
   amr_levels <- levels(AMR::as.mic(NA))
   output <- rep(NA_character_, length(value))

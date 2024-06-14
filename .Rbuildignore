@@ -1,3 +1,5 @@
 ^molMIC\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^tmp/
+^pre_R_package/
