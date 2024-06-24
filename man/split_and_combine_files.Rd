@@ -6,10 +6,10 @@
 \usage{
 split_and_combine_files(
   path_to_files,
-  file_ext,
+  file_ext = ".txt",
   split = 0.8,
-  train_filename = "train",
-  test_filename = "test",
+  train_target_path = file.path(getwd(), "train.txt"),
+  test_target_path = file.path(getwd(), "test.txt"),
   shuffle = TRUE,
   overwrite = FALSE
 )
@@ -21,9 +21,9 @@ split_and_combine_files(
 
 \item{split}{train-test split}
 
-\item{train_filename}{name of train file to save as}
+\item{train_target_path}{name of train file to save as}
 
-\item{test_filename}{name of test file to save as}
+\item{test_target_path}{name of test file to save as}
 
 \item{shuffle}{randomise prior to splitting}
 

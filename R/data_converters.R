@@ -316,32 +316,36 @@ move_files <- function(source_dir,
 #' @param path_to_files path containing files
 #' @param file_ext file extension to filter
 #' @param split train-test split
-#' @param train_filename name of train file to save as
-#' @param test_filename name of test file to save as
+#' @param train_target_path name of train file to save as
+#' @param test_target_path name of test file to save as
 #' @param shuffle randomise prior to splitting
 #' @param overwrite overwrite target files
 #'
 #' @return named list of paths to created train and test files
 #' @export
-#'
 split_and_combine_files <- function(path_to_files,
-                                    file_ext,
+                                    file_ext = ".txt",
                                     split = 0.8,
-                                    train_filename = "train",
-                                    test_filename = "test",
+                                    train_target_path = file.path(getwd(), "train.txt"),
+                                    test_target_path = file.path(getwd(), "test.txt"),
                                     shuffle = TRUE,
                                     overwrite = FALSE) {
   file_ext <- gsub("^\\.", "", file_ext)
-  libsvm_filepaths <- list.files(path_to_files,
-                                 pattern = paste0("*.", file_ext),
-                                 full.names = TRUE,
-                                 ignore.case = TRUE)
+
+  if (length(path_to_files) == 1 & all(dir.exists(path_to_files))) {
+    libsvm_filepaths <- list.files(path_to_files,
+                                   pattern = paste0("*.", file_ext),
+                                   full.names = TRUE,
+                                   ignore.case = TRUE)
+  } else if (is.character(path_to_files)) {
+    libsvm_filepaths <- path_to_files
+  } else {
+    stop("path_to_files must be directory or character vector of filepaths")
+  }
+
   if (isTRUE(shuffle)){
     libsvm_filepaths <- sample(libsvm_filepaths)
   }
-
-  train_target_path <- file.path(path_to_files, paste0(train_filename, ".", file_ext))
-  test_target_path <- file.path(path_to_files, paste0(test_filename, ".", file_ext))
 
   libsvm_filepaths <- subset(libsvm_filepaths,
                              !(libsvm_filepaths %in% c(train_target_path,
