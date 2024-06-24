@@ -10,6 +10,7 @@ split_and_combine_files(
   split = 0.8,
   train_target_path = file.path(getwd(), "train.txt"),
   test_target_path = file.path(getwd(), "test.txt"),
+  names_backup = file.path(getwd(), "names.csv"),
   shuffle = TRUE,
   overwrite = FALSE
 )
@@ -25,12 +26,14 @@ split_and_combine_files(
 
 \item{test_target_path}{name of test file to save as}
 
+\item{names_backup}{name of file to save backup of filename metadata}
+
 \item{shuffle}{randomise prior to splitting}
 
 \item{overwrite}{overwrite target files}
 }
 \value{
-named list of paths to created train and test files
+named list of paths to created train/test files, original filenames
 }
 \description{
 Create test train files from a number of files

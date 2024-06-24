@@ -318,19 +318,32 @@ move_files <- function(source_dir,
 #' @param split train-test split
 #' @param train_target_path name of train file to save as
 #' @param test_target_path name of test file to save as
+#' @param names_backup name of file to save backup of filename metadata
 #' @param shuffle randomise prior to splitting
 #' @param overwrite overwrite target files
 #'
-#' @return named list of paths to created train and test files
+#' @return named list of paths to created train/test files, original filenames
 #' @export
 split_and_combine_files <- function(path_to_files,
                                     file_ext = ".txt",
                                     split = 0.8,
                                     train_target_path = file.path(getwd(), "train.txt"),
                                     test_target_path = file.path(getwd(), "test.txt"),
+                                    names_backup = file.path(getwd(), "names.csv"),
                                     shuffle = TRUE,
                                     overwrite = FALSE) {
   file_ext <- gsub("^\\.", "", file_ext)
+
+  all_target_files <- c(train_target_path,
+                        test_target_path,
+                        names_backup)
+
+  if (any(
+    file.exists(all_target_files))
+    & !overwrite
+  ) stop("Target files already exist, use overwrite to force.")
+
+  suppressWarnings(file.remove(all_target_files))
 
   if (length(path_to_files) == 1 & all(dir.exists(path_to_files))) {
     libsvm_filepaths <- list.files(path_to_files,
@@ -339,6 +352,9 @@ split_and_combine_files <- function(path_to_files,
                                    ignore.case = TRUE)
   } else if (is.character(path_to_files)) {
     libsvm_filepaths <- path_to_files
+    if (any(!endsWith(libsvm_filepaths, file_ext))) {
+      warning(paste("path_to_files contains files that do not have ext:", file_ext))
+    }
   } else {
     stop("path_to_files must be directory or character vector of filepaths")
   }
@@ -351,22 +367,14 @@ split_and_combine_files <- function(path_to_files,
                              !(libsvm_filepaths %in% c(train_target_path,
                                                        test_target_path)))
 
-  if (any(
-    file.exists(c(train_target_path, test_target_path)))
-    & !overwrite
-  ) stop("Target files already exist, use overwrite to force.")
-
-  suppressWarnings(file.remove(train_target_path))
-  suppressWarnings(file.remove(test_target_path))
-  file.create(train_target_path)
-  file.create(test_target_path)
-
   splitting_index <- split * length(libsvm_filepaths)
   train_libsvm_paths <- utils::head(libsvm_filepaths, splitting_index)
   test_libsvm_paths <- utils::tail(libsvm_filepaths, length(libsvm_filepaths) - splitting_index)
 
   train_filenames <- basename(train_libsvm_paths)
   test_filenames <- basename(test_libsvm_paths)
+
+  file.create(all_target_files)
 
   for (file in train_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
@@ -377,6 +385,14 @@ split_and_combine_files <- function(path_to_files,
     content <- readLines(file, warn = FALSE)
     write(content, test_target_path, append = TRUE, sep = "/n")
   }
+
+  readr::write_csv(data.frame(type = c(rep("train", length(train_filenames)),
+                                       rep("test", length(test_filenames))),
+                              name = c(train_filenames,test_filenames)),
+                   names_backup)
+
   return(list("train" = train_target_path,
-              "test" = test_target_path))
+              "test" = test_target_path,
+              "train_names" = train_filenames,
+              "test_names" = test_filenames))
 }
