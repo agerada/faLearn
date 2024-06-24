@@ -311,6 +311,24 @@ move_files <- function(source_dir,
   return()
 }
 
+#' Removes multiple slashes in a path or url
+#'
+#' @param path character vector
+#'
+#' @return character vector of paths without duplicate slashes
+#'
+#' @examples
+replace_multiple_slashes <- function(path) {
+  url_pattern <- "^(https?://)"
+
+  cleaned_text <- gsub("([^:/])(/{2,})", "\\1/", path)
+
+  is_url <- grepl(url_pattern, path)
+  cleaned_text[is_url] <- sub(url_pattern, "\\1", cleaned_text[is_url])
+
+  return(cleaned_text)
+}
+
 #' Create test train files from a number of files
 #'
 #' @param path_to_files path containing files
@@ -398,8 +416,8 @@ split_and_combine_files <- function(path_to_files,
                               name = c(train_filenames,test_filenames)),
                    names_backup)
 
-  return(list("train" = train_target_path,
-              "test" = test_target_path,
-              "train_names" = train_filenames,
-              "test_names" = test_filenames))
+  return(list("train" = replace_multiple_slashes(train_target_path),
+              "test" = replace_multiple_slashes(test_target_path),
+              "train_names" = replace_multiple_slashes(train_filenames),
+              "test_names" = replace_multiple_slashes(test_filenames)))
 }
