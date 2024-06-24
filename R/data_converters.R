@@ -374,16 +374,23 @@ split_and_combine_files <- function(path_to_files,
   train_filenames <- basename(train_libsvm_paths)
   test_filenames <- basename(test_libsvm_paths)
 
+  sapply(dirname(all_target_files), function(x) {
+    if (!dir.exists(x)) dir.create(x)
+  })
   file.create(all_target_files)
 
+  p <- progressr::progressor(along = train_libsvm_paths)
   for (file in train_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
     write(content, train_target_path, append = TRUE, sep = "/n")
+    p()
   }
 
+  p <- progressr::progressor(along = test_libsvm_paths)
   for (file in test_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
     write(content, test_target_path, append = TRUE, sep = "/n")
+    p()
   }
 
   readr::write_csv(data.frame(type = c(rep("train", length(train_filenames)),
