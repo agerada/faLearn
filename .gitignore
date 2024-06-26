@@ -1,11 +1,5 @@
 # Custom
-data/genomes
-data/output
-data/temp
-utils/
-src/archived/ 
-temp/
-abx_list.csv
+tmp/
 .DS_store
 .idea/
 
