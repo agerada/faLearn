@@ -343,12 +343,25 @@ replace_multiple_slashes <- function(path) {
 split_and_combine_files <- function(path_to_files,
                                     file_ext = ".txt",
                                     split = 0.8,
-                                    train_target_path = file.path(getwd(), "train.txt"),
-                                    test_target_path = file.path(getwd(), "test.txt"),
-                                    names_backup = file.path(getwd(), "names.csv"),
+                                    train_target_path = file.path(getwd(),
+                                                                  "train.txt"),
+                                    test_target_path = file.path(getwd(),
+                                                                 "test.txt"),
+                                    names_backup = file.path(getwd(),
+                                                             "names.csv"),
                                     shuffle = TRUE,
                                     overwrite = FALSE) {
   file_ext <- gsub("^\\.", "", file_ext)
+
+  attempted_load <- is_test_train_combined(train_path = train_target_path,
+                                           test_path = test_target_path,
+                                           names_path = names_backup)
+  if (!is.null(attempted_load) & !overwrite) {
+    message(
+      "Data already seems to be in the appropriate format.
+No changes made. Use overwrite to force changes.")
+    return(attempted_load)
+  }
 
   all_target_files <- c(train_target_path,
                         test_target_path,
@@ -418,4 +431,24 @@ split_and_combine_files <- function(path_to_files,
               "test" = replace_multiple_slashes(test_target_path),
               "train_names" = replace_multiple_slashes(train_filenames),
               "test_names" = replace_multiple_slashes(test_filenames)))
+}
+
+is_test_train_combined <- function(train_path, test_path, names_path) {
+  if (all(file.exists(c(train_path, test_path, names_path)))) {
+    tryCatch({
+      names_data <- readr::read_csv(names_path,
+                                    col_types = readr::cols(.default = "c"))
+      train_files <- names_data$name[names_data$type == "train"]
+      test_files <- names_data$name[names_data$type == "test"]
+    }, error = function(e) {
+      message("Data appears to already be in a combined test-train split, but
+              error on loading meta-data:")
+      message(conditionMessage(e))
+    })
+    return(list("train" = replace_multiple_slashes(train_path),
+                "test" = replace_multiple_slashes(test_path),
+                "train_names" = replace_multiple_slashes(train_files),
+                "test_names" = replace_multiple_slashes(test_files)))
+  }
+  return(NULL)
 }
