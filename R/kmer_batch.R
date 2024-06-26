@@ -200,6 +200,17 @@ genomes_to_kmer_dataset <- function(input_dir,
 #' @param k kmer count
 #' @param ext file extension to filter
 #'
+#' @description
+#' Supports progressr (with_progress) and future.
+#'
+#' @examples
+#' \dontrun{
+#'   future::plan(future::multisession)
+#'   progressr::with_progress(
+#'     genomes_to_kmer_libsvm("path_in", "path_out")
+#'   )
+#' }
+#'
 #' @export
 genomes_to_kmer_libsvm <- function(source_dir,
                                    target_dir,

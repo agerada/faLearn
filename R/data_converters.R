@@ -316,8 +316,6 @@ move_files <- function(source_dir,
 #' @param path character vector
 #'
 #' @return character vector of paths without duplicate slashes
-#'
-#' @examples
 replace_multiple_slashes <- function(path) {
   url_pattern <- "^(https?://)"
 

@@ -16,5 +16,14 @@ genomes_to_kmer_libsvm(source_dir, target_dir, k = 3, ext = ".fna")
 \item{ext}{file extension to filter}
 }
 \description{
-Convert genomes to kmers (libsvm format)
+Supports progressr (with_progress) and future.
+}
+\examples{
+\dontrun{
+  future::plan(future::multisession)
+  progressr::with_progress(
+    genomes_to_kmer_libsvm("path_in", "path_out")
+  )
+}
+
 }

@@ -23,7 +23,9 @@ Imports:
     rlang,
     tidyr,
     future.apply,
-    progressr
+    progressr,
+    lemon,
+    ggplot2
 Depends: 
     R (>= 2.10)
 LazyData: true
