@@ -21,7 +21,7 @@ force_mic(
 
 \item{min_conc}{minimum concentration to force to}
 
-\item{prefer}{where value is in between MICs (e.g., 24mg/L) chose the higher
+\item{prefer}{where value is in between MIC (e.g., 24mg/L) chose the higher
 MIC ("max") or lower MIC ("min").}
 }
 \value{
@@ -29,4 +29,7 @@ AMR::as.mic compatible character
 }
 \description{
 Force MIC-like into MIC-compatible format
+}
+\examples{
+force_mic(c("2.32", "<4.12", ">1.01"))
 }

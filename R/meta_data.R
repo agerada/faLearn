@@ -89,7 +89,7 @@ clean_raw_mic <- function(mic) {
 #' mic_uncensor(c(">64.0", "<0.25", "8.0"))
 mic_uncensor <- function(mic, scale = 2) {
   rlang::check_installed("AMR", "mic_uncensor requires AMR package")
-  if (!inherits(mic, "mic")) {
+  if (!AMR::is.mic(mic)) {
     mic <- AMR::as.mic(mic)
   }
   suppressWarnings(
@@ -112,7 +112,9 @@ mic_uncensor <- function(mic, scale = 2) {
 #' @examples
 #' mic_range(128)
 #' mic_range(128, dilutions = 21) # same results
-mic_range <- function(start, dilutions = Inf, min = 0.0001) {
+mic_range <- function(start,
+                      dilutions = Inf,
+                      min = 0.0001) {
   if (start[length(start)] < min) {
     return(utils::head(start, -1))
   }
@@ -131,12 +133,14 @@ mic_range <- function(start, dilutions = Inf, min = 0.0001) {
 #' @param levels_from_AMR conform to AMR::as.mic levels
 #' @param max_conc maximum concentration to force to
 #' @param min_conc minimum concentration to force to
-#' @param prefer where value is in between MICs (e.g., 24mg/L) chose the higher
+#' @param prefer where value is in between MIC (e.g., 24mg/L) chose the higher
 #' MIC ("max") or lower MIC ("min").
 #'
 #' @return AMR::as.mic compatible character
 #' @export
 #'
+#' @examples
+#' force_mic(c("2.32", "<4.12", ">1.01"))
 force_mic <- function(value,
                       levels_from_AMR = TRUE,
                       max_conc = 2048,
@@ -147,6 +151,9 @@ force_mic <- function(value,
     mic_levels <- levels(AMR::as.mic(NA))
   } else {
     mic_levels <- mic_range(start = max_conc, min = min_conc)
+    mic_levels <- c(mic_levels,
+                    paste0(">", mic_levels),
+                    paste0("<", mic_levels))
   }
 
   output <- rep(NA_character_, length(value))
@@ -189,35 +196,72 @@ force_mic <- function(value,
   return(output)
 }
 
-essential_agreement <- function(gold_standard, test) {
-  frac <- test / gold_standard
-  return(factor(
+#' Essential agreement for MIC validation
+#'
+#' @param x AMR::mic or coercible
+#' @param y AMR::mic or coercible
+#' @param coerce_mic convert to AMR::mic
+#' @return logical vector
+#' @export
+#'
+#' @examples
+#' x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
+#' y <- AMR::as.mic(c("<0.25", "2", "16", "64"))
+#' essential_agreement(x, y)
+#' # TRUE FALSE FALSE TRUE
+essential_agreement <- function(x, y, coerce_mic = TRUE) {
+  if (any(!AMR::is.mic(c(x, y))) & !coerce_mic) {
+    stop("Both MIC inputs to essential_agreement must be AMR::mic.
+Convert using AMR::as.mic() with or without molMIC::force_mic().")
+  }
+
+  if (any(!AMR::is.mic(c(x, y)))) {
+    x <- AMR::as.mic(x)
+    y <- AMR::as.mic(y)
+  }
+
+  x <- as.numeric(mic_uncensor(x))
+  y <- as.numeric(mic_uncensor(y))
+
+  frac <- x / y
+  return(as.logical(
     dplyr::case_when(
+      is.na(frac) ~ NA,
       frac > 2.0 ~ FALSE,
       frac < 0.5 ~ FALSE,
       frac != 1.0 ~ TRUE,
       TRUE ~ TRUE)))
 }
 
+#' Perform an MIC validation experiment
+#'
+#' @param gold_standard vector of MICs to compare against.
+#' @param test vector of MICs that are under investigation
+#' @param ab character vector (same length as MIC) of antibiotic names (optional)
+#' @param simplify if TRUE, MIC values will be coerced into the closest halving
+#' dilution (e.g., 0.55 will be converted to 0.5)
+#'
+#' @return S3 mic_validation object
+#' @export
 compare_mic <- function(gold_standard, test, ab = NA, simplify = TRUE) {
-  gold_standard <- force_mic(gold_standard)
-  test <- force_mic(test)
+  gold_standard_mod <- gold_standard |>
+    force_mic(levels_from_AMR = !simplify) |>
+    AMR::as.mic()
 
-  gold_standard <- as.character(gold_standard)
-  test <- as.character(test)
-
-  gold_standard <- mic_uncensor(gold_standard)
-  test <- mic_uncensor(test)
-
-  gold_standard <- as.numeric(gold_standard)
-  test <- as.numeric(test)
+  test_mod <- test |>
+    force_mic(levels_from_AMR = !simplify) |>
+    AMR::as.mic()
 
   output <- data.frame(
     ab = ab,
-    gold_standard = AMR::as.mic(gold_standard),
-    test = AMR::as.mic(test),
-    essential_agreement = essential_agreement(gold_standard, test)
+    gold_standard = AMR::as.mic(force_mic(gold_standard, !simplify)),
+    test = AMR::as.mic(force_mic(test, !simplify)),
+    essential_agreement = essential_agreement(gold_standard_mod, test_mod)
   )
+
+  if (all(is.na(output[["ab"]]))) {
+    output["ab"] <- NULL
+  }
   class(output) <- append(class(output), "mic_validation", 0)
   output
 }
@@ -269,4 +313,22 @@ plot.mic_validation <- function(x, ...) {
     ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
+}
+
+#' Summary of MIC validation results
+#'
+#' @param object S3 mic_validation object
+#' @param ... further optional parameters
+#'
+#' @export
+summary.mic_validation <- function(object, ...) {
+  if (!"ab" %in% colnames(object)) {
+    return(
+      list(EA = sum(object$essential_agreement == TRUE) / length(object$essential_agreement))
+    )
+  }
+
+  object |>
+    dplyr::group_by(.data[["ab"]]) |>
+    dplyr::summarise(EA = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]))
 }
