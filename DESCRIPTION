@@ -1,6 +1,6 @@
 Package: molMIC
 Title: Perform MIC predictions using assembled genomes
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: 
     person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6743-4271"))
