@@ -290,13 +290,30 @@ compare_sir <- function(gold_standard, test) {
   )
 }
 
-#' Plot MIC validation results
-#'
-#' @param x object generated using compare_mic
-#' @param ... additional arguments
-#'
-#' @export
-plot.mic_validation <- function(x, ...) {
+plot_mic_validation_single_ab <- function(x, ...) {
+  x |>
+    dplyr::group_by(.data[["gold_standard"]],
+                    .data[["test"]],
+                    .data[["essential_agreement"]]) |>
+    dplyr::summarise(n = dplyr::n()) |>
+    dplyr::rename(`EA` = .data[["essential_agreement"]]) |>
+    ggplot2::ggplot(ggplot2::aes(x = .data[["gold_standard"]],
+                                 y = .data[["test"]],
+                                 fill = .data[["n"]],
+                                 color = .data[["EA"]])) +
+    ggplot2::geom_tile(alpha=1) +
+    ggplot2::geom_text(ggplot2::aes(label=.data[["n"]])) +
+    ggplot2::scale_fill_gradient(low="white", high="#009194") +
+    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color") +
+    ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
+    ggplot2::theme_bw(base_size = 13) +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    ggplot2::theme(legend.position = c(0.9,0.2)) +
+    ggplot2::xlab("Gold standard MIC (mg/L)") +
+    ggplot2::ylab("Test (mg/L)")
+}
+
+plot_mic_validation_multi_ab <- function(x, ...) {
   x |>
     dplyr::group_by(.data[["gold_standard"]],
                     .data[["test"]],
@@ -321,6 +338,21 @@ plot.mic_validation <- function(x, ...) {
     ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
+}
+
+#' Plot MIC validation results
+#'
+#' @param x object generated using compare_mic
+#' @param ... additional arguments
+#'
+#' @export
+plot.mic_validation <- function(x, ...) {
+  if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1) {
+    plot_mic_validation_single_ab(x, ...)
+  }
+  else {
+    plot_mic_validation_multi_ab(x, ...)
+  }
 }
 
 #' Summary of MIC validation results
