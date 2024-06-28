@@ -11,7 +11,11 @@ test_that("test get_mic", {
   expected_mics <- suppressWarnings(
     AMR::as.mic(c("NA", "<0.5", "1.5", "NA"))
     )
-  expect_equal(get_mic(meta_dt, ids, "genome_id", "gent_mic", simplify = TRUE),
+  expect_equal(get_mic(meta_dt,
+                       ids,
+                       ab_col = "gent_mic",
+                       id_col = "genome_id",
+                       simplify = TRUE),
                expected_mics)
 
 })

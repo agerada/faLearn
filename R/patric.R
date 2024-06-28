@@ -136,7 +136,7 @@ pull_PATRIC_genomes <- function(database = patric_ftp_path,
 #' using AMR::as.ab
 #'
 #' @return Tidy data, with antimicrobials in wide format, column names describing
-#' methodology ("mic_", "disk_", "pheno_")
+#' methodology ("mic_", "disk_", "pheno_"). S3 class "tidy_patric_db".
 #' @export
 tidy_patric_meta_data <- function(x,
                                   prefer_more_resistant = TRUE,
@@ -193,5 +193,8 @@ tidy_patric_meta_data <- function(x,
                        values_from = .data[["resistant_phenotype"]],
                        names_prefix = "pheno_")
 
-  dplyr::full_join(output, pheno_data, by = c("genome_id", "genome_name"))
+  output <- dplyr::full_join(output, pheno_data, by = c("genome_id", "genome_name"))
+  output <- as.data.frame(output)
+  class(output) <- append(class(output), "tidy_patric_db", after = 0)
+  return(output)
 }

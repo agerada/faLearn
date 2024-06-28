@@ -2,8 +2,8 @@
 #'
 #' @param x dataframe containing meta-data
 #' @param ids vector of IDs to get meta-data for
-#' @param id_col column name containing IDs
 #' @param ab_col column name containing MIC results
+#' @param id_col column name containing IDs
 #' @param as_mic return as AMR::as.mic
 #' @param prefer_high_mic where multiple MIC results per ID, prefer the higher MIC
 #' @param simplify return as vector of MICs (vs dataframe)
@@ -16,21 +16,29 @@
 #'                  gentamicin = c(0.25, 0.125, 32.0, 16.0, "<0.0125"))
 #' get_mic(df,
 #'         ids = c("b_42", "x_21"),
-#'         id_col = "genome_id",
 #'         ab_col = "gentamicin",
+#'         id_col = "genome_id",
 #'         as_mic = FALSE,
 #'         prefer_high_mic = TRUE,
 #'         simplify = TRUE)
 get_mic <- function(x,
                     ids,
-                    id_col,
                     ab_col,
+                    id_col = NULL,
                     as_mic = TRUE,
                     prefer_high_mic = TRUE,
                     simplify = TRUE) {
   if ("save_order" %in% names(x)) {
     stop("Unable to work with x that contains column name 'save_order', please
          rename.")
+  }
+
+  if (inherits(x, "tidy_patric_db")) {
+    id_col = "genome_id"
+  }
+
+  if (!inherits(x, "tidy_patric_db") & is.null(id_col)) {
+    stop("Provide id_col or pre-process meta data using tidy_patric_db()")
   }
 
   x <- x[order(x[[id_col]], x[[ab_col]], decreasing = prefer_high_mic),]

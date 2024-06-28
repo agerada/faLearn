@@ -7,8 +7,8 @@
 get_mic(
   x,
   ids,
-  id_col,
   ab_col,
+  id_col = NULL,
   as_mic = TRUE,
   prefer_high_mic = TRUE,
   simplify = TRUE
@@ -19,9 +19,9 @@ get_mic(
 
 \item{ids}{vector of IDs to get meta-data for}
 
-\item{id_col}{column name containing IDs}
-
 \item{ab_col}{column name containing MIC results}
+
+\item{id_col}{column name containing IDs}
 
 \item{as_mic}{return as AMR::as.mic}
 
@@ -40,8 +40,8 @@ df <- data.frame(genome_id = c("a_12", "b_42", "x_21", "x_21", "r_75"),
                  gentamicin = c(0.25, 0.125, 32.0, 16.0, "<0.0125"))
 get_mic(df,
         ids = c("b_42", "x_21"),
-        id_col = "genome_id",
         ab_col = "gentamicin",
+        id_col = "genome_id",
         as_mic = FALSE,
         prefer_high_mic = TRUE,
         simplify = TRUE)

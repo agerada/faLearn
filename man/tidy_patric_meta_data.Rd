@@ -26,7 +26,7 @@ using AMR::as.ab}
 }
 \value{
 Tidy data, with antimicrobials in wide format, column names describing
-methodology ("mic_", "disk_", "pheno_")
+methodology ("mic_", "disk_", "pheno_"). S3 class "tidy_patric_db".
 }
 \description{
 Tidy PATRIC data
