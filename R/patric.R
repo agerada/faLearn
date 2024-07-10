@@ -2,7 +2,7 @@ patric_ftp_path <- "ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
 
 #' Load PATRIC database
 #'
-#' @param path Character to local or ftp path (.txt file)
+#' @param path Character to local or ftp path (.txt or .rds)
 #'
 #' @return PATRIC database (S3 class 'patric_db')
 #' @export
@@ -13,6 +13,16 @@ patric_ftp_path <- "ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
 #' }
 load_patric_db <- function(
     path = patric_ftp_path) {
+  if (endsWith(path, ".rds")) {
+    tryCatch(patric_db <- readRDS(path),
+             error = function(e) e)
+    if (inherits(patric_db, "patric_db")) {
+      return(patric_db)
+    } else{
+      stop(".rds does not appear to be a valid patric_db. Load from .txt first
+or use tidy_patric_meta_data()")
+    }
+  }
   if (!endsWith(path, ".txt")) {
     stop("Path to PATRIC database must be to a .txt file")
   }
@@ -195,6 +205,7 @@ tidy_patric_meta_data <- function(x,
 
   output <- dplyr::full_join(output, pheno_data, by = c("genome_id", "genome_name"))
   output <- as.data.frame(output)
+  class(output) <- append(class(output), "patric_db", after = 0)
   class(output) <- append(class(output), "tidy_patric_db", after = 0)
   return(output)
 }
