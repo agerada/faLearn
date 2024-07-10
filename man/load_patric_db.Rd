@@ -7,7 +7,7 @@
 load_patric_db(path = patric_ftp_path)
 }
 \arguments{
-\item{path}{Character to local or ftp path (.txt file)}
+\item{path}{Character to local or ftp path (.txt or .rds)}
 }
 \value{
 PATRIC database (S3 class 'patric_db')
