@@ -308,7 +308,6 @@ plot_mic_validation_single_ab <- function(x, ...) {
     ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
     ggplot2::theme_bw(base_size = 13) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
 }
