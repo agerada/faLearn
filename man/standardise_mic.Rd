@@ -9,7 +9,8 @@ standardise_mic(
   qc_measurement,
   strain,
   ab,
-  prefer_upper = FALSE
+  prefer_upper = FALSE,
+  ignore_na = TRUE
 )
 }
 \arguments{
@@ -23,6 +24,8 @@ standardise_mic(
 
 \item{prefer_upper}{Where the target MIC is a range, prefer the upper value
 in the range}
+
+\item{ignore_na}{Ignore NA (returns AMR::NA_mic_)}
 }
 \value{
 AMR::mic vector

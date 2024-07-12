@@ -30,6 +30,9 @@ test_that("test qc_in_range", {
   expect_false(qc_in_range(AMR::as.mic(8.0), 25922, AMR::as.ab("AMK")))
   expect_false(qc_in_range(AMR::as.mic(">4.0"), 25922, AMR::as.ab("AMK")))
   expect_false(qc_in_range(AMR::as.mic(0.25), 25922, AMR::as.ab("AMK")))
+
+  expect_true(qc_in_range(NA, 25922, "GEN"))
+  expect_true(qc_in_range(AMR::as.mic(8.0), NA, "GEN"))
 })
 
 test_that("test qc_on_target", {
@@ -39,6 +42,10 @@ test_that("test qc_on_target", {
 
   expect_false(qc_on_target(AMR::as.mic("<0.5"), 25922, AMR::as.ab("GEN")))
   expect_false(qc_on_target(AMR::as.mic(4), 25922, AMR::as.ab("AMK")))
+
+  expect_true(qc_on_target(NA, 25922, AMR::as.ab("AMK")))
+  expect_true(qc_on_target(AMR::as.mic("<0.5"), 25922, NA))
+
 })
 
 test_that("test standardise_mic", {
@@ -86,4 +93,13 @@ test_that("test standardise_mic", {
                                AMR::as.ab("AMK"),
                                prefer_upper = T),
                AMR::as.mic(">8.0"))
+
+  suppressWarnings(
+    expect_equal(standardise_mic(NA,
+                                 AMR::as.mic(0.5),
+                                 25922,
+                                 AMR::as.ab("AMK"),
+                                 prefer_upper = T),
+                 AMR::NA_mic_)
+  )
 })

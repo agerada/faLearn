@@ -377,6 +377,8 @@ summary.mic_validation <- function(object, ...) {
 #' @param measurement measured QC MIC
 #' @param strain control strain identifier (usually ATCC)
 #' @param ab antibiotic name (will be coerced to AMR::as.ab)
+#' @param ignore_na ignores NA (returns TRUE)
+
 #'
 #' @return logical vector
 #' @export
@@ -385,7 +387,17 @@ summary.mic_validation <- function(object, ...) {
 #' qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE
 #' qc_in_range(AMR::as.mic(8.0), 25922, "GEN") == FALSE
 qc_in_range <- Vectorize(
-    function(measurement, strain, ab) {
+    function(measurement,
+             strain,
+             ab,
+             ignore_na = TRUE) {
+    if (is.na(measurement) | is.na(strain) | is.na(ab)) {
+      if (ignore_na) {
+        return(TRUE)
+      } else {
+        return(FALSE)
+      }
+    }
     if (!inherits(measurement, "mic") & !inherits(measurement, "disk")) {
       stop("Measurement must be AMR::mic or AMR::disk")
     }
@@ -411,7 +423,8 @@ qc_in_range <- Vectorize(
       }
       return(TRUE)
     }
-    }
+    },
+    vectorize.args = c("measurement", "strain", "ab")
 )
 
 #' Check that QC measurement is at the required target
@@ -419,6 +432,7 @@ qc_in_range <- Vectorize(
 #' @param measurement measured QC MIC
 #' @param strain control strain identifier (usually ATCC)
 #' @param ab antibiotic name (will be coerced to AMR::as.ab)
+#' @param ignore_na ignores NA (returns TRUE)
 #'
 #' @return logical vector
 #' @export
@@ -426,7 +440,17 @@ qc_in_range <- Vectorize(
 #' @examples
 #' qc_on_target(AMR::as.mic(0.5), 25922, "GEN") == TRUE
 qc_on_target <- Vectorize(
-  function(measurement, strain, ab) {
+  function(measurement,
+           strain,
+           ab,
+           ignore_na = TRUE) {
+    if (is.na(measurement) | is.na(strain) | is.na(ab)) {
+      if (ignore_na) {
+        return(TRUE)
+      } else {
+        return(FALSE)
+      }
+    }
     if (!inherits(measurement, "mic") & !inherits(measurement, "disk")) {
       stop("Measurement must be AMR::mic or AMR::disk")
     }
@@ -452,7 +476,8 @@ qc_on_target <- Vectorize(
       }
       return(TRUE)
     }
-  }
+  },
+  vectorize.args = c("measurement", "strain", "ab")
 )
 
 #' Standardise MIC to control strain
@@ -463,6 +488,7 @@ qc_on_target <- Vectorize(
 #' @param ab antibiotic name (will be coerced to AMR::as.ab)
 #' @param prefer_upper Where the target MIC is a range, prefer the upper value
 #' in the range
+#' @param ignore_na Ignore NA (returns AMR::NA_mic_)
 #'
 #' @return AMR::mic vector
 #' @export
@@ -481,13 +507,22 @@ standardise_mic <- function(test_measurement,
                             qc_measurement,
                             strain,
                             ab,
-                            prefer_upper = FALSE) {
+                            prefer_upper = FALSE,
+                            ignore_na = TRUE) {
   standardise_mic_vectorised <- Vectorize(
     function(test_measurement,
-                              qc_measurement,
-                              strain,
-                              ab,
-                              prefer_upper) {
+             qc_measurement,
+             strain,
+             ab,
+             prefer_upper,
+             ignore_na) {
+      if (is.na(test_measurement) | is.na(qc_measurement) | is.na(strain) | is.na(ab)) {
+        if (ignore_na) {
+          return(TRUE)
+        } else {
+          return(FALSE)
+        }
+      }
       if (!inherits(test_measurement, "mic") | !inherits(qc_measurement, "mic")) {
         stop("Measurements must be AMR::mic")
       }
@@ -535,8 +570,9 @@ standardise_mic <- function(test_measurement,
                        "ab")
   )
   AMR::as.mic(standardise_mic_vectorised(test_measurement,
-                                                  qc_measurement,
-                                                  strain,
-                                                  ab,
-                                                  prefer_upper))
+                                         qc_measurement,
+                                         strain,
+                                         ab,
+                                         prefer_upper,
+                                         ignore_na))
 }

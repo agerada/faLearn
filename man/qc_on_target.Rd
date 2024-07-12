@@ -4,7 +4,7 @@
 \alias{qc_on_target}
 \title{Check that QC measurement is at the required target}
 \usage{
-qc_on_target(measurement, strain, ab)
+qc_on_target(measurement, strain, ab, ignore_na = TRUE)
 }
 \arguments{
 \item{measurement}{measured QC MIC}
@@ -12,6 +12,8 @@ qc_on_target(measurement, strain, ab)
 \item{strain}{control strain identifier (usually ATCC)}
 
 \item{ab}{antibiotic name (will be coerced to AMR::as.ab)}
+
+\item{ignore_na}{ignores NA (returns TRUE)}
 }
 \value{
 logical vector
