@@ -5,3 +5,4 @@
 ^LICENSE\.md$
 ^tmp/
 ^pre_R_package/
+^data-raw$

@@ -371,3 +371,172 @@ summary.mic_validation <- function(object, ...) {
     dplyr::group_by(.data[["ab"]]) |>
     dplyr::summarise(EA = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]))
 }
+
+#' Check that MIC is within QC range
+#'
+#' @param measurement measured QC MIC
+#' @param strain control strain identifier (usually ATCC)
+#' @param ab antibiotic name (will be coerced to AMR::as.ab)
+#'
+#' @return logical vector
+#' @export
+#'
+#' @examples
+#' qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE
+#' qc_in_range(AMR::as.mic(8.0), 25922, "GEN") == FALSE
+qc_in_range <- Vectorize(
+    function(measurement, strain, ab) {
+    if (!inherits(measurement, "mic") & !inherits(measurement, "disk")) {
+      stop("Measurement must be AMR::mic or AMR::disk")
+    }
+    ab <- as.character(AMR::as.ab(ab))
+
+    qc_subset <- QC_table[QC_table$atcc == strain & QC_table$ab == ab, ]
+
+    if (nrow(qc_subset) == 0) {
+      # no QC info in table
+      return(NA)
+    }
+
+    stopifnot(nrow(qc_subset) == 1)
+
+    if (inherits(measurement, "mic")) {
+      measurement <- mic_uncensor(measurement)
+
+      if (measurement < qc_subset[, "mic_lower"]) {
+        return(FALSE)
+      }
+      if (measurement > qc_subset[, "mic_upper"]) {
+        return(FALSE)
+      }
+      return(TRUE)
+    }
+    }
+)
+
+#' Check that QC measurement is at the required target
+#'
+#' @param measurement measured QC MIC
+#' @param strain control strain identifier (usually ATCC)
+#' @param ab antibiotic name (will be coerced to AMR::as.ab)
+#'
+#' @return logical vector
+#' @export
+#'
+#' @examples
+#' qc_on_target(AMR::as.mic(0.5), 25922, "GEN") == TRUE
+qc_on_target <- Vectorize(
+  function(measurement, strain, ab) {
+    if (!inherits(measurement, "mic") & !inherits(measurement, "disk")) {
+      stop("Measurement must be AMR::mic or AMR::disk")
+    }
+    ab <- as.character(AMR::as.ab(ab))
+
+    qc_subset <- QC_table[QC_table$atcc == strain & QC_table$ab == ab, ]
+
+    if (nrow(qc_subset) == 0) {
+      # no QC info in table
+      return(NA)
+    }
+
+    stopifnot(nrow(qc_subset) == 1)
+
+    if (inherits(measurement, "mic")) {
+      measurement <- mic_uncensor(measurement)
+
+      if (measurement < qc_subset[, "mic_target_lower"]) {
+        return(FALSE)
+      }
+      if (measurement > qc_subset[, "mic_target_upper"]) {
+        return(FALSE)
+      }
+      return(TRUE)
+    }
+  }
+)
+
+#' Standardise MIC to control strain
+#'
+#' @param test_measurement Measured MIC to standardise
+#' @param qc_measurement Measured QC MIC to standardise to
+#' @param strain control strain identifier (usually ATCC)
+#' @param ab antibiotic name (will be coerced to AMR::as.ab)
+#' @param prefer_upper Where the target MIC is a range, prefer the upper value
+#' in the range
+#'
+#' @return AMR::mic vector
+#' @export
+#'
+#' @examples
+#' standardise_mic(
+#'   test_measurement = c(AMR::as.mic(">8.0"),
+#'                        AMR::as.mic(4.0),
+#'                        AMR::as.mic(2)),
+#'   qc_measurement = c(AMR::as.mic(1),
+#'                      AMR::as.mic(0.5),
+#'                      AMR::as.mic(1)),
+#'   strain = 25922,
+#'   ab = AMR::as.ab("GEN"))
+standardise_mic <- function(test_measurement,
+                            qc_measurement,
+                            strain,
+                            ab,
+                            prefer_upper = FALSE) {
+  standardise_mic_vectorised <- Vectorize(
+    function(test_measurement,
+                              qc_measurement,
+                              strain,
+                              ab,
+                              prefer_upper) {
+      if (!inherits(test_measurement, "mic") | !inherits(qc_measurement, "mic")) {
+        stop("Measurements must be AMR::mic")
+      }
+      ab <- as.character(AMR::as.ab(ab))
+
+      mic_char <- as.character(test_measurement)
+      if (grepl("<|>", mic_char)) {
+        return(as.character(test_measurement))
+      }
+
+      if (qc_on_target(qc_measurement, strain, ab)) {
+        return(as.character(test_measurement))
+      }
+
+      if (!qc_in_range(qc_measurement, strain, ab)) {
+        warning("QC not in range, standardise_mic may not be appropriate")
+      }
+
+      qc_subset <- QC_table[QC_table$atcc == strain & QC_table$ab == ab, ]
+
+      if (nrow(qc_subset) == 0) {
+        # no QC info in table
+        return(NA)
+      }
+
+      stopifnot(nrow(qc_subset) == 1)
+
+      scale_factor_lower <- qc_subset[, "mic_target_lower"]
+      scale_factor_upper <- qc_subset[, "mic_target_upper"]
+      if (scale_factor_lower == scale_factor_upper) {
+        scale_factor <- scale_factor_lower
+      } else{
+        if (prefer_upper) {
+          scale_factor <- scale_factor_upper
+        } else {
+          scale_factor <- scale_factor_lower
+        }
+      }
+
+      as.character(test_measurement * (scale_factor / qc_measurement))
+    },
+    vectorize.args = c("test_measurement",
+                       "qc_measurement",
+                       "strain",
+                       "ab")
+  )
+  AMR::as.mic(standardise_mic_vectorised(test_measurement,
+                                                  qc_measurement,
+                                                  strain,
+                                                  ab,
+                                                  prefer_upper))
+}
