@@ -10,7 +10,10 @@ standardise_mic(
   strain,
   ab,
   prefer_upper = FALSE,
-  ignore_na = TRUE
+  ignore_na = TRUE,
+  guideline = "EUCAST",
+  year = "2023",
+  force = TRUE
 )
 }
 \arguments{
@@ -26,6 +29,12 @@ standardise_mic(
 in the range}
 
 \item{ignore_na}{Ignore NA (returns AMR::NA_mic_)}
+
+\item{guideline}{Guideline to use (EUCAST or CLSI)}
+
+\item{year}{Guideline year (version)}
+
+\item{force}{Force into MIC-compatible format after standardisation}
 }
 \value{
 AMR::mic vector

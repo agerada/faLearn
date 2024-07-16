@@ -4,7 +4,14 @@
 \alias{qc_on_target}
 \title{Check that QC measurement is at the required target}
 \usage{
-qc_on_target(measurement, strain, ab, ignore_na = TRUE)
+qc_on_target(
+  measurement,
+  strain,
+  ab,
+  ignore_na = TRUE,
+  guideline = "EUCAST",
+  year = "2023"
+)
 }
 \arguments{
 \item{measurement}{measured QC MIC}
@@ -14,6 +21,10 @@ qc_on_target(measurement, strain, ab, ignore_na = TRUE)
 \item{ab}{antibiotic name (will be coerced to AMR::as.ab)}
 
 \item{ignore_na}{ignores NA (returns TRUE)}
+
+\item{guideline}{Guideline to use (EUCAST or CLSI)}
+
+\item{year}{Guideline year (version)}
 }
 \value{
 logical vector

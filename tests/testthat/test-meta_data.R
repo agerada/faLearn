@@ -33,6 +33,8 @@ test_that("test qc_in_range", {
 
   expect_true(qc_in_range(NA, 25922, "GEN"))
   expect_true(qc_in_range(AMR::as.mic(8.0), NA, "GEN"))
+
+  expect_false(qc_in_range(AMR::as.mic("<0.0625"), 25922, "CIP"))
 })
 
 test_that("test qc_on_target", {
@@ -102,4 +104,19 @@ test_that("test standardise_mic", {
                                  prefer_upper = T),
                  AMR::NA_mic_)
   )
+
+  expect_equal(standardise_mic(c(AMR::as.mic("4"),
+                                 AMR::as.mic("8")),
+                               c(AMR::as.mic("1"),
+                                 AMR::as.mic("0.5")),
+                               25922,
+                               AMR::as.ab("GEN")),
+               AMR::as.mic(c("2", "8")))
+})
+
+test_that("test compare mic", {
+  mic1 <- AMR::as.mic(c("4","8", ">32"))
+  mic2 <- AMR::as.mic(c("4", "4", "2"))
+  validation <- compare_mic(mic1, mic2)
+  expect_s3_class(validation, "mic_validation")
 })

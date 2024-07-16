@@ -4,10 +4,12 @@
 \alias{plot.mic_validation}
 \title{Plot MIC validation results}
 \usage{
-\method{plot}{mic_validation}(x, ...)
+\method{plot}{mic_validation}(x, match_axes = TRUE, ...)
 }
 \arguments{
 \item{x}{object generated using compare_mic}
+
+\item{match_axes}{Same x and y axis}
 
 \item{...}{additional arguments}
 }

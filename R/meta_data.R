@@ -100,10 +100,11 @@ mic_uncensor <- function(mic, scale = 2) {
   if (!AMR::is.mic(mic)) {
     mic <- AMR::as.mic(mic)
   }
+
   suppressWarnings(
     dplyr::case_when(
-      stringr::str_detect(mic, ">") ~ AMR::as.mic(mic * scale),
-      stringr::str_detect(mic, "<") ~ AMR::as.mic(mic / scale),
+      stringr::str_detect(mic, ">") ~ AMR::as.mic(force_mic(mic * scale)),
+      stringr::str_detect(mic, "<") ~ AMR::as.mic(force_mic(mic / scale)),
       .default = mic)
   )
 }
@@ -169,6 +170,13 @@ force_mic <- function(value,
 
     prefix <- NULL
     inner_val <- value[i]
+
+    if (is.na(inner_val)) {
+      next
+    }
+
+    stopifnot(any(c(AMR::is.mic(inner_val), is.numeric(inner_val), is.character(inner_val), is.na(inner_val))))
+
     if (AMR::is.mic(inner_val)) {
       inner_val <- as.character(inner_val)
     }
@@ -290,8 +298,8 @@ compare_sir <- function(gold_standard, test) {
   )
 }
 
-plot_mic_validation_single_ab <- function(x, ...) {
-  x |>
+plot_mic_validation_single_ab <- function(x, match_axes, ...) {
+  x <- x |>
     dplyr::group_by(.data[["gold_standard"]],
                     .data[["test"]],
                     .data[["essential_agreement"]]) |>
@@ -310,10 +318,16 @@ plot_mic_validation_single_ab <- function(x, ...) {
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
+
+  if (match_axes) {
+    x <- x + ggplot2::scale_x_discrete(drop = FALSE)
+    x <- x + ggplot2::scale_y_discrete(drop = FALSE)
+  }
+  x
 }
 
-plot_mic_validation_multi_ab <- function(x, ...) {
-  x |>
+plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
+  x <- x |>
     dplyr::group_by(.data[["gold_standard"]],
                     .data[["test"]],
                     .data[["essential_agreement"]],
@@ -337,20 +351,46 @@ plot_mic_validation_multi_ab <- function(x, ...) {
     ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
+
+  if (match_axes) {
+    x <- x + ggplot2::scale_x_discrete(drop = FALSE)
+    x <- x + ggplot2::scale_y_discrete(drop = FALSE)
+  }
+  x
 }
 
 #' Plot MIC validation results
 #'
 #' @param x object generated using compare_mic
+#' @param match_axes Same x and y axis
 #' @param ... additional arguments
 #'
 #' @export
-plot.mic_validation <- function(x, ...) {
+plot.mic_validation <- function(x, match_axes = TRUE, ...) {
+
+  if (match_axes) {
+    all_levels <- levels(AMR::as.mic(NA))
+
+    keep_these <- levels(droplevels(x[["test"]]))
+    drop_these <- all_levels[!all_levels %in% keep_these]
+
+    x[["gold_standard"]] <- forcats::fct_drop(x[["gold_standard"]], only = drop_these)
+
+
+    keep_these <- levels(droplevels(x[["gold_standard"]]))
+    drop_these <- all_levels[!all_levels %in% keep_these]
+
+    x[["test"]] <- forcats::fct_drop(x[["test"]], only = drop_these)
+
+    class(x[["test"]]) <- append(class(x[["test"]]), values = "mic", after = 0)
+    class(x[["gold_standard"]]) <- append(class(x[["gold_standard"]]), values = "mic", after = 0)
+  }
+
   if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1) {
-    plot_mic_validation_single_ab(x, ...)
+    plot_mic_validation_single_ab(x, match_axes, ...)
   }
   else {
-    plot_mic_validation_multi_ab(x, ...)
+    plot_mic_validation_multi_ab(x, match_axes, ...)
   }
 }
 
@@ -378,8 +418,8 @@ summary.mic_validation <- function(object, ...) {
 #' @param strain control strain identifier (usually ATCC)
 #' @param ab antibiotic name (will be coerced to AMR::as.ab)
 #' @param ignore_na ignores NA (returns TRUE)
-
-#'
+#' @param guideline Guideline to use (EUCAST or CLSI)
+#' @param year Guideline year (version)
 #' @return logical vector
 #' @export
 #'
@@ -390,7 +430,9 @@ qc_in_range <- Vectorize(
     function(measurement,
              strain,
              ab,
-             ignore_na = TRUE) {
+             ignore_na = TRUE,
+             guideline = "EUCAST",
+             year = "2023") {
     if (is.na(measurement) | is.na(strain) | is.na(ab)) {
       if (ignore_na) {
         return(TRUE)
@@ -403,7 +445,11 @@ qc_in_range <- Vectorize(
     }
     ab <- as.character(AMR::as.ab(ab))
 
-    qc_subset <- QC_table[QC_table$atcc == strain & QC_table$ab == ab, ]
+    strain <- tolower(strain)
+    if (!startsWith(strain, "atcc")) {
+      strain <- paste0("atcc", strain)
+    }
+    qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
 
     if (nrow(qc_subset) == 0) {
       # no QC info in table
@@ -415,10 +461,10 @@ qc_in_range <- Vectorize(
     if (inherits(measurement, "mic")) {
       measurement <- mic_uncensor(measurement)
 
-      if (measurement < qc_subset[, "mic_lower"]) {
+      if (measurement < AMR::as.mic(qc_subset[, "MINIMUM"])) {
         return(FALSE)
       }
-      if (measurement > qc_subset[, "mic_upper"]) {
+      if (measurement > AMR::as.mic(qc_subset[, "MAXIMUM"])) {
         return(FALSE)
       }
       return(TRUE)
@@ -433,6 +479,8 @@ qc_in_range <- Vectorize(
 #' @param strain control strain identifier (usually ATCC)
 #' @param ab antibiotic name (will be coerced to AMR::as.ab)
 #' @param ignore_na ignores NA (returns TRUE)
+#' @param guideline Guideline to use (EUCAST or CLSI)
+#' @param year Guideline year (version)
 #'
 #' @return logical vector
 #' @export
@@ -443,7 +491,9 @@ qc_on_target <- Vectorize(
   function(measurement,
            strain,
            ab,
-           ignore_na = TRUE) {
+           ignore_na = TRUE,
+           guideline = "EUCAST",
+           year = "2023") {
     if (is.na(measurement) | is.na(strain) | is.na(ab)) {
       if (ignore_na) {
         return(TRUE)
@@ -456,7 +506,12 @@ qc_on_target <- Vectorize(
     }
     ab <- as.character(AMR::as.ab(ab))
 
-    qc_subset <- QC_table[QC_table$atcc == strain & QC_table$ab == ab, ]
+    strain <- tolower(strain)
+    if (!startsWith(strain, "atcc")) {
+      strain <- paste0("atcc", strain)
+    }
+
+    qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
 
     if (nrow(qc_subset) == 0) {
       # no QC info in table
@@ -468,10 +523,10 @@ qc_on_target <- Vectorize(
     if (inherits(measurement, "mic")) {
       measurement <- mic_uncensor(measurement)
 
-      if (measurement < qc_subset[, "mic_target_lower"]) {
+      if (measurement < qc_subset[, "MINIMUM_TARGET"]) {
         return(FALSE)
       }
-      if (measurement > qc_subset[, "mic_target_upper"]) {
+      if (measurement > qc_subset[, "MAXIMUM_TARGET"]) {
         return(FALSE)
       }
       return(TRUE)
@@ -489,6 +544,9 @@ qc_on_target <- Vectorize(
 #' @param prefer_upper Where the target MIC is a range, prefer the upper value
 #' in the range
 #' @param ignore_na Ignore NA (returns AMR::NA_mic_)
+#' @param guideline Guideline to use (EUCAST or CLSI)
+#' @param year Guideline year (version)
+#' @param force Force into MIC-compatible format after standardisation
 #'
 #' @return AMR::mic vector
 #' @export
@@ -508,19 +566,25 @@ standardise_mic <- function(test_measurement,
                             strain,
                             ab,
                             prefer_upper = FALSE,
-                            ignore_na = TRUE) {
+                            ignore_na = TRUE,
+                            guideline = "EUCAST",
+                            year = "2023",
+                            force = TRUE) {
   standardise_mic_vectorised <- Vectorize(
     function(test_measurement,
              qc_measurement,
              strain,
              ab,
              prefer_upper,
-             ignore_na) {
+             ignore_na,
+             guideline,
+             year,
+             force) {
       if (is.na(test_measurement) | is.na(qc_measurement) | is.na(strain) | is.na(ab)) {
         if (ignore_na) {
-          return(TRUE)
+          return(NA)
         } else {
-          return(FALSE)
+          return(NA)
         }
       }
       if (!inherits(test_measurement, "mic") | !inherits(qc_measurement, "mic")) {
@@ -541,7 +605,11 @@ standardise_mic <- function(test_measurement,
         warning("QC not in range, standardise_mic may not be appropriate")
       }
 
-      qc_subset <- QC_table[QC_table$atcc == strain & QC_table$ab == ab, ]
+      strain <- tolower(strain)
+      if (!startsWith(strain, "atcc")) {
+        strain <- paste0("atcc", strain)
+      }
+      qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
 
       if (nrow(qc_subset) == 0) {
         # no QC info in table
@@ -550,8 +618,13 @@ standardise_mic <- function(test_measurement,
 
       stopifnot(nrow(qc_subset) == 1)
 
-      scale_factor_lower <- qc_subset[, "mic_target_lower"]
-      scale_factor_upper <- qc_subset[, "mic_target_upper"]
+      if (qc_subset[1, "TARGET_ESTIMATED"]) {
+        warning(paste("Target for", ab, "is estimated as mid-point between upper
+and lower range. EUCAST/CLSI guidance may be different."))
+      }
+
+      scale_factor_lower <- qc_subset[, "MINIMUM_TARGET"]
+      scale_factor_upper <- qc_subset[, "MAXIMUM_TARGET"]
       if (scale_factor_lower == scale_factor_upper) {
         scale_factor <- scale_factor_lower
       } else{
@@ -569,10 +642,25 @@ standardise_mic <- function(test_measurement,
                        "strain",
                        "ab")
   )
+  if (force) {
+    return(
+      AMR::as.mic(force_mic(standardise_mic_vectorised(test_measurement,
+                                                       qc_measurement,
+                                                       strain,
+                                                       ab,
+                                                       prefer_upper,
+                                                       ignore_na,
+                                                       guideline,
+                                                       year)
+      )
+    ))
+  }
   AMR::as.mic(standardise_mic_vectorised(test_measurement,
                                          qc_measurement,
                                          strain,
                                          ab,
                                          prefer_upper,
-                                         ignore_na))
+                                         ignore_na,
+                                         guideline,
+                                         year))
 }
