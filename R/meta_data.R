@@ -64,6 +64,17 @@ get_mic <- function(x,
   }
 }
 
+#' Calculate sample weights
+#'
+#' @param x Vector of discrete variables
+#'
+#' @return sample weights
+#' @export
+sample_weights <- function(x) {
+  freq_table <- table(x)
+  as.vector(1 / freq_table[as.character(x)])
+}
+
 #' Clean up raw MIC for use as a feature
 #'
 #' @param mic character containing MIC/s
