@@ -125,6 +125,7 @@ mic_uncensor <- function(mic, scale = 2) {
 #' @param start starting (highest) concentration
 #' @param dilutions number of dilutions
 #' @param min minimum (lowest) concentration
+#' @param precise force range to be high precision (not usually desired behaviour)
 #'
 #' @return Vector of numeric concentrations
 #' @export
@@ -134,17 +135,51 @@ mic_uncensor <- function(mic, scale = 2) {
 #' mic_range(128, dilutions = 21) # same results
 mic_range <- function(start,
                       dilutions = Inf,
-                      min = 0.0001) {
-  if (start[length(start)] < min) {
-    return(utils::head(start, -1))
+                      min = 0.0001,
+                      precise = TRUE) {
+  recursive_inner <- function(start,
+                              dilutions,
+                              min) {
+    if (start[length(start)] < min) {
+      return(utils::head(start, -1))
+    }
+    if (dilutions == 0) {
+      return (start)
+    } else {
+      return(recursive_inner(c(start, start[length(start)] / 2),
+                       dilutions - 1,
+                       min))
+    }
   }
-  if (dilutions == 0) {
-    return (start)
-  } else {
-    return(mic_range(c(start, start[length(start)] / 2),
-                     dilutions - 1,
-                     min))
+
+  if (precise) {
+    return(recursive_inner(start = start,
+                           dilutions = dilutions,
+                           min = min))
   }
+
+  eucast_range <- c(512,
+                    256,
+                    128,
+                    64,
+                    32,
+                    16,
+                    8,
+                    4,
+                    2,
+                    1,
+                    0.5,
+                    0.25,
+                    0.125,
+                    0.06,
+                    0.03,
+                    0.016,
+                    0.008,
+                    0.004,
+                    0.002)
+  filtered_range <- eucast_range[eucast_range > min & eucast_range < start]
+  end_index <- ifelse(is.infinite(dilutions), length(filtered_range), dilutions)
+  return(filtered_range[1:end_index])
 }
 
 #' Force MIC-like into MIC-compatible format

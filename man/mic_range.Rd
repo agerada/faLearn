@@ -4,7 +4,7 @@
 \alias{mic_range}
 \title{Generate dilution series}
 \usage{
-mic_range(start, dilutions = Inf, min = 1e-04)
+mic_range(start, dilutions = Inf, min = 1e-04, precise = TRUE)
 }
 \arguments{
 \item{start}{starting (highest) concentration}
@@ -12,6 +12,8 @@ mic_range(start, dilutions = Inf, min = 1e-04)
 \item{dilutions}{number of dilutions}
 
 \item{min}{minimum (lowest) concentration}
+
+\item{precise}{force range to be high precision (not usually desired behaviour)}
 }
 \value{
 Vector of numeric concentrations
