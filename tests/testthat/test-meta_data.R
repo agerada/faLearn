@@ -120,3 +120,53 @@ test_that("test compare mic", {
   validation <- compare_mic(mic1, mic2)
   expect_s3_class(validation, "mic_validation")
 })
+
+test_that("test essential agreement", {
+  expect_true(essential_agreement(2, 2))
+  expect_true(essential_agreement(2, 4))
+  expect_true(essential_agreement(2, ">2"))
+  expect_true(essential_agreement("2", "<2"))
+  expect_true(essential_agreement(0.002, "<0.002"))
+  expect_true(essential_agreement("0.001", "<0.002"))
+
+  expect_false(essential_agreement(2, ">4"))
+  expect_false(essential_agreement(256, ">512"))
+  expect_false(essential_agreement(128, ">256"))
+  expect_false(essential_agreement(512, "128"))
+  expect_false(essential_agreement(0.002, "0.006"))
+
+  expect_true(suppressWarnings(is.na(essential_agreement(2, ">1024"))))
+  expect_warning(essential_agreement(2, ">1024"))
+  expect_true(is.na(essential_agreement(2, "<0.001")))
+
+  left_check <- c(4, 2, 7, ">32")
+  right_check <- c(4, 1, 1, "32")
+  expect_equal(essential_agreement(left_check, right_check),
+               c(TRUE, TRUE, FALSE, TRUE))
+})
+
+test_that("test mic_censor", {
+  expect_equal(mic_censor(AMR::as.mic(128), "AMK", "B_ESCHR_COLI"), ">32")
+  expect_equal(mic_censor(AMR::as.mic(">128"), "AMK", "B_ESCHR_COLI"), ">32")
+  expect_equal(mic_censor(">128", "AMK", "B_ESCHR_COLI"), ">32")
+})
+
+test_that("test compare_mic", {
+  gs <- c("0.5", "4", ">8", "2")
+  test <- c("0.5", "8", "2", "0.5")
+  expect_s3_class(compare_mic(gs, test), "mic_validation")
+  expect_equal(summary(compare_mic(gs, test))[["EA"]], 0.5)
+
+  ab <- c("amoxicillin", "amoxicillin", "gentamicin", "gentamicin")
+  mo <- "Escherichia coli"
+  expect_s3_class(compare_mic(gs, test, ab, mo), "mic_validation")
+  expect_equal(summary(compare_mic(gs, test, ab, mo))[[1, "EA"]], 1)
+  expect_equal(summary(compare_mic(gs, test, ab, mo))[[2, "EA"]], 0)
+
+})
+
+test_that("test compare_sir", {
+  gs <- c("4", "16", ">8", "0.5")
+  test <- c("0.5", "8", "0.25", ">64")
+  compare_mic(gs, test)
+})

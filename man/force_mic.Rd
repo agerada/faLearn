@@ -6,9 +6,9 @@
 \usage{
 force_mic(
   value,
-  levels_from_AMR = TRUE,
-  max_conc = 2048,
-  min_conc = 5e-05,
+  levels_from_AMR = FALSE,
+  max_conc = 512,
+  min_conc = 0.002,
   prefer = "max"
 )
 }

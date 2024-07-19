@@ -4,7 +4,7 @@
 \alias{essential_agreement}
 \title{Essential agreement for MIC validation}
 \usage{
-essential_agreement(x, y, coerce_mic = TRUE)
+essential_agreement(x, y, coerce_mic = TRUE, mode = "categorical")
 }
 \arguments{
 \item{x}{AMR::mic or coercible}
@@ -12,6 +12,8 @@ essential_agreement(x, y, coerce_mic = TRUE)
 \item{y}{AMR::mic or coercible}
 
 \item{coerce_mic}{convert to AMR::mic}
+
+\item{mode}{Categorical or numeric}
 }
 \value{
 logical vector

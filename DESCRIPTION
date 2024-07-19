@@ -1,5 +1,5 @@
 Package: molMIC
-Title: Perform MIC predictions using assembled genomes
+Title: molecularMIC: Perform MIC Predictions using Assembled Genomes
 Version: 0.6.0
 Authors@R: 
     person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
@@ -26,7 +26,8 @@ Imports:
     progressr,
     lemon,
     ggplot2,
-    forcats
+    forcats,
+    purrr
 Depends: 
     R (>= 2.10)
 LazyData: true
