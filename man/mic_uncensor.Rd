@@ -4,12 +4,18 @@
 \alias{mic_uncensor}
 \title{Uncensor MICs}
 \usage{
-mic_uncensor(mic, scale = 2)
+mic_uncensor(mic, method = "scale", scale = 2, ab = NULL, mo = NULL)
 }
 \arguments{
 \item{mic}{vector of MICs to uncensor; will be coerced to MIC using AMR::as.mic}
 
-\item{scale}{scalar to multiply or divide MIC by}
+\item{method}{method to uncensor MICs (scale, simple, or bootstrap)}
+
+\item{scale}{scalar to multiply or divide MIC by (for method = scale)}
+
+\item{ab}{antibiotic name (for method = bootstrap)}
+
+\item{mo}{microorganism name (for method = bootstrap)}
 }
 \value{
 vector of MICs in AMR::mic format

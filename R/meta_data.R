@@ -95,7 +95,10 @@ clean_raw_mic <- function(mic) {
 #' Uncensor MICs
 #'
 #' @param mic vector of MICs to uncensor; will be coerced to MIC using AMR::as.mic
-#' @param scale scalar to multiply or divide MIC by
+#' @param method method to uncensor MICs (scale, simple, or bootstrap)
+#' @param scale scalar to multiply or divide MIC by (for method = scale)
+#' @param ab antibiotic name (for method = bootstrap)
+#' @param mo microorganism name (for method = bootstrap)
 #'
 #' @return vector of MICs in AMR::mic format
 #' @description
@@ -106,9 +109,28 @@ clean_raw_mic <- function(mic) {
 #'
 #' @examples
 #' mic_uncensor(c(">64.0", "<0.25", "8.0"))
-mic_uncensor <- function(mic, scale = 2) {
-  rlang::check_installed("AMR", "mic_uncensor requires AMR package")
+mic_uncensor <- function(mic,
+                         method = "scale",
+                         scale = 2,
+                         ab = NULL,
+                         mo = NULL) {
+  if (method == "scale") {
+    return(mic_uncensor_scale(mic, scale))
+  }
+  if (method == "simple") {
+    return(mic_uncensor_simple(mic))
+  }
+  if (method == "bootstrap") {
+    return(mic_uncensor_bootstrap(mic, ab, mo))
+  }
+  stop("Method must be scale, simple or bootstrap")
+}
 
+mic_uncensor_simple <- function(mic) {
+  as.numeric(AMR::as.mic(mic))
+}
+
+mic_uncensor_scale <- function(mic, scale) {
   suppressWarnings(
     dplyr::case_when(
       stringr::str_detect(mic, ">") ~ AMR::as.mic(AMR::as.mic(stringr::str_remove(force_mic(mic), ">")) * scale),
@@ -116,6 +138,32 @@ mic_uncensor <- function(mic, scale = 2) {
       .default = AMR::as.mic(force_mic(mic)))
   )
 }
+
+mic_uncensor_bootstrap <- function(mic, ab, mo = NULL) {
+      mic <- gsub("=", "", mic)
+      if (!startsWith(mic, "<") & !startsWith(mic, ">")) {
+        return(AMR::as.mic(mic))
+      }
+
+      ab <- AMR::as.ab(ab)
+      mic <- AMR::as.mic(mic)
+
+      ecoff_sub <- ecoffs[ecoffs['antibiotic'] == ab,]
+      ecoff_mics <- ecoff_sub[as.character(mic_range())]
+
+      if (nrow(ecoff_sub) == 0) {
+        warning("No ECOFFs available for ", ab)
+        return(mic)
+      }
+
+      if (startsWith(as.character(mic), "<")) {
+        ecoff_mics[AMR::as.mic(names(ecoff_mics)) > mic] <- 0
+      }
+      if (startsWith(as.character(mic), ">")) {
+        ecoff_mics[AMR::as.mic(names(ecoff_mics)) <= mic] <- 0
+      }
+      return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
+    }
 
 censor_rules <- list("B_ESCHR_COLI" = list(
   "AMK" = list(min = 2, max = 32),
@@ -562,12 +610,13 @@ summary.mic_validation <- function(object, ...) {
       object |>
         dplyr::group_by(.data[["ab"]], .data[["mo"]]) |>
         dplyr::summarise(EA = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
-                         `minor error (%)` = sum(.data[["error"]] == "m") / length(.data[["error"]]) * 100,
-                         `major error (%)` = sum(.data[["error"]] == "M") / length(.data[["error"]]) * 100,
-                         `very major error (%)` = sum(.data[["error"]] == "vM") /length(.data[["error"]]) * 100,
-                         `minor error (n)` = sum(.data[["error"]] == "m"),
-                         `major error (n)` = sum(.data[["error"]] == "M"),
-                         `very major error (n)` = sum(.data[["error"]] == "vM"))
+                         `minor error (%)` = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
+                         `major error (%)` = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
+                         `very major error (%)` = sum(.data[["error"]] == "vM", na.rm = TRUE) /length(.data[["error"]]) * 100,
+                         `minor error (n)` = sum(.data[["error"]] == "m", na.rm = TRUE),
+                         `major error (n)` = sum(.data[["error"]] == "M", na.rm = TRUE),
+                         `very major error (n)` = sum(.data[["error"]] == "vM", na.rm = TRUE),
+                         `n` = dplyr::n())
     )
   }
 }

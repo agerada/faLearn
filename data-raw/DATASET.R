@@ -53,4 +53,13 @@ QC_table$MAXIMUM_TARGET <- ifelse(
   QC_table$MINIMUM_TARGET,
   QC_table$MAXIMUM_TARGET)
 
-usethis::use_data(QC_table, overwrite = TRUE, internal = TRUE)
+
+## ECOFFS
+
+ecoffs <- readr::read_csv("data-raw/ecoffs.csv",
+                          col_types = readr::cols(.default = "c"))
+ecoffs <- ecoffs %>%
+  dplyr::rename(antibiotic = ...1) %>%
+  dplyr::mutate(antibiotic = AMR::as.ab(antibiotic))
+
+usethis::use_data(QC_table, ecoffs, overwrite = TRUE, internal = TRUE)

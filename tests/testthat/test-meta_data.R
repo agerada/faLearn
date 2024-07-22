@@ -146,9 +146,13 @@ test_that("test essential agreement", {
 })
 
 test_that("test mic_censor", {
-  expect_equal(mic_censor(AMR::as.mic(128), "AMK", "B_ESCHR_COLI"), ">32")
-  expect_equal(mic_censor(AMR::as.mic(">128"), "AMK", "B_ESCHR_COLI"), ">32")
-  expect_equal(mic_censor(">128", "AMK", "B_ESCHR_COLI"), ">32")
+  suppressMessages(
+    {
+      expect_equal(mic_censor(AMR::as.mic(128), "AMK", "B_ESCHR_COLI"), ">32")
+      expect_equal(mic_censor(AMR::as.mic(">128"), "AMK", "B_ESCHR_COLI"), ">32")
+      expect_equal(mic_censor(">128", "AMK", "B_ESCHR_COLI"), ">32")
+    }
+  )
 })
 
 test_that("test compare_mic", {
@@ -159,14 +163,25 @@ test_that("test compare_mic", {
 
   ab <- c("amoxicillin", "amoxicillin", "gentamicin", "gentamicin")
   mo <- "Escherichia coli"
-  expect_s3_class(compare_mic(gs, test, ab, mo), "mic_validation")
-  expect_equal(summary(compare_mic(gs, test, ab, mo))[[1, "EA"]], 1)
-  expect_equal(summary(compare_mic(gs, test, ab, mo))[[2, "EA"]], 0)
+  suppressMessages(
+    {
+      expect_s3_class(compare_mic(gs, test, ab, mo), "mic_validation")
+      expect_equal(summary(compare_mic(gs, test, ab, mo))[[1, "EA"]], 1)
+      expect_equal(summary(compare_mic(gs, test, ab, mo))[[2, "EA"]], 0)
+    }
+  )
 
 })
 
 test_that("test compare_sir", {
   gs <- c("4", "16", ">8", "0.5")
   test <- c("0.5", "8", "0.25", ">64")
-  compare_mic(gs, test)
+  ab <- "GEN"
+  mo <- "Escherichia coli"
+  val <- suppressMessages(compare_mic(gs, test, ab, mo))
+  expect_s3_class(val, "mic_validation")
+  sum_val <- summary(val)
+  expect_equal(sum_val$EA[sum_val$ab == "GEN"], 0.25)
+  expect_equal(sum_val$`very major error (%)`[sum_val$ab == "GEN"], 50)
+
 })
