@@ -140,6 +140,9 @@ mic_uncensor_scale <- function(mic, scale) {
 }
 
 mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
+      if (is.na(mic)) {
+        return(AMR::NA_mic_)
+      }
       mic <- gsub("=", "", mic)
       if (!startsWith(mic, "<") & !startsWith(mic, ">")) {
         return(AMR::as.mic(mic))
@@ -162,6 +165,14 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
       if (startsWith(as.character(mic), ">")) {
         ecoff_mics[AMR::as.mic(names(ecoff_mics)) <= mic] <- 0
       }
+
+      ecoff_mics <- sapply(ecoff_mics, as.numeric)
+
+      if (sum(ecoff_mics) == 0) {
+        warning(ab, "appears to be below or above epidemiological distribution, performing a simple mic uncensor.")
+        return(mic_uncensor_simple(mic))
+      }
+
       return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
     },
     USE.NAMES = F)

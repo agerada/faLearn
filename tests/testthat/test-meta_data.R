@@ -198,8 +198,11 @@ test_that("test mic_uncensor", {
   mo <- "Escherichia coli"
 
   expect_true(as.numeric(mic_uncensor(">16", method = "bootstrap", ab = ab, mo = mo)) > 16)
-  mic1 <- c("0.5", "4", ">8", "2", "<1", ">16")
+  mic1 <- c("0.5", "4", ">8", "2", "<=1", ">16")
   uncensored_mic1 <- mic_uncensor(mic1, method = "bootstrap", ab = ab, mo = mo)
   expect_true(as.numeric(uncensored_mic1[3]) > 8)
 
+  expect_equal(mic_uncensor(NA, method = "bootstrap", ab = ab, mo = mo), AMR::NA_mic_)
+
+  expect_warning(mic_uncensor("<0.004", method = "bootstrap", ab = ab, mo = mo))
 })
