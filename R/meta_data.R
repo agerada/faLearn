@@ -121,13 +121,13 @@ mic_uncensor <- function(mic,
     return(mic_uncensor_simple(mic))
   }
   if (method == "bootstrap") {
-    return(mic_uncensor_bootstrap(mic, ab, mo))
+    return(AMR::as.mic(mic_uncensor_bootstrap(mic, ab, mo)))
   }
   stop("Method must be scale, simple or bootstrap")
 }
 
 mic_uncensor_simple <- function(mic) {
-  as.numeric(AMR::as.mic(mic))
+  AMR::as.mic(as.numeric(AMR::as.mic(mic)))
 }
 
 mic_uncensor_scale <- function(mic, scale) {
@@ -139,7 +139,7 @@ mic_uncensor_scale <- function(mic, scale) {
   )
 }
 
-mic_uncensor_bootstrap <- function(mic, ab, mo = NULL) {
+mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
       mic <- gsub("=", "", mic)
       if (!startsWith(mic, "<") & !startsWith(mic, ">")) {
         return(AMR::as.mic(mic))
@@ -163,7 +163,8 @@ mic_uncensor_bootstrap <- function(mic, ab, mo = NULL) {
         ecoff_mics[AMR::as.mic(names(ecoff_mics)) <= mic] <- 0
       }
       return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
-    }
+    },
+    USE.NAMES = F)
 
 censor_rules <- list("B_ESCHR_COLI" = list(
   "AMK" = list(min = 2, max = 32),

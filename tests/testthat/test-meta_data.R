@@ -185,3 +185,21 @@ test_that("test compare_sir", {
   expect_equal(sum_val$`very major error (%)`[sum_val$ab == "GEN"], 50)
 
 })
+
+
+test_that("test mic_uncensor", {
+  expect_equal(mic_uncensor(">16", method = "scale"), AMR::as.mic(32))
+  expect_equal(mic_uncensor(">16", method = "simple"), AMR::as.mic(16))
+
+  expect_equal(mic_uncensor(c("0.5", "<1"), method = "scale"), AMR::as.mic(c("0.5", "0.5")))
+  expect_equal(mic_uncensor(c("0.5", "<1"), method = "simple"), AMR::as.mic(c("0.5", "1")))
+
+  ab <- "GEN"
+  mo <- "Escherichia coli"
+
+  expect_true(as.numeric(mic_uncensor(">16", method = "bootstrap", ab = ab, mo = mo)) > 16)
+  mic1 <- c("0.5", "4", ">8", "2", "<1", ">16")
+  uncensored_mic1 <- mic_uncensor(mic1, method = "bootstrap", ab = ab, mo = mo)
+  expect_true(as.numeric(uncensored_mic1[3]) > 8)
+
+})
