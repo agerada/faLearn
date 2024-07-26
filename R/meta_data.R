@@ -281,8 +281,9 @@ mic_range <- function(start = 512,
 #' @param levels_from_AMR conform to AMR::as.mic levels
 #' @param max_conc maximum concentration to force to
 #' @param min_conc minimum concentration to force to
+#' @param method method to use when forcing MICs (closest or round_up)
 #' @param prefer where value is in between MIC (e.g., 24mg/L) chose the higher
-#' MIC ("max") or lower MIC ("min").
+#' MIC ("max") or lower MIC ("min"); only applies to method = "closest"
 #'
 #' @return AMR::as.mic compatible character
 #' @export
@@ -293,6 +294,7 @@ force_mic <- function(value,
                       levels_from_AMR = FALSE,
                       max_conc = 512,
                       min_conc = 0.002,
+                      method = "closest",
                       prefer = 'max') {
 
   if (levels_from_AMR) {
@@ -341,7 +343,19 @@ force_mic <- function(value,
       inner_val <- as.numeric(inner_val)
     }
     mic_vector <- sort(as.numeric(appropriate_levels))
-    positions <- which(abs(mic_vector - inner_val) == min(abs(mic_vector - inner_val)))
+
+    if (!method %in% c("closest", "round_up")) {
+      stop("Method must be closest or round_up")
+    }
+
+    if (method == "closest") {
+      positions <- which(abs(mic_vector - inner_val) == min(abs(mic_vector - inner_val)))
+    }
+
+    if (method == "round_up") {
+      positions <- which.min(mic_vector[inner_val < mic_vector])
+    }
+
     if (length(positions) == 1) {
       output[i] <- paste0(prefix, mic_vector[positions])
     }
@@ -353,7 +367,6 @@ force_mic <- function(value,
       warning(paste("Value greater than supported MIC:", inner_val))
       output[i] <- NA_character_
     } else if (inner_val < min_conc / 2) {
-      print('here')
       warning(paste("Value less than supported MIC:", inner_val))
       output[i] <- NA_character_
     } else {
@@ -458,7 +471,8 @@ compare_mic <- function(gold_standard,
   output <- data.frame(
     gold_standard = gold_standard_mod,
     test = test_mod,
-    essential_agreement = essential_agreement(gold_standard_mod, test_mod)
+    essential_agreement = factor(essential_agreement(gold_standard_mod, test_mod),
+                                 levels = c(FALSE, TRUE))
   )
 
   if (!is.null(ab)) {
@@ -497,10 +511,10 @@ plot_mic_validation_single_ab <- function(x, match_axes, ...) {
                                  y = .data[["test"]],
                                  fill = .data[["n"]],
                                  color = .data[["EA"]])) +
-    ggplot2::geom_tile(alpha=1) +
-    ggplot2::geom_text(ggplot2::aes(label=.data[["n"]])) +
+    ggplot2::geom_tile(alpha=1, show.legend = TRUE) +
+    ggplot2::geom_text(ggplot2::aes(label=.data[["n"]]), show.legend = TRUE) +
     ggplot2::scale_fill_gradient(low="white", high="#009194") +
-    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color") +
+    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color", drop = FALSE) +
     ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
     ggplot2::theme_bw(base_size = 13) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
@@ -531,7 +545,7 @@ plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
     ggplot2::geom_tile(alpha=1) +
     ggplot2::geom_text(ggplot2::aes(label=.data[["n"]])) +
     ggplot2::scale_fill_gradient(low="white", high="#009194") +
-    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color") +
+    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color", drop = FALSE) +
     lemon::facet_rep_wrap(~ .data[["ab"]], nrow = 2, repeat.tick.labels = TRUE) +
     ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
     ggplot2::theme_bw(base_size = 13) +
@@ -547,6 +561,44 @@ plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
   x
 }
 
+#' S breakpoint for MIC
+#'
+#' @param mo mo name (coerced using AMR::as.mo)
+#' @param ab ab name (coerced using AMR::as.ab)
+#' @param ... additional arguments to pass to AMR::as.sir, which is used to
+#' calculate the S breakpoint
+#'
+#' @return MIC value
+#' @export
+mic_s_breakpoint <- function(mo, ab, ...) {
+  mic_range <- mic_range()
+  sir_range <- AMR::as.sir(AMR::as.mic(mic_range), mo = mo, ab = ab, ...)
+  for (i in seq_along(sir_range)) {
+    if (sir_range[i] == "S") {
+      return(AMR::as.mic(mic_range[i]))
+    }
+  }
+}
+
+#' R breakpoint for MIC
+#'
+#' @param mo mo name (coerced using AMR::as.mo)
+#' @param ab ab name (coerced using AMR::as.ab)
+#' @param ... additional arguments to pass to AMR::as.sir, which is used to
+#' calculate the R breakpoint
+#'
+#' @return MIC value
+#' @export
+mic_r_breakpoint <- function(mo, ab, ...) {
+  mic_range <- rev(mic_range())
+  sir_range <- AMR::as.sir(AMR::as.mic(mic_range), mo = mo, ab = ab, ...)
+  for (i in seq_along(sir_range)) {
+    if (sir_range[i] == "R") {
+      return(AMR::as.mic(mic_range[i-1]))
+    }
+  }
+}
+
 #' Plot MIC validation results
 #'
 #' @param x object generated using compare_mic
@@ -555,7 +607,6 @@ plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
 #'
 #' @export
 plot.mic_validation <- function(x, match_axes = TRUE, ...) {
-
   if (match_axes) {
     all_levels <- levels(AMR::as.mic(NA))
 
@@ -575,10 +626,17 @@ plot.mic_validation <- function(x, match_axes = TRUE, ...) {
   }
 
   if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1) {
-    plot_mic_validation_single_ab(x, match_axes, ...)
+    p <- plot_mic_validation_single_ab(x, match_axes, ...)
+
+    if ("ab" %in% colnames(x) & "mo" %in% colnames(x)) {
+      bpoints <- AMR::clinical_breakpoints
+      p <- p + ggplot2::geom_hline(yintercept = AMR::as.mic(bpoints[]))
+    }
+    p
   }
   else {
-    plot_mic_validation_multi_ab(x, match_axes, ...)
+    p <- plot_mic_validation_multi_ab(x, match_axes, ...)
+    p
   }
 }
 

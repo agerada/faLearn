@@ -129,6 +129,7 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 //' @param key_as_int return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.
 //' @param starting_index the starting index, only used if key_as_int = TRUE.
 //' @return list of kmer values, either as a list of a single vector (if simplify = TRUE), or as a named list containing "kmer_string" and "kmer_value".
+//' @export
 // [[Rcpp::export]]
 List kmers(const CharacterVector& x,
           int k = 3,

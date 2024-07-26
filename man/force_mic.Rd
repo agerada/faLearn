@@ -9,6 +9,7 @@ force_mic(
   levels_from_AMR = FALSE,
   max_conc = 512,
   min_conc = 0.002,
+  method = "closest",
   prefer = "max"
 )
 }
@@ -21,8 +22,10 @@ force_mic(
 
 \item{min_conc}{minimum concentration to force to}
 
+\item{method}{method to use when forcing MICs (closest or round_up)}
+
 \item{prefer}{where value is in between MIC (e.g., 24mg/L) chose the higher
-MIC ("max") or lower MIC ("min").}
+MIC ("max") or lower MIC ("min"); only applies to method = "closest"}
 }
 \value{
 AMR::as.mic compatible character
