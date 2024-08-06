@@ -1,0 +1,41 @@
+Package: molMIC
+Title: molecularMIC: Perform MIC Predictions using Assembled Genomes
+Version: 0.6.0
+Authors@R: 
+    person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6743-4271"))
+Description: Make phenotypic MIC predictions using assembled bacterial genomes. Package contains helper functions to collect genomes from PATRIC database and analyse results.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+biocViews:
+Imports: 
+    glue,
+    readr,
+    dplyr,
+    Rcpp,
+    data.table,
+    Biostrings,
+    arrow,
+    pbapply,
+    stringr,
+    rlang,
+    tidyr,
+    future.apply,
+    progressr,
+    lemon,
+    ggplot2,
+    forcats,
+    purrr
+Depends: 
+    R (>= 2.10)
+LazyData: true
+LinkingTo: 
+    Rcpp
+Suggests: 
+    testthat (>= 3.0.0),
+    snow,
+    xgboost,
+    AMR
+Config/testthat/edition: 3

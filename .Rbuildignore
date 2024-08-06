@@ -1,0 +1,8 @@
+^renv$
+^renv\.lock$
+^molMIC\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^tmp/
+^pre_R_package/
+^data-raw$
