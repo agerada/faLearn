@@ -4,7 +4,14 @@
 \alias{compare_mic}
 \title{Perform an MIC validation experiment}
 \usage{
-compare_mic(gold_standard, test, ab = NULL, mo = NULL, simplify = TRUE)
+compare_mic(
+  gold_standard,
+  test,
+  ab = NULL,
+  mo = NULL,
+  accept_ecoff = FALSE,
+  simplify = TRUE
+)
 }
 \arguments{
 \item{gold_standard}{vector of MICs to compare against.}
@@ -14,6 +21,8 @@ compare_mic(gold_standard, test, ab = NULL, mo = NULL, simplify = TRUE)
 \item{ab}{character vector (same length as MIC) of antibiotic names (optional)}
 
 \item{mo}{character vector (same length as MIC) of microorganism names (optional)}
+
+\item{accept_ecoff}{if TRUE, ECOFFs will be used when no clinical breakpoints are available}
 
 \item{simplify}{if TRUE, MIC values will be coerced into the closest halving
 dilution (e.g., 0.55 will be converted to 0.5)}

@@ -2,7 +2,7 @@ path_to_test_genomes <- "fixtures/genomes/"
 tmp_out_dir <- file.path(tempdir(), "kmer_batch_test/")
 if (!dir.exists(tmp_out_dir)) dir.create(tmp_out_dir)
 
-test_that("multiplication works", {
+test_that("libsvm from genomes", {
   unlink(tmp_out_dir, recursive = TRUE)
   suppressMessages(
     genomes_to_kmer_dataset(path_to_test_genomes,

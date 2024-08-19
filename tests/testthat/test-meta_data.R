@@ -183,9 +183,42 @@ test_that("test compare_sir", {
   sum_val <- summary(val)
   expect_equal(sum_val$EA[sum_val$ab == "GEN"], 0.25)
   expect_equal(sum_val$`very major error (%)`[sum_val$ab == "GEN"], 50)
-
 })
 
+test_that("test fall back to ECOFFS in compare_mic", {
+  # single
+  val <- suppressMessages(
+    compare_mic(AMR::as.mic(0.5),
+                     AMR::as.mic(0.5),
+                     "CHL",
+                     "Escherichia coli",
+                     accept_ecoff = TRUE)
+  )
+  expect_equal(val$`error`[val$ab == "CHL"], factor(NA))
+
+  val <- suppressMessages(
+    compare_mic(AMR::as.mic(64),
+                     AMR::as.mic(0.5),
+                     "CHL",
+                     "Escherichia coli",
+                     accept_ecoff = TRUE)
+  )
+  expect_equal(val$`error`[val$ab == "CHL"], factor("vM"))
+
+  # multiple
+  gs <- c("0.5", "4", ">64", "2")
+  test <- c("0.5", "8", "0.25", ">64")
+  ab <- "CHL"
+  mo <- "Escherichia coli"
+  val <- suppressMessages(
+    compare_mic(gs, test, ab, mo, accept_ecoff = TRUE))
+  expect_s3_class(val, "mic_validation")
+  sum_val <- summary(val)
+  expect_equal(sum_val$EA[sum_val$ab == "CHL"], 0.5)
+  expect_equal(sum_val$`very major error (%)`[sum_val$ab == "CHL"], 25)
+  expect_equal(sum_val$`minor error (%)`[sum_val$ab == "CHL"], 0)
+  expect_equal(sum_val$`major error (%)`[sum_val$ab == "CHL"], 25)
+})
 
 test_that("test mic_uncensor", {
   expect_equal(mic_uncensor(">16", method = "scale"), AMR::as.mic(32))

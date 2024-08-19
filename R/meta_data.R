@@ -462,6 +462,7 @@ Convert using AMR::as.mic() with or without molMIC::force_mic().")
 #' @param test vector of MICs that are under investigation
 #' @param ab character vector (same length as MIC) of antibiotic names (optional)
 #' @param mo character vector (same length as MIC) of microorganism names (optional)
+#' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
 #' @param simplify if TRUE, MIC values will be coerced into the closest halving
 #' dilution (e.g., 0.55 will be converted to 0.5)
 #'
@@ -471,6 +472,7 @@ compare_mic <- function(gold_standard,
                         test,
                         ab = NULL,
                         mo = NULL,
+                        accept_ecoff = FALSE,
                         simplify = TRUE) {
   gold_standard_mod <- gold_standard |>
     force_mic(levels_from_AMR = !simplify) |>
@@ -499,9 +501,43 @@ compare_mic <- function(gold_standard,
     gold_standard_sir <- purrr::pmap_vec(list(gold_standard_mod,
                                      mo,
                                      ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
+    gold_standard_sir <- purrr::pmap_vec(list(gold_standard_mod,
+                                     mo,
+                                     ab,
+                                     gold_standard_sir), \(x, mo, ab, sir) {
+                                       if (is.na(sir)) {
+                                         if (accept_ecoff) {
+                                           message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
+                                           AMR::as.sir(x, mo = mo, ab = ab,
+                                                       breakpoint_type = "ECOFF")
+                                         } else {
+                                           message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
+                                           sir
+                                         }
+                                       } else {
+                                         sir
+                                       }
+                                       })
     test_sir <- purrr::pmap_vec(list(test_mod,
                                      mo,
                                      ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
+    test_sir <- purrr::pmap_vec(list(test_mod,
+                                              mo,
+                                              ab,
+                                     test_sir), \(x, mo, ab, sir) {
+                                                if (is.na(sir)) {
+                                                  if (accept_ecoff) {
+                                                    message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
+                                                    AMR::as.sir(x, mo = mo, ab = ab,
+                                                                breakpoint_type = "ECOFF")
+                                                  } else {
+                                                    message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
+                                                    sir
+                                                  }
+                                                } else {
+                                                  sir
+                                                }
+                                              })
     output[["gold_standard_sir"]] <- gold_standard_sir
     output[["test_sir"]] <- test_sir
     output["error"] <- compare_sir(gold_standard_sir,
