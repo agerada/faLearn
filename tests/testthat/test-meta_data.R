@@ -47,7 +47,6 @@ test_that("test qc_on_target", {
 
   expect_true(qc_on_target(NA, 25922, AMR::as.ab("AMK")))
   expect_true(qc_on_target(AMR::as.mic("<0.5"), 25922, NA))
-
 })
 
 test_that("test standardise_mic", {
@@ -182,7 +181,7 @@ test_that("test compare_sir", {
   expect_s3_class(val, "mic_validation")
   sum_val <- summary(val)
   expect_equal(sum_val$EA[sum_val$ab == "GEN"], 0.25)
-  expect_equal(sum_val$`very major error (%)`[sum_val$ab == "GEN"], 50)
+  expect_equal(sum_val$very_major_error_pcent[sum_val$ab == "GEN"], 50)
 })
 
 test_that("test fall back to ECOFFS in compare_mic", {
@@ -194,7 +193,7 @@ test_that("test fall back to ECOFFS in compare_mic", {
                      "Escherichia coli",
                      accept_ecoff = TRUE)
   )
-  expect_equal(val$`error`[val$ab == "CHL"], factor(NA))
+  expect_equal(val$error[val$ab == "CHL"], factor(NA))
 
   val <- suppressMessages(
     compare_mic(AMR::as.mic(64),
@@ -203,7 +202,7 @@ test_that("test fall back to ECOFFS in compare_mic", {
                      "Escherichia coli",
                      accept_ecoff = TRUE)
   )
-  expect_equal(val$`error`[val$ab == "CHL"], factor("vM"))
+  expect_equal(val$error[val$ab == "CHL"], factor("vM"))
 
   # multiple
   gs <- c("0.5", "4", ">64", "2")
@@ -215,9 +214,9 @@ test_that("test fall back to ECOFFS in compare_mic", {
   expect_s3_class(val, "mic_validation")
   sum_val <- summary(val)
   expect_equal(sum_val$EA[sum_val$ab == "CHL"], 0.5)
-  expect_equal(sum_val$`very major error (%)`[sum_val$ab == "CHL"], 25)
-  expect_equal(sum_val$`minor error (%)`[sum_val$ab == "CHL"], 0)
-  expect_equal(sum_val$`major error (%)`[sum_val$ab == "CHL"], 25)
+  expect_equal(sum_val$very_major_error_pcent[sum_val$ab == "CHL"], 25)
+  expect_equal(sum_val$minor_error_pcent[sum_val$ab == "CHL"], 0)
+  expect_equal(sum_val$major_error_pcent[sum_val$ab == "CHL"], 25)
 })
 
 test_that("test mic_uncensor", {
@@ -239,3 +238,31 @@ test_that("test mic_uncensor", {
 
   expect_warning(mic_uncensor("<0.004", method = "bootstrap", ab = ab, mo = mo))
 })
+
+test_that("test force_mic", {
+  mode <- "closest"
+  expect_equal(force_mic("2", method = mode),
+               "2")
+  expect_equal(force_mic("2.1", method = mode),
+               "2")
+  expect_equal(force_mic("2.5", method = mode),
+               "2")
+  expect_equal(force_mic("2.9", method = mode),
+               "2")
+  expect_equal(force_mic("3", method = mode, prefer = "max"),
+               "4")
+
+  mode <- "round up"
+  expect_equal(force_mic("2", method = mode),
+               "2")
+  expect_equal(force_mic("2.1", method = mode),
+               "4")
+  expect_equal(force_mic("2.5", method = mode),
+               "4")
+  expect_equal(force_mic("2.9", method = mode),
+               "4")
+  expect_equal(force_mic("3", method = mode, prefer = "max"),
+               "4")
+
+})
+

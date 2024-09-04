@@ -16,7 +16,7 @@ split_and_combine_files(
 )
 }
 \arguments{
-\item{path_to_files}{path containing files}
+\item{path_to_files}{path containing files or vector of filepaths}
 
 \item{file_ext}{file extension to filter}
 

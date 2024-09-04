@@ -27,7 +27,8 @@ Imports:
     lemon,
     ggplot2,
     forcats,
-    purrr
+    purrr,
+    tibble
 Depends: 
     R (>= 2.10)
 LazyData: true
@@ -37,5 +38,6 @@ Suggests:
     testthat (>= 3.0.0),
     snow,
     xgboost,
-    AMR
+    AMR,
+    flextable
 Config/testthat/edition: 3

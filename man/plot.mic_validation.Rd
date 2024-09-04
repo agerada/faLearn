@@ -4,12 +4,15 @@
 \alias{plot.mic_validation}
 \title{Plot MIC validation results}
 \usage{
-\method{plot}{mic_validation}(x, match_axes = TRUE, ...)
+\method{plot}{mic_validation}(x, match_axes = TRUE, add_missing_dilutions = TRUE, ...)
 }
 \arguments{
 \item{x}{object generated using compare_mic}
 
 \item{match_axes}{Same x and y axis}
+
+\item{add_missing_dilutions}{Axes will include dilutions that are not
+represented in the data, based on a series of dilutions generated using mic_range().}
 
 \item{...}{additional arguments}
 }

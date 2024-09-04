@@ -323,7 +323,6 @@ force_mic <- function(value,
 
   output <- rep(NA_character_, length(value))
   for (i in seq_along(value)) {
-
     prefix <- NULL
     inner_val <- value[i]
 
@@ -356,16 +355,20 @@ force_mic <- function(value,
     }
     mic_vector <- sort(as.numeric(appropriate_levels))
 
-    if (!method %in% c("closest", "round_up")) {
-      stop("Method must be closest or round_up")
+    if (!method %in% c("closest", "round up")) {
+      stop("Method must be closest or round up")
     }
 
     if (method == "closest") {
       positions <- which(abs(mic_vector - inner_val) == min(abs(mic_vector - inner_val)))
     }
 
-    if (method == "round_up") {
-      positions <- which.min(mic_vector[inner_val < mic_vector])
+    if (method == "round up") {
+      if (inner_val %in% mic_vector) {
+        positions <- which(mic_vector == inner_val)
+      } else {
+        positions <- min(which(inner_val < mic_vector))
+      }
     }
 
     if (length(positions) == 1) {
@@ -647,30 +650,58 @@ mic_r_breakpoint <- function(mo, ab, ...) {
   }
 }
 
+match_levels <- function(x, match_to) {
+  if (!AMR::is.mic(x) | !AMR::is.mic(match_to)) {
+    stop("Both x and match_to must be AMR::mic objects")
+  }
+  all_levels <- levels(AMR::as.mic(NA))
+
+  keep_these <- levels(droplevels(match_to))
+  drop_these <- all_levels[!all_levels %in% keep_these]
+
+  x <- forcats::fct_drop(x, only = drop_these)
+  class(x) <- append(class(x), "mic", after = 0)
+  x
+}
+
+fill_dilution_levels <- function(x, cap_upper, cap_lower) {
+  mic_conc_range <- AMR::as.mic(mic_range())
+  if (cap_lower) {
+    mic_conc_range <- mic_conc_range[mic_conc_range >= cap_lower]
+  }
+  if (cap_upper) {
+    mic_conc_range <- mic_conc_range[mic_conc_range <= cap_upper]
+  }
+  x <- forcats::fct_expand(x, as.character(mic_conc_range))
+  levels(x) <- levels(x)[order(match(levels(x),
+                                     as.character(levels(AMR::as.mic(NA)))))]
+  x
+}
+
 #' Plot MIC validation results
 #'
 #' @param x object generated using compare_mic
 #' @param match_axes Same x and y axis
+#' @param add_missing_dilutions Axes will include dilutions that are not
+#' represented in the data, based on a series of dilutions generated using mic_range().
 #' @param ... additional arguments
 #'
 #' @export
-plot.mic_validation <- function(x, match_axes = TRUE, ...) {
+plot.mic_validation <- function(x,
+                                match_axes = TRUE,
+                                add_missing_dilutions = TRUE,
+                                ...) {
   if (match_axes) {
-    all_levels <- levels(AMR::as.mic(NA))
-
-    keep_these <- levels(droplevels(x[["test"]]))
-    drop_these <- all_levels[!all_levels %in% keep_these]
-
-    x[["gold_standard"]] <- forcats::fct_drop(x[["gold_standard"]], only = drop_these)
-
-
-    keep_these <- levels(droplevels(x[["gold_standard"]]))
-    drop_these <- all_levels[!all_levels %in% keep_these]
-
-    x[["test"]] <- forcats::fct_drop(x[["test"]], only = drop_these)
-
-    class(x[["test"]]) <- append(class(x[["test"]]), values = "mic", after = 0)
-    class(x[["gold_standard"]]) <- append(class(x[["gold_standard"]]), values = "mic", after = 0)
+    x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
+    x[["test"]] <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
+    if (add_missing_dilutions) {
+      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]],
+                                                   cap_upper = TRUE,
+                                                   cap_lower = TRUE)
+      x[["test"]] <- fill_dilution_levels(x[["test"]],
+                                          cap_upper = TRUE,
+                                          cap_lower = TRUE)
+    }
   }
 
   if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1) {
@@ -694,7 +725,8 @@ plot.mic_validation <- function(x, match_axes = TRUE, ...) {
 #' @param ... further optional parameters
 #'
 #' @export
-summary.mic_validation <- function(object, ...) {
+summary.mic_validation <- function(object,
+                                   ...) {
   if (!"ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
     return(
       list(EA = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
@@ -716,13 +748,15 @@ summary.mic_validation <- function(object, ...) {
       object |>
         dplyr::group_by(.data[["ab"]], .data[["mo"]]) |>
         dplyr::summarise(EA = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
-                         `minor error (%)` = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
-                         `major error (%)` = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
-                         `very major error (%)` = sum(.data[["error"]] == "vM", na.rm = TRUE) /length(.data[["error"]]) * 100,
-                         `minor error (n)` = sum(.data[["error"]] == "m", na.rm = TRUE),
-                         `major error (n)` = sum(.data[["error"]] == "M", na.rm = TRUE),
-                         `very major error (n)` = sum(.data[["error"]] == "vM", na.rm = TRUE),
-                         `n` = dplyr::n())
+                         resistant_pcent = AMR::proportion_R(.data[["gold_standard_sir"]], minimum = 1, as_percent = FALSE) * 100,
+                         minor_error_pcent = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
+                         major_error_pcent = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
+                         very_major_error_pcent = sum(.data[["error"]] == "vM", na.rm = TRUE) /length(.data[["error"]]) * 100,
+                         resistant_n = AMR::count_resistant(.data[["gold_standard_sir"]]),
+                         minor_error_n = sum(.data[["error"]] == "m", na.rm = TRUE),
+                         major_error_n = sum(.data[["error"]] == "M", na.rm = TRUE),
+                         very_major_error_n = sum(.data[["error"]] == "vM", na.rm = TRUE),
+                         n = dplyr::n())
     )
   }
 }
@@ -1008,4 +1042,105 @@ bias <- function(gold_standard, test) {
 
   n <- length(gold_standard)
   return(bias_above / n * 100 - bias_below / n * 100)
+}
+
+#' Table
+#'
+#' @param x an object that can be tabulated into an essential agreement
+#' frequency table, or object/s to be passed to base::table
+#' @param ... further arguments
+#'
+#' @rdname table
+#' @export
+table <- function(x, ...) {
+  UseMethod("table")
+}
+
+#' @rdname table
+#' @export
+table.default <- function(x, ...) {
+  return(base::table(x, ...))
+}
+
+tabulate_flex <- function(t, ea, bold, ea_color, gold_standard_name, test_name) {
+  t_flex <- t |>
+    stats::addmargins(FUN = list(Total = sum)) |>
+    as.data.frame.matrix() |>
+    # cbind(., Totals = row_sums) %>%
+    # rbind(., Totals = col_sums) %>%
+    tibble::rownames_to_column(var = "test_mics") |>
+    dplyr::mutate("test" = test_name, .before = "test_mics") |>
+    flextable::flextable()
+
+  for (i in 1:nrow(t)) {
+    for (j in 1:ncol(t)) {
+      if (ea[i, j] == TRUE) {
+        if (bold) {
+          t_flex <- flextable::bold(t_flex, i = i, j = j + 2)
+        }
+        if (!is.null(ea_color)) {
+          t_flex <- flextable::bg(t_flex, i = i, j = j + 2, bg = ea_color)
+        }
+      }
+    }
+  }
+  t_flex <- t_flex |>
+    flextable::set_header_labels("test_mics" = "", test = "") |>
+    flextable::add_header_row(values = c("", gold_standard_name, ""),
+                              colwidths = c(1, length(t_flex[["col_keys"]]) - 2, 1)) |>
+    flextable::align(align = "center", i=1,j=2,part = "header") |>
+    flextable::align(align = "right", j=2) |>
+    flextable::merge_v(j = 1) |>
+    flextable::border_remove() |>
+    flextable::align(align = "right", part = "body")
+  t_flex
+}
+
+#' @rdname table
+#'
+#' @param x mic_validation S3 object
+#' @param format simple or flextable
+#' @param fill_dilutions Fill dilutions that are not present in the data in
+#' order to match the y- and x- axes
+#' @param bold Bold cells where essential agreement is TRUE
+#' @param ea_color Background color for essential agreement cells
+#' @param gold_standard_name Name of the gold standard to display in output
+#' @param test_name Name of the test to display in output
+#' @param ... further arguments
+#'
+#' @export
+table.mic_validation <- function(x,
+                                 format = 'flextable',
+                                 fill_dilutions = TRUE,
+                                 bold = TRUE,
+                                 ea_color = NULL,
+                                 gold_standard_name = "Gold Standard",
+                                 test_name = "Test",
+                                 ...) {
+  test <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
+  gold_standard <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
+
+  if (fill_dilutions) {
+    test <- fill_dilution_levels(test, cap_upper = TRUE, cap_lower = TRUE)
+    gold_standard <- fill_dilution_levels(gold_standard, cap_upper = TRUE, cap_lower = TRUE)
+  }
+
+  t <- table(test,
+        gold_standard)
+
+  rnames <- rownames(t)
+  cnames <- colnames(t)
+  grid <- expand.grid(rnames, cnames)
+  ea <- essential_agreement(as.character(grid$Var1), as.character(grid$Var2))
+  ea <- matrix(ea, nrow = length(rnames))
+  ea <- as.data.frame(ea)
+
+  if (format == "simple") {
+    return(t)
+  }
+  if (format == "flextable") {
+    return(tabulate_flex(t, ea, bold, ea_color, gold_standard_name, test_name))
+  }
+
+  stop("Format must be simple or flextable")
 }

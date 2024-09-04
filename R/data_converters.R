@@ -329,7 +329,7 @@ replace_multiple_slashes <- function(path) {
 
 #' Create test train files from a number of files
 #'
-#' @param path_to_files path containing files
+#' @param path_to_files path containing files or vector of filepaths
 #' @param file_ext file extension to filter
 #' @param split train-test split
 #' @param train_target_path name of train file to save as
