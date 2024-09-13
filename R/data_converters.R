@@ -408,18 +408,17 @@ No changes made. Use overwrite to force changes.")
   })
   file.create(all_target_files)
 
-  p <- progressr::progressor(along = train_libsvm_paths)
+  p <- progressr::progressor(along = c(train_libsvm_paths, test_libsvm_paths))
   for (file in train_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
     write(content, train_target_path, append = TRUE, sep = "/n")
-    p()
+    p(glue::glue("Processing {file}"))
   }
 
-  p <- progressr::progressor(along = test_libsvm_paths)
   for (file in test_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
     write(content, test_target_path, append = TRUE, sep = "/n")
-    p()
+    p(glue::glue("Processing {file}"))
   }
 
   readr::write_csv(data.frame(type = c(rep("train", length(train_filenames)),
