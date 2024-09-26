@@ -616,14 +616,29 @@ plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
 #'
 #' @param mo mo name (coerced using AMR::as.mo)
 #' @param ab ab name (coerced using AMR::as.ab)
+#' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
 #' @param ... additional arguments to pass to AMR::as.sir, which is used to
 #' calculate the S breakpoint
 #'
 #' @return MIC value
 #' @export
-mic_s_breakpoint <- function(mo, ab, ...) {
+mic_s_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
   mic_range <- mic_range()
-  sir_range <- AMR::as.sir(AMR::as.mic(mic_range), mo = mo, ab = ab, ...)
+  sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
+                           mo = mo,
+                           ab = ab,
+                           ...)
+  if (any(is.na(sir_range))) {
+    if (accept_ecoff) {
+      sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
+                               mo = mo,
+                               ab = ab,
+                               breakpoint_type = "ECOFF",
+                               ...)
+    } else {
+      stop("No clinical breakpoints available for ", ab, mo, "(consider using accept_ecoff if appropriate.")
+    }
+  }
   for (i in seq_along(sir_range)) {
     if (sir_range[i] == "S") {
       return(AMR::as.mic(mic_range[i]))
@@ -635,14 +650,29 @@ mic_s_breakpoint <- function(mo, ab, ...) {
 #'
 #' @param mo mo name (coerced using AMR::as.mo)
 #' @param ab ab name (coerced using AMR::as.ab)
+#' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
 #' @param ... additional arguments to pass to AMR::as.sir, which is used to
 #' calculate the R breakpoint
 #'
 #' @return MIC value
 #' @export
-mic_r_breakpoint <- function(mo, ab, ...) {
+mic_r_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
   mic_range <- rev(mic_range())
-  sir_range <- AMR::as.sir(AMR::as.mic(mic_range), mo = mo, ab = ab, ...)
+  sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
+                           mo = mo,
+                           ab = ab,
+                           ...)
+  if (any(is.na(sir_range))) {
+    if (accept_ecoff) {
+      sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
+                               mo = mo,
+                               ab = ab,
+                               breakpoint_type = "ECOFF",
+                               ...)
+    } else {
+      stop("No clinical breakpoints available for ", ab, mo, "(consider using accept_ecoff if appropriate.")
+    }
+  }
   for (i in seq_along(sir_range)) {
     if (sir_range[i] == "R") {
       return(AMR::as.mic(mic_range[i-1]))

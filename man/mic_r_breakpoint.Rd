@@ -4,12 +4,14 @@
 \alias{mic_r_breakpoint}
 \title{R breakpoint for MIC}
 \usage{
-mic_r_breakpoint(mo, ab, ...)
+mic_r_breakpoint(mo, ab, accept_ecoff = FALSE, ...)
 }
 \arguments{
 \item{mo}{mo name (coerced using AMR::as.mo)}
 
 \item{ab}{ab name (coerced using AMR::as.ab)}
+
+\item{accept_ecoff}{if TRUE, ECOFFs will be used when no clinical breakpoints are available}
 
 \item{...}{additional arguments to pass to AMR::as.sir, which is used to
 calculate the R breakpoint}

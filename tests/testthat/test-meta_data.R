@@ -266,3 +266,33 @@ test_that("test force_mic", {
 
 })
 
+test_that("test mic_s_breakpoint", {
+  suppressMessages(
+    expect_s3_class(mic_s_breakpoint(mo = "E. coli", ab = "TZP", accept_ecoff = FALSE), "mic")
+  )
+  suppressMessages(
+    expect_s3_class(mic_s_breakpoint(mo = "E. coli", ab = "CHL", accept_ecoff = TRUE), "mic")
+  )
+
+  expect_error(
+    suppressMessages(
+      mic_s_breakpoint(mo = "E. coli", ab = "CHL", accept_ecoff = FALSE)
+      )
+    )
+})
+
+test_that("test mic_r_breakpoint", {
+  suppressMessages(
+    expect_s3_class(mic_r_breakpoint(mo = "E. coli", ab = "TZP", accept_ecoff = FALSE), "mic")
+  )
+  suppressMessages(
+    expect_s3_class(mic_r_breakpoint(mo = "E. coli", ab = "CHL", accept_ecoff = TRUE), "mic")
+  )
+
+  expect_error(
+    suppressMessages(
+      mic_r_breakpoint(mo = "E. coli", ab = "CHL", accept_ecoff = FALSE)
+      )
+    )
+})
+
