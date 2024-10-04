@@ -69,33 +69,40 @@ std::map<std::string, unsigned long long int> generate_kmer_perm_dict(int k, std
   return output_s;
 }
 
+template<typename T>
+bool is_valid_dna_string(T dna){
+  return dna.size() > 0 ? true : false;
+}
+
 std::map<std::string, unsigned long long int> make_kmer_paired_list(
-    const std::string& x, int kmer, bool drop_n = false,
+    const CharacterVector &x, int kmer, bool drop_n = false,
     std::map<std::string, unsigned long long int> kmer_dict = {}) {
   // "Private" function that generates a paired named R list of kmers and
   // counts, functionally identical to kmers()
   //std::map<std::string, int> kmer_dict;
-  unsigned long long int n = x.size() + 1 - kmer;
-  for(unsigned long long int i = 0; i < n; i++){
-    auto kmer_i = x.substr(i, kmer);
+  for (int i = 0; i < x.size(); i++) {
+    std::string contig = as<std::string>(x[i]);
 
-    // Drop kmers that contain N if drop_n = true
-    if(drop_n & (kmer_i.find("N") != std::string::npos)) continue;
+    if (!is_valid_dna_string(contig)) {
+      throw std::range_error("Invalid DNA string (probably empty/NULL)");
+    }
+    unsigned long long int n = contig.size() + 1 - kmer;
+    for(unsigned long long int j = 0; j < n; j++){
+      auto kmer_i = contig.substr(j, kmer);
 
-    if(kmer_dict.find(kmer_i) == kmer_dict.end()){
-      kmer_dict[kmer_i] = 1;
-    } else if (kmer_dict[kmer_i] == 0){
-      kmer_dict[kmer_i] = 1;
-    } else {
-      kmer_dict[kmer_i] = kmer_dict[kmer_i] + 1;
+      // Drop kmers that contain N if drop_n = true
+      if(drop_n & (kmer_i.find("N") != std::string::npos)) continue;
+
+      if(kmer_dict.find(kmer_i) == kmer_dict.end()){
+        kmer_dict[kmer_i] = 1;
+      } else if (kmer_dict[kmer_i] == 0){
+        kmer_dict[kmer_i] = 1;
+      } else {
+        kmer_dict[kmer_i] = kmer_dict[kmer_i] + 1;
+      }
     }
   }
   return kmer_dict;
-}
-
-template<typename T>
-bool is_valid_dna_string(T dna){
-  return dna.size() > 0 ? true : false;
 }
 
 std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_index(
@@ -149,18 +156,16 @@ List kmers(const CharacterVector& x,
  // is useful for sparse matrices.
  // Note that if key_as_int=T, clean_up is implicit
  if (simplify & !anchor) warning("Simplifying but not anchoring - undefined behaviour");
- std::string dna_string = as<std::string>(x);
- if (!is_valid_dna_string(dna_string)) return List();
 
  if (key_as_int) {
-   auto string_key = make_kmer_paired_list(dna_string, k, clean_up);
+   auto string_key = make_kmer_paired_list(x, k, clean_up);
    auto int_key = convert_kmer_string_to_index(string_key, k, starting_index);
    return wrap_custom(int_key);
  }
  if (anchor) {
    std::map<std::string, unsigned long long int> mapped = generate_kmer_perm_dict(k, "ACTG");
    if (simplify) {
-     std::map<std::string, unsigned long long int> temp_dict = make_kmer_paired_list(dna_string, k, clean_up, mapped);
+     std::map<std::string, unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up, mapped);
      std::vector<unsigned long long int> kmer_output;
      for(auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
        kmer_output.push_back(i->second);
@@ -168,20 +173,20 @@ List kmers(const CharacterVector& x,
      return wrap_custom(kmer_output);
    }
    else {
-     return wrap_custom(make_kmer_paired_list(dna_string, k, clean_up, mapped));
+     return wrap_custom(make_kmer_paired_list(x, k, clean_up, mapped));
    }
  }
  else {
    if (simplify) {
      std::map<std::string,
-              unsigned long long int> temp_dict = make_kmer_paired_list(dna_string, k, clean_up);
+              unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up);
      std::vector<unsigned long long int> kmer_output;
      for (auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
        kmer_output.push_back(i->second);
      }
      return wrap_custom(kmer_output);
    }
-   return wrap_custom(make_kmer_paired_list(dna_string, k, clean_up));
+   return wrap_custom(make_kmer_paired_list(x, k, clean_up));
  }
 }
 
@@ -190,12 +195,12 @@ bool kmers_to_libsvm(const CharacterVector &x,
                     const CharacterVector &target_path,
                     const CharacterVector &label = CharacterVector::create("0"),
                     int k = 3) {
-  std::string dna_string = as<std::string>(x);
+  //std::string dna_string = as<std::string>(x);
   std::ofstream file;
   std::string path = as<std::string>(target_path);
   file.open(path);
   file << as<std::string>(label) << " ";
-  auto string_key = make_kmer_paired_list(dna_string, k, true);
+  auto string_key = make_kmer_paired_list(x, k, true);
   auto int_key = convert_kmer_string_to_index(string_key, k, 1);
   for (auto const& i : int_key) {
     file << i.first << ":" << i.second << " ";

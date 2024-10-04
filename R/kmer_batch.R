@@ -226,7 +226,7 @@ genomes_to_kmer_libsvm <- function(source_dir,
                              ignore.case = TRUE)
   p <- progressr::progressor(along = genome_paths)
   future.apply::future_lapply(genome_paths, \(x) {
-    kmers_to_libsvm(flat_stringset(x),
+    kmers_to_libsvm(as.character(Biostrings::readDNAStringSet(x)),
                     file.path(normalizePath(target_dir),
                               paste0(strip_filename(x), ".txt")),
                     k = k)
