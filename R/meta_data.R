@@ -694,17 +694,39 @@ match_levels <- function(x, match_to) {
   x
 }
 
-fill_dilution_levels <- function(x, cap_upper, cap_lower) {
+#' Fill MIC dilution levels
+#'
+#' @param x MIC vector
+#' @param cap_upper If True, will the top level will be the highest MIC dilution in x
+#' @param cap_lower If True, will the bottom level will be the lowest MIC dilution in x
+#' @param as.mic By default, returns an ordered factor. Set as.mic = TRUE to return as AMR::mic
+#'
+#' @return ordered factor (or AMR::mic if as.mic = TRUE)
+#' @export
+#'
+#' @examples
+#' # use in combination with droplevels to clean up levels:
+#' x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
+#' x <- droplevels(x)
+#' fill_dilution_levels(x)
+fill_dilution_levels <- function(x,
+                                 cap_upper = TRUE,
+                                 cap_lower = TRUE,
+                                 as.mic = TRUE) {
   mic_conc_range <- AMR::as.mic(mic_range())
   if (cap_lower) {
-    mic_conc_range <- mic_conc_range[mic_conc_range >= cap_lower]
+    mic_conc_range <- mic_conc_range[mic_conc_range >= min(AMR::as.mic(x))]
   }
   if (cap_upper) {
-    mic_conc_range <- mic_conc_range[mic_conc_range <= cap_upper]
+    mic_conc_range <- mic_conc_range[mic_conc_range <= max(AMR::as.mic(x))]
   }
   x <- forcats::fct_expand(x, as.character(mic_conc_range))
-  levels(x) <- levels(x)[order(match(levels(x),
-                                     as.character(levels(AMR::as.mic(NA)))))]
+  new_levels <- levels(x)[order(match(levels(x),
+                                      as.character(levels(AMR::as.mic(NA)))))]
+  x <- ordered(x, levels = new_levels)
+  if (as.mic) {
+    class(x) <- append(class(x), "mic", after = 0)
+  }
   x
 }
 
@@ -725,12 +747,8 @@ plot.mic_validation <- function(x,
     x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
     x[["test"]] <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
     if (add_missing_dilutions) {
-      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]],
-                                                   cap_upper = TRUE,
-                                                   cap_lower = TRUE)
-      x[["test"]] <- fill_dilution_levels(x[["test"]],
-                                          cap_upper = TRUE,
-                                          cap_lower = TRUE)
+      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]])
+      x[["test"]] <- fill_dilution_levels(x[["test"]])
     }
   }
 
@@ -1151,8 +1169,8 @@ table.mic_validation <- function(x,
   gold_standard <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
 
   if (fill_dilutions) {
-    test <- fill_dilution_levels(test, cap_upper = TRUE, cap_lower = TRUE)
-    gold_standard <- fill_dilution_levels(gold_standard, cap_upper = TRUE, cap_lower = TRUE)
+    test <- fill_dilution_levels(test)
+    gold_standard <- fill_dilution_levels(gold_standard)
   }
 
   t <- table(test,

@@ -296,3 +296,12 @@ test_that("test mic_r_breakpoint", {
     )
 })
 
+test_that("test fill dilution levels", {
+  test_range <- AMR::as.mic(c("0.5", "4", "32"))
+  test_range <- droplevels(test_range, as.mic = TRUE)
+  filled_range <- fill_dilution_levels(test_range)
+  expect_true(all.equal(as.character(test_range),
+                        as.character(filled_range)))
+  expect_false(all(levels(filled_range) %in% levels(test_range)))
+  expect_true(length(levels(filled_range)) >= length(levels(test_range)))
+})
