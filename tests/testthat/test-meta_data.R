@@ -158,15 +158,15 @@ test_that("test compare_mic", {
   gs <- c("0.5", "4", ">8", "2")
   test <- c("0.5", "8", "2", "0.5")
   expect_s3_class(compare_mic(gs, test), "mic_validation")
-  expect_equal(summary(compare_mic(gs, test))[["EA"]], 0.5)
+  expect_equal(summary(compare_mic(gs, test))[["EA_pcent"]], 0.5)
 
   ab <- c("amoxicillin", "amoxicillin", "gentamicin", "gentamicin")
   mo <- "Escherichia coli"
   suppressMessages(
     {
       expect_s3_class(compare_mic(gs, test, ab, mo), "mic_validation")
-      expect_equal(summary(compare_mic(gs, test, ab, mo))[[1, "EA"]], 1)
-      expect_equal(summary(compare_mic(gs, test, ab, mo))[[2, "EA"]], 0)
+      expect_equal(summary(compare_mic(gs, test, ab, mo))[[1, "EA_pcent"]], 1)
+      expect_equal(summary(compare_mic(gs, test, ab, mo))[[2, "EA_pcent"]], 0)
     }
   )
 
@@ -180,7 +180,7 @@ test_that("test compare_sir", {
   val <- suppressMessages(compare_mic(gs, test, ab, mo))
   expect_s3_class(val, "mic_validation")
   sum_val <- summary(val)
-  expect_equal(sum_val$EA[sum_val$ab == "GEN"], 0.25)
+  expect_equal(sum_val$EA_pcent[sum_val$ab == "GEN"], 0.25)
   expect_equal(sum_val$very_major_error_pcent[sum_val$ab == "GEN"], 50)
 })
 
@@ -213,7 +213,7 @@ test_that("test fall back to ECOFFS in compare_mic", {
     compare_mic(gs, test, ab, mo, accept_ecoff = TRUE))
   expect_s3_class(val, "mic_validation")
   sum_val <- summary(val)
-  expect_equal(sum_val$EA[sum_val$ab == "CHL"], 0.5)
+  expect_equal(sum_val$EA_pcent[sum_val$ab == "CHL"], 0.5)
   expect_equal(sum_val$very_major_error_pcent[sum_val$ab == "CHL"], 25)
   expect_equal(sum_val$minor_error_pcent[sum_val$ab == "CHL"], 0)
   expect_equal(sum_val$major_error_pcent[sum_val$ab == "CHL"], 25)

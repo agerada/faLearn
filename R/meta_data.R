@@ -777,7 +777,8 @@ summary.mic_validation <- function(object,
                                    ...) {
   if (!"ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
     return(
-      list(EA = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
+      list(EA_n = sum(object$essential_agreement == TRUE),
+           EA_pcent = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
            bias = bias(object$gold_standard, object$test))
     )
   }
@@ -786,7 +787,8 @@ summary.mic_validation <- function(object,
     return(
       object |>
         dplyr::group_by(.data[["ab"]]) |>
-        dplyr::summarise(EA = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
+        dplyr::summarise(EA_n = sum(.data[["essential_agreement"]] == TRUE),
+                         EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
                          bias = bias(object$gold_standard, object$test))
     )
   }
@@ -795,16 +797,18 @@ summary.mic_validation <- function(object,
     return(
       object |>
         dplyr::group_by(.data[["ab"]], .data[["mo"]]) |>
-        dplyr::summarise(EA = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
-                         resistant_pcent = AMR::proportion_R(.data[["gold_standard_sir"]], minimum = 1, as_percent = FALSE) * 100,
-                         minor_error_pcent = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
-                         major_error_pcent = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
-                         very_major_error_pcent = sum(.data[["error"]] == "vM", na.rm = TRUE) /length(.data[["error"]]) * 100,
-                         resistant_n = AMR::count_resistant(.data[["gold_standard_sir"]]),
-                         minor_error_n = sum(.data[["error"]] == "m", na.rm = TRUE),
-                         major_error_n = sum(.data[["error"]] == "M", na.rm = TRUE),
-                         very_major_error_n = sum(.data[["error"]] == "vM", na.rm = TRUE),
-                         n = dplyr::n())
+        dplyr::summarise(
+          EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
+          resistant_pcent = AMR::proportion_R(.data[["gold_standard_sir"]], minimum = 1, as_percent = FALSE) * 100,
+          minor_error_pcent = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
+          major_error_pcent = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
+          very_major_error_pcent = sum(.data[["error"]] == "vM", na.rm = TRUE) /length(.data[["error"]]) * 100,
+          EA_n = sum(.data[["essential_agreement"]] == TRUE),
+          resistant_n = AMR::count_resistant(.data[["gold_standard_sir"]]),
+          minor_error_n = sum(.data[["error"]] == "m", na.rm = TRUE),
+          major_error_n = sum(.data[["error"]] == "M", na.rm = TRUE),
+          very_major_error_n = sum(.data[["error"]] == "vM", na.rm = TRUE),
+          n = dplyr::n())
     )
   }
 }
