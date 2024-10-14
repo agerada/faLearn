@@ -49,8 +49,8 @@ get_mic <- function(x,
   output$save_order <- 1:nrow(output)
   output <- merge(output, x,
                   by = id_col,
-        sort = FALSE,
-        all.x = TRUE)
+                  sort = FALSE,
+                  all.x = TRUE)
   if (as_mic) {
     rlang::check_installed("AMR", "To return as MIC class, AMR package must be installed")
     output[[ab_col]] <- AMR::as.mic(output[[ab_col]])
@@ -140,42 +140,42 @@ mic_uncensor_scale <- function(mic, scale) {
 }
 
 mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
-      if (is.na(mic)) {
-        return(AMR::NA_mic_)
-      }
-      mic <- gsub("=", "", mic)
-      if (!startsWith(mic, "<") & !startsWith(mic, ">")) {
-        return(AMR::as.mic(mic))
-      }
+  if (is.na(mic)) {
+    return(AMR::NA_mic_)
+  }
+  mic <- gsub("=", "", mic)
+  if (!startsWith(mic, "<") & !startsWith(mic, ">")) {
+    return(AMR::as.mic(mic))
+  }
 
-      ab <- AMR::as.ab(ab)
-      mic <- AMR::as.mic(mic)
+  ab <- AMR::as.ab(ab)
+  mic <- AMR::as.mic(mic)
 
-      ecoff_sub <- ecoffs[ecoffs['antibiotic'] == ab,]
-      ecoff_mics <- ecoff_sub[as.character(mic_range())]
+  ecoff_sub <- ecoffs[ecoffs['antibiotic'] == ab,]
+  ecoff_mics <- ecoff_sub[as.character(mic_range())]
 
-      if (nrow(ecoff_sub) == 0) {
-        warning("No ECOFFs available for ", ab)
-        return(mic)
-      }
+  if (nrow(ecoff_sub) == 0) {
+    warning("No ECOFFs available for ", ab)
+    return(mic)
+  }
 
-      if (startsWith(as.character(mic), "<")) {
-        ecoff_mics[AMR::as.mic(names(ecoff_mics)) > mic] <- 0
-      }
-      if (startsWith(as.character(mic), ">")) {
-        ecoff_mics[AMR::as.mic(names(ecoff_mics)) <= mic] <- 0
-      }
+  if (startsWith(as.character(mic), "<")) {
+    ecoff_mics[AMR::as.mic(names(ecoff_mics)) > mic] <- 0
+  }
+  if (startsWith(as.character(mic), ">")) {
+    ecoff_mics[AMR::as.mic(names(ecoff_mics)) <= mic] <- 0
+  }
 
-      ecoff_mics <- sapply(ecoff_mics, as.numeric)
+  ecoff_mics <- sapply(ecoff_mics, as.numeric)
 
-      if (sum(ecoff_mics) == 0) {
-        warning(ab, "appears to be below or above epidemiological distribution, performing a simple mic uncensor.")
-        return(mic_uncensor_simple(mic))
-      }
+  if (sum(ecoff_mics) == 0) {
+    warning(ab, "appears to be below or above epidemiological distribution, performing a simple mic uncensor.")
+    return(mic_uncensor_simple(mic))
+  }
 
-      return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
-    },
-    USE.NAMES = F)
+  return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
+},
+USE.NAMES = F)
 
 censor_rules <- list("B_ESCHR_COLI" = list(
   "AMK" = list(min = 2, max = 32),
@@ -200,27 +200,27 @@ censor_rules <- list("B_ESCHR_COLI" = list(
 #' @return cencored MIC values
 #' @export
 mic_censor <- Vectorize(
-    function(mic, ab, mo, rules = NULL) {
-      if (is.null(rules)) {
-        message("No censor rules provided, using default rules")
-        rules <- censor_rules
-      }
-      mic <- AMR::as.mic(mic)
-      min_thresh <- censor_rules[[mo]][[ab]][["min"]]
-      min_thresh <- ifelse(is.null(min_thresh),
-                           -Inf,
-                           min_thresh)
-      max_thresh <- censor_rules[[mo]][[ab]][["max"]]
-      max_thresh <- ifelse(is.null(max_thresh),
-                           Inf,
-                           max_thresh)
-      if (mic > max_thresh) {
-        return(paste0(">", max_thresh))
-      }
-      if (mic < min_thresh) {
-        return(paste0("<=", min_thresh))
-      }
-      return(mic)
+  function(mic, ab, mo, rules = NULL) {
+    if (is.null(rules)) {
+      message("No censor rules provided, using default rules")
+      rules <- censor_rules
+    }
+    mic <- AMR::as.mic(mic)
+    min_thresh <- censor_rules[[mo]][[ab]][["min"]]
+    min_thresh <- ifelse(is.null(min_thresh),
+                         -Inf,
+                         min_thresh)
+    max_thresh <- censor_rules[[mo]][[ab]][["max"]]
+    max_thresh <- ifelse(is.null(max_thresh),
+                         Inf,
+                         max_thresh)
+    if (mic > max_thresh) {
+      return(paste0(">", max_thresh))
+    }
+    if (mic < min_thresh) {
+      return(paste0("<=", min_thresh))
+    }
+    return(mic)
   },
   USE.NAMES = FALSE
 )
@@ -252,8 +252,8 @@ mic_range <- function(start = 512,
       return (start)
     } else {
       return(recursive_inner(c(start, start[length(start)] / 2),
-                       dilutions - 1,
-                       min))
+                             dilutions - 1,
+                             min))
     }
   }
 
@@ -314,8 +314,8 @@ force_mic <- function(value,
   } else {
     mic_levels <- mic_range(start = max_conc, min = min_conc)
     mic_levels <- c(max(mic_levels) * 2,
-               mic_levels,
-               min(mic_levels) / 2)
+                    mic_levels,
+                    min(mic_levels) / 2)
     mic_levels <- c(mic_levels,
                     paste0(">", mic_levels),
                     paste0("<", mic_levels))
@@ -502,32 +502,12 @@ compare_mic <- function(gold_standard,
 
   if (!is.null(ab) & !is.null(mo)) {
     gold_standard_sir <- purrr::pmap_vec(list(gold_standard_mod,
-                                     mo,
-                                     ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
+                                              mo,
+                                              ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
     gold_standard_sir <- purrr::pmap_vec(list(gold_standard_mod,
-                                     mo,
-                                     ab,
-                                     gold_standard_sir), \(x, mo, ab, sir) {
-                                       if (is.na(sir)) {
-                                         if (accept_ecoff) {
-                                           message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
-                                           AMR::as.sir(x, mo = mo, ab = ab,
-                                                       breakpoint_type = "ECOFF")
-                                         } else {
-                                           message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
-                                           sir
-                                         }
-                                       } else {
-                                         sir
-                                       }
-                                       })
-    test_sir <- purrr::pmap_vec(list(test_mod,
-                                     mo,
-                                     ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
-    test_sir <- purrr::pmap_vec(list(test_mod,
                                               mo,
                                               ab,
-                                     test_sir), \(x, mo, ab, sir) {
+                                              gold_standard_sir), \(x, mo, ab, sir) {
                                                 if (is.na(sir)) {
                                                   if (accept_ecoff) {
                                                     message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
@@ -541,6 +521,26 @@ compare_mic <- function(gold_standard,
                                                   sir
                                                 }
                                               })
+    test_sir <- purrr::pmap_vec(list(test_mod,
+                                     mo,
+                                     ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
+    test_sir <- purrr::pmap_vec(list(test_mod,
+                                     mo,
+                                     ab,
+                                     test_sir), \(x, mo, ab, sir) {
+                                       if (is.na(sir)) {
+                                         if (accept_ecoff) {
+                                           message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
+                                           AMR::as.sir(x, mo = mo, ab = ab,
+                                                       breakpoint_type = "ECOFF")
+                                         } else {
+                                           message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
+                                           sir
+                                         }
+                                       } else {
+                                         sir
+                                       }
+                                     })
     output[["gold_standard_sir"]] <- gold_standard_sir
     output[["test_sir"]] <- test_sir
     output["error"] <- compare_sir(gold_standard_sir,
@@ -579,7 +579,10 @@ plot_mic_validation_single_ab <- function(x, match_axes, ...) {
   x
 }
 
-plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
+plot_mic_validation_multi_ab <- function(x, match_axes,
+                                         facet_wrap_ncol,
+                                         facet_wrap_nrow,
+                                         ...) {
   x <- x |>
     dplyr::group_by(.data[["gold_standard"]],
                     .data[["test"]],
@@ -596,14 +599,25 @@ plot_mic_validation_multi_ab <- function(x, match_axes, ...) {
     ggplot2::geom_tile(alpha=1) +
     ggplot2::geom_text(ggplot2::aes(label=.data[["n"]])) +
     ggplot2::scale_fill_gradient(low="white", high="#009194") +
-    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color", drop = FALSE) +
-    lemon::facet_rep_wrap(~ .data[["ab"]], nrow = 2, repeat.tick.labels = TRUE) +
+    ggplot2::scale_fill_manual(values=c("red", "black"), aesthetics = "color", drop = FALSE)
+
+    if (any(!is.null(c(facet_wrap_ncol, facet_wrap_nrow)))) {
+      x <- x + lemon::facet_rep_wrap(~ .data[["ab"]],
+                                     nrow = facet_wrap_nrow,
+                                     ncol = facet_wrap_ncol,
+                                     repeat.tick.labels = TRUE)
+    }
+
+    x <- x +
+    # lemon::facet_rep_wrap(~ .data[["ab"]], nrow = 2, repeat.tick.labels = TRUE) +
     ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
     ggplot2::theme_bw(base_size = 13) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
     #ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
+
+
 
   if (match_axes) {
     x <- x + ggplot2::scale_x_discrete(drop = FALSE)
@@ -735,6 +749,10 @@ fill_dilution_levels <- function(x,
 #' @param x object generated using compare_mic
 #' @param match_axes Same x and y axis
 #' @param add_missing_dilutions Axes will include dilutions that are not
+#' @param facet_wrap_ncol Facet wrap into n columns by antimicrobial (optional,
+#' only available when more than one antimicrobial in validation)
+#' @param facet_wrap_nrow Facet wrap into n rows by antimicrobial (optional,
+#' only available when more than one antimicrobial in validation)
 #' represented in the data, based on a series of dilutions generated using mic_range().
 #' @param ... additional arguments
 #'
@@ -742,6 +760,8 @@ fill_dilution_levels <- function(x,
 plot.mic_validation <- function(x,
                                 match_axes = TRUE,
                                 add_missing_dilutions = TRUE,
+                                facet_wrap_ncol = NULL,
+                                facet_wrap_nrow = NULL,
                                 ...) {
   if (match_axes) {
     x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
@@ -762,7 +782,10 @@ plot.mic_validation <- function(x,
     p
   }
   else {
-    p <- plot_mic_validation_multi_ab(x, match_axes, ...)
+    p <- plot_mic_validation_multi_ab(x, match_axes = match_axes,
+                                      facet_wrap_ncol = facet_wrap_ncol,
+                                      facet_wrap_nrow = facet_wrap_nrow,
+                                      ...)
     p
   }
 }
@@ -828,12 +851,12 @@ summary.mic_validation <- function(object,
 #' qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE
 #' qc_in_range(AMR::as.mic(8.0), 25922, "GEN") == FALSE
 qc_in_range <- Vectorize(
-    function(measurement,
-             strain,
-             ab,
-             ignore_na = TRUE,
-             guideline = "EUCAST",
-             year = "2023") {
+  function(measurement,
+           strain,
+           ab,
+           ignore_na = TRUE,
+           guideline = "EUCAST",
+           year = "2023") {
     if (is.na(measurement) | is.na(strain) | is.na(ab)) {
       if (ignore_na) {
         return(TRUE)
@@ -870,8 +893,8 @@ qc_in_range <- Vectorize(
       }
       return(TRUE)
     }
-    },
-    vectorize.args = c("measurement", "strain", "ab")
+  },
+  vectorize.args = c("measurement", "strain", "ab")
 )
 
 #' Check that QC measurement is at the required target
@@ -1054,7 +1077,7 @@ and lower range. EUCAST/CLSI guidance may be different."))
                                                        guideline,
                                                        year)
       )
-    ))
+      ))
   }
   AMR::as.mic(standardise_mic_vectorised(test_measurement,
                                          qc_measurement,
@@ -1178,7 +1201,7 @@ table.mic_validation <- function(x,
   }
 
   t <- table(test,
-        gold_standard)
+             gold_standard)
 
   rnames <- rownames(t)
   cnames <- colnames(t)

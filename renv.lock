@@ -143,6 +143,23 @@
       ],
       "Hash": "2f342c46163b0b54d7b64d1f798e2c78"
     },
+    "Matrix": {
+      "Package": "Matrix",
+      "Version": "1.7-0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "grDevices",
+        "graphics",
+        "grid",
+        "lattice",
+        "methods",
+        "stats",
+        "utils"
+      ],
+      "Hash": "1920b2f11133b12350024297d8a4ff4a"
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.5.1",
@@ -480,30 +497,28 @@
     },
     "ggplot2": {
       "Package": "ggplot2",
-      "Version": "3.5.1.9000",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "tidyverse",
-      "RemoteRepo": "ggplot2",
-      "RemoteRef": "main",
-      "RemoteSha": "4fbc8575d80e54e1973ac58e979c2300aec21394",
+      "Version": "3.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
       "Requirements": [
         "MASS",
         "R",
         "cli",
+        "glue",
         "grDevices",
         "grid",
         "gtable",
         "isoband",
         "lifecycle",
+        "mgcv",
         "rlang",
         "scales",
         "stats",
+        "tibble",
         "vctrs",
         "withr"
       ],
-      "Hash": "3bbebebff6dd034e2d9dbd8091efbf34"
+      "Hash": "44c6a2f8202d5b7e878ea274b1092426"
     },
     "globals": {
       "Package": "globals",
@@ -685,6 +700,23 @@
       ],
       "Hash": "7ce2733a9826b3aeb1775d56fd305472"
     },
+    "mgcv": {
+      "Package": "mgcv",
+      "Version": "1.9-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Matrix",
+        "R",
+        "graphics",
+        "methods",
+        "nlme",
+        "splines",
+        "stats",
+        "utils"
+      ],
+      "Hash": "110ee9d83b496279960e162ac97764ce"
+    },
     "munsell": {
       "Package": "munsell",
       "Version": "0.5.1",
@@ -695,6 +727,20 @@
         "methods"
       ],
       "Hash": "4fd8900853b746af55b81fda99da7695"
+    },
+    "nlme": {
+      "Package": "nlme",
+      "Version": "3.1-164",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "graphics",
+        "lattice",
+        "stats",
+        "utils"
+      ],
+      "Hash": "a623a2239e642806158bc4dc3f51565d"
     },
     "parallelly": {
       "Package": "parallelly",
