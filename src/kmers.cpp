@@ -90,8 +90,12 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
     for(unsigned long long int j = 0; j < n; j++){
       auto kmer_i = contig.substr(j, kmer);
 
-      // Drop kmers that contain N if drop_n = true
-      if(drop_n & (kmer_i.find("N") != std::string::npos)) continue;
+      // Check if kmer_i contains any non-ACTG characters
+      if(drop_n){
+        if(kmer_i.find_first_not_of("ACTG") != std::string::npos){
+          continue;
+        }
+      }
 
       if(kmer_dict.find(kmer_i) == kmer_dict.end()){
         kmer_dict[kmer_i] = 1;
@@ -102,6 +106,8 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
       }
     }
   }
+
+
   return kmer_dict;
 }
 
