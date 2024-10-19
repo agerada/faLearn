@@ -74,8 +74,37 @@ bool is_valid_dna_string(T dna){
   return dna.size() > 0 ? true : false;
 }
 
+// [[Rcpp::export]]
+std::string reverse_complement(std::string dna){
+
+  std::string rev_comp;
+  for(auto i = dna.rbegin(); i != dna.rend(); i++){
+    switch(*i){
+    case 'A':
+      rev_comp.push_back('T');
+      break;
+    case 'T':
+      rev_comp.push_back('A');
+      break;
+    case 'C':
+      rev_comp.push_back('G');
+      break;
+    case 'G':
+      rev_comp.push_back('C');
+      break;
+    default:
+      rev_comp.push_back(*i);
+      break;
+    }
+  }
+  return rev_comp;
+}
+
 std::map<std::string, unsigned long long int> make_kmer_paired_list(
-    const CharacterVector &x, int kmer, bool drop_n = false,
+    const CharacterVector &x,
+    int kmer,
+    bool drop_n = false,
+    bool canonical = true,
     std::map<std::string, unsigned long long int> kmer_dict = {}) {
   // "Private" function that generates a paired named R list of kmers and
   // counts, functionally identical to kmers()
@@ -94,6 +123,13 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
       if(drop_n){
         if(kmer_i.find_first_not_of("ACTG") != std::string::npos){
           continue;
+        }
+      }
+
+      if(canonical){
+        auto kmer_rev = reverse_complement(kmer_i);
+        if(kmer_i > kmer_rev){
+          kmer_i = kmer_rev;
         }
       }
 
@@ -137,6 +173,7 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 //' @param x genome in string format
 //' @param k kmer length
 //' @param simplify returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.
+//' @param canonical only record canonical kmers (i.e., the lexicographically smaller of a kmer and its reverse complement)
 //' @param anchor includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.
 //' @param clean_up only include valid bases (ACTG) in kmer counts (excludes non-coding results such as N)
 //' @param key_as_int return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.
@@ -147,6 +184,7 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 List kmers(const CharacterVector& x,
           int k = 3,
           bool simplify = false,
+          bool canonical = true,
           bool anchor = true,
           bool clean_up = true,
           bool key_as_int = false,
@@ -164,14 +202,16 @@ List kmers(const CharacterVector& x,
  if (simplify & !anchor) warning("Simplifying but not anchoring - undefined behaviour");
 
  if (key_as_int) {
-   auto string_key = make_kmer_paired_list(x, k, clean_up);
+   auto string_key = make_kmer_paired_list(x, k, clean_up, canonical);
    auto int_key = convert_kmer_string_to_index(string_key, k, starting_index);
    return wrap_custom(int_key);
  }
  if (anchor) {
    std::map<std::string, unsigned long long int> mapped = generate_kmer_perm_dict(k, "ACTG");
    if (simplify) {
-     std::map<std::string, unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up, mapped);
+     std::map<std::string, unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up,
+                                                                                     canonical,
+                                                                                     mapped);
      std::vector<unsigned long long int> kmer_output;
      for(auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
        kmer_output.push_back(i->second);
@@ -179,13 +219,13 @@ List kmers(const CharacterVector& x,
      return wrap_custom(kmer_output);
    }
    else {
-     return wrap_custom(make_kmer_paired_list(x, k, clean_up, mapped));
+     return wrap_custom(make_kmer_paired_list(x, k, clean_up, canonical, mapped));
    }
  }
  else {
    if (simplify) {
      std::map<std::string,
-              unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up);
+              unsigned long long int> temp_dict = make_kmer_paired_list(x, k, canonical, clean_up);
      std::vector<unsigned long long int> kmer_output;
      for (auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
        kmer_output.push_back(i->second);
@@ -200,13 +240,14 @@ List kmers(const CharacterVector& x,
 bool kmers_to_libsvm(const CharacterVector &x,
                     const CharacterVector &target_path,
                     const CharacterVector &label = CharacterVector::create("0"),
-                    int k = 3) {
+                    int k = 3,
+                    bool canonical = true) {
   //std::string dna_string = as<std::string>(x);
   std::ofstream file;
   std::string path = as<std::string>(target_path);
   file.open(path);
   file << as<std::string>(label) << " ";
-  auto string_key = make_kmer_paired_list(x, k, true);
+  auto string_key = make_kmer_paired_list(x, k, true, canonical);
   auto int_key = convert_kmer_string_to_index(string_key, k, 1);
   for (auto const& i : int_key) {
     file << i.first << ":" << i.second << " ";

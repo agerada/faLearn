@@ -4,14 +4,27 @@
 \alias{plot.mic_validation}
 \title{Plot MIC validation results}
 \usage{
-\method{plot}{mic_validation}(x, match_axes = TRUE, add_missing_dilutions = TRUE, ...)
+\method{plot}{mic_validation}(
+  x,
+  match_axes = TRUE,
+  add_missing_dilutions = TRUE,
+  facet_wrap_ncol = NULL,
+  facet_wrap_nrow = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{object generated using compare_mic}
 
 \item{match_axes}{Same x and y axis}
 
-\item{add_missing_dilutions}{Axes will include dilutions that are not
+\item{add_missing_dilutions}{Axes will include dilutions that are not}
+
+\item{facet_wrap_ncol}{Facet wrap into n columns by antimicrobial (optional,
+only available when more than one antimicrobial in validation)}
+
+\item{facet_wrap_nrow}{Facet wrap into n rows by antimicrobial (optional,
+only available when more than one antimicrobial in validation)
 represented in the data, based on a series of dilutions generated using mic_range().}
 
 \item{...}{additional arguments}

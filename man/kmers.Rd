@@ -8,6 +8,7 @@ kmers(
   x,
   k = 3L,
   simplify = FALSE,
+  canonical = TRUE,
   anchor = TRUE,
   clean_up = TRUE,
   key_as_int = FALSE,
@@ -20,6 +21,8 @@ kmers(
 \item{k}{kmer length}
 
 \item{simplify}{returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.}
+
+\item{canonical}{only record canonical kmers (i.e., the lexicographically smaller of a kmer and its reverse complement)}
 
 \item{anchor}{includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.}
 

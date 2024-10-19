@@ -4,7 +4,13 @@
 \alias{genomes_to_kmer_libsvm}
 \title{Convert genomes to kmers (libsvm format)}
 \usage{
-genomes_to_kmer_libsvm(source_dir, target_dir, k = 3, ext = ".fna")
+genomes_to_kmer_libsvm(
+  source_dir,
+  target_dir,
+  k = 3,
+  canonical = TRUE,
+  ext = ".fna"
+)
 }
 \arguments{
 \item{source_dir}{directory containing genomes}
@@ -12,6 +18,8 @@ genomes_to_kmer_libsvm(source_dir, target_dir, k = 3, ext = ".fna")
 \item{target_dir}{target directory to store kmers in libsvm format}
 
 \item{k}{kmer count}
+
+\item{canonical}{only count canonical kmers}
 
 \item{ext}{file extension to filter}
 }

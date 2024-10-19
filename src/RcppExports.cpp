@@ -10,26 +10,38 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// reverse_complement
+std::string reverse_complement(std::string dna);
+RcppExport SEXP _molMIC_reverse_complement(SEXP dnaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type dna(dnaSEXP);
+    rcpp_result_gen = Rcpp::wrap(reverse_complement(dna));
+    return rcpp_result_gen;
+END_RCPP
+}
 // kmers
-List kmers(const CharacterVector& x, int k, bool simplify, bool anchor, bool clean_up, bool key_as_int, bool starting_index);
-RcppExport SEXP _molMIC_kmers(SEXP xSEXP, SEXP kSEXP, SEXP simplifySEXP, SEXP anchorSEXP, SEXP clean_upSEXP, SEXP key_as_intSEXP, SEXP starting_indexSEXP) {
+List kmers(const CharacterVector& x, int k, bool simplify, bool canonical, bool anchor, bool clean_up, bool key_as_int, bool starting_index);
+RcppExport SEXP _molMIC_kmers(SEXP xSEXP, SEXP kSEXP, SEXP simplifySEXP, SEXP canonicalSEXP, SEXP anchorSEXP, SEXP clean_upSEXP, SEXP key_as_intSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const CharacterVector& >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< bool >::type simplify(simplifySEXP);
+    Rcpp::traits::input_parameter< bool >::type canonical(canonicalSEXP);
     Rcpp::traits::input_parameter< bool >::type anchor(anchorSEXP);
     Rcpp::traits::input_parameter< bool >::type clean_up(clean_upSEXP);
     Rcpp::traits::input_parameter< bool >::type key_as_int(key_as_intSEXP);
     Rcpp::traits::input_parameter< bool >::type starting_index(starting_indexSEXP);
-    rcpp_result_gen = Rcpp::wrap(kmers(x, k, simplify, anchor, clean_up, key_as_int, starting_index));
+    rcpp_result_gen = Rcpp::wrap(kmers(x, k, simplify, canonical, anchor, clean_up, key_as_int, starting_index));
     return rcpp_result_gen;
 END_RCPP
 }
 // kmers_to_libsvm
-bool kmers_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k);
-RcppExport SEXP _molMIC_kmers_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP) {
+bool kmers_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k, bool canonical);
+RcppExport SEXP _molMIC_kmers_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -37,14 +49,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const CharacterVector& >::type target_path(target_pathSEXP);
     Rcpp::traits::input_parameter< const CharacterVector& >::type label(labelSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    rcpp_result_gen = Rcpp::wrap(kmers_to_libsvm(x, target_path, label, k));
+    Rcpp::traits::input_parameter< bool >::type canonical(canonicalSEXP);
+    rcpp_result_gen = Rcpp::wrap(kmers_to_libsvm(x, target_path, label, k, canonical));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_molMIC_kmers", (DL_FUNC) &_molMIC_kmers, 7},
-    {"_molMIC_kmers_to_libsvm", (DL_FUNC) &_molMIC_kmers_to_libsvm, 4},
+    {"_molMIC_reverse_complement", (DL_FUNC) &_molMIC_reverse_complement, 1},
+    {"_molMIC_kmers", (DL_FUNC) &_molMIC_kmers, 8},
+    {"_molMIC_kmers_to_libsvm", (DL_FUNC) &_molMIC_kmers_to_libsvm, 5},
     {NULL, NULL, 0}
 };
 
