@@ -26,3 +26,15 @@ test_that("canonical kmer counting is correct", {
   expect_true(all.equal(kmers, list(kmer_string = c("AA", "AC", "AG", "CA"),
                                     kmer_value = c(1, 2, 1, 1))))
   })
+
+test_that("test kmer squeeze", {
+  k <- 5
+  all_mers <- kmers("AAAAAAAAAAAAAAA", k = k, anchor = TRUE)
+  all_mers <- all_mers$kmer_string
+  all_mers <- paste0(all_mers, collapse = "")
+  all_counts <- kmers(all_mers, k = k, anchor = TRUE)
+  filtered_mers <- all_counts$kmer_string[all_counts$kmer_value > 0]
+  squeezed_mers <- kmers("AAAAAAAAAAAAAAA", k = k, anchor = TRUE, squeeze = TRUE)
+  squeezed_mers <- squeezed_mers$kmer_string
+  expect_true(all.equal(filtered_mers, squeezed_mers))
+})

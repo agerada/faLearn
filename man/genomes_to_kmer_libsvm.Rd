@@ -9,6 +9,7 @@ genomes_to_kmer_libsvm(
   target_dir,
   k = 3,
   canonical = TRUE,
+  squeeze = FALSE,
   ext = ".fna"
 )
 }
@@ -20,6 +21,8 @@ genomes_to_kmer_libsvm(
 \item{k}{kmer count}
 
 \item{canonical}{only count canonical kmers}
+
+\item{squeeze}{remove non-canonical kmers}
 
 \item{ext}{file extension to filter}
 }

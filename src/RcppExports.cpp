@@ -22,8 +22,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // kmers
-List kmers(const CharacterVector& x, int k, bool simplify, bool canonical, bool anchor, bool clean_up, bool key_as_int, bool starting_index);
-RcppExport SEXP _molMIC_kmers(SEXP xSEXP, SEXP kSEXP, SEXP simplifySEXP, SEXP canonicalSEXP, SEXP anchorSEXP, SEXP clean_upSEXP, SEXP key_as_intSEXP, SEXP starting_indexSEXP) {
+List kmers(const CharacterVector& x, int k, bool simplify, bool canonical, bool squeeze, bool anchor, bool clean_up, bool key_as_int, bool starting_index);
+RcppExport SEXP _molMIC_kmers(SEXP xSEXP, SEXP kSEXP, SEXP simplifySEXP, SEXP canonicalSEXP, SEXP squeezeSEXP, SEXP anchorSEXP, SEXP clean_upSEXP, SEXP key_as_intSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -31,17 +31,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< bool >::type simplify(simplifySEXP);
     Rcpp::traits::input_parameter< bool >::type canonical(canonicalSEXP);
+    Rcpp::traits::input_parameter< bool >::type squeeze(squeezeSEXP);
     Rcpp::traits::input_parameter< bool >::type anchor(anchorSEXP);
     Rcpp::traits::input_parameter< bool >::type clean_up(clean_upSEXP);
     Rcpp::traits::input_parameter< bool >::type key_as_int(key_as_intSEXP);
     Rcpp::traits::input_parameter< bool >::type starting_index(starting_indexSEXP);
-    rcpp_result_gen = Rcpp::wrap(kmers(x, k, simplify, canonical, anchor, clean_up, key_as_int, starting_index));
+    rcpp_result_gen = Rcpp::wrap(kmers(x, k, simplify, canonical, squeeze, anchor, clean_up, key_as_int, starting_index));
     return rcpp_result_gen;
 END_RCPP
 }
 // kmers_to_libsvm
-bool kmers_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k, bool canonical);
-RcppExport SEXP _molMIC_kmers_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP) {
+bool kmers_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k, bool canonical, bool squeeze);
+RcppExport SEXP _molMIC_kmers_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP, SEXP squeezeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -50,15 +51,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const CharacterVector& >::type label(labelSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< bool >::type canonical(canonicalSEXP);
-    rcpp_result_gen = Rcpp::wrap(kmers_to_libsvm(x, target_path, label, k, canonical));
+    Rcpp::traits::input_parameter< bool >::type squeeze(squeezeSEXP);
+    rcpp_result_gen = Rcpp::wrap(kmers_to_libsvm(x, target_path, label, k, canonical, squeeze));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_molMIC_reverse_complement", (DL_FUNC) &_molMIC_reverse_complement, 1},
-    {"_molMIC_kmers", (DL_FUNC) &_molMIC_kmers, 8},
-    {"_molMIC_kmers_to_libsvm", (DL_FUNC) &_molMIC_kmers_to_libsvm, 5},
+    {"_molMIC_kmers", (DL_FUNC) &_molMIC_kmers, 9},
+    {"_molMIC_kmers_to_libsvm", (DL_FUNC) &_molMIC_kmers_to_libsvm, 6},
     {NULL, NULL, 0}
 };
 

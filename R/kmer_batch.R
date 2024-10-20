@@ -199,6 +199,7 @@ genomes_to_kmer_dataset <- function(input_dir,
 #' @param target_dir target directory to store kmers in libsvm format
 #' @param k kmer count
 #' @param canonical only count canonical kmers
+#' @param squeeze remove non-canonical kmers
 #' @param ext file extension to filter
 #'
 #' @description
@@ -217,6 +218,7 @@ genomes_to_kmer_libsvm <- function(source_dir,
                                    target_dir,
                                    k = 3,
                                    canonical = TRUE,
+                                   squeeze = FALSE,
                                    ext = ".fna") {
   if (!dir.exists(target_dir)) {
     dir.create(target_dir, recursive = TRUE)
@@ -232,7 +234,8 @@ genomes_to_kmer_libsvm <- function(source_dir,
                     file.path(normalizePath(target_dir),
                               paste0(strip_filename(x), ".txt")),
                     k = k,
-                    canonical = canonical)
+                    canonical = canonical,
+                    squeeze = squeeze)
     p(glue::glue("Completed: {basename(x)}"))
   }, future.seed = TRUE)
   return(TRUE)

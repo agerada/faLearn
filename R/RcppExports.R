@@ -11,17 +11,18 @@ reverse_complement <- function(dna) {
 #' @param k kmer length
 #' @param simplify returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.
 #' @param canonical only record canonical kmers (i.e., the lexicographically smaller of a kmer and its reverse complement)
+#' @param squeeze remove non-canonical kmers
 #' @param anchor includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.
 #' @param clean_up only include valid bases (ACTG) in kmer counts (excludes non-coding results such as N)
 #' @param key_as_int return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.
 #' @param starting_index the starting index, only used if key_as_int = TRUE.
 #' @return list of kmer values, either as a list of a single vector (if simplify = TRUE), or as a named list containing "kmer_string" and "kmer_value".
 #' @export
-kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, anchor = TRUE, clean_up = TRUE, key_as_int = FALSE, starting_index = 1L) {
-    .Call(`_molMIC_kmers`, x, k, simplify, canonical, anchor, clean_up, key_as_int, starting_index)
+kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE, anchor = TRUE, clean_up = TRUE, key_as_int = FALSE, starting_index = 1L) {
+    .Call(`_molMIC_kmers`, x, k, simplify, canonical, squeeze, anchor, clean_up, key_as_int, starting_index)
 }
 
-kmers_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3L, canonical = TRUE) {
-    .Call(`_molMIC_kmers_to_libsvm`, x, target_path, label, k, canonical)
+kmers_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3L, canonical = TRUE, squeeze = FALSE) {
+    .Call(`_molMIC_kmers_to_libsvm`, x, target_path, label, k, canonical, squeeze)
 }
 

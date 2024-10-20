@@ -105,6 +105,7 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
     int kmer,
     bool drop_n = false,
     bool canonical = true,
+    bool squeeze = false,
     std::map<std::string, unsigned long long int> kmer_dict = {}) {
   // "Private" function that generates a paired named R list of kmers and
   // counts, functionally identical to kmers()
@@ -143,6 +144,17 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
     }
   }
 
+  if (squeeze) {
+    for (auto i = kmer_dict.begin(), n = kmer_dict.end(); i != n; i++){
+      auto kmer_rev = reverse_complement(i->first);
+      if (kmer_rev > i->first) {
+        if (kmer_dict[kmer_rev] > 0) {
+          throw std::range_error("A taxonomically larger reverse complement has recorded a count.");
+        }
+        kmer_dict.erase(kmer_rev);
+      }
+  }
+  }
 
   return kmer_dict;
 }
@@ -174,6 +186,7 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 //' @param k kmer length
 //' @param simplify returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.
 //' @param canonical only record canonical kmers (i.e., the lexicographically smaller of a kmer and its reverse complement)
+//' @param squeeze remove non-canonical kmers
 //' @param anchor includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.
 //' @param clean_up only include valid bases (ACTG) in kmer counts (excludes non-coding results such as N)
 //' @param key_as_int return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.
@@ -185,6 +198,7 @@ List kmers(const CharacterVector& x,
           int k = 3,
           bool simplify = false,
           bool canonical = true,
+          bool squeeze = false,
           bool anchor = true,
           bool clean_up = true,
           bool key_as_int = false,
@@ -211,6 +225,7 @@ List kmers(const CharacterVector& x,
    if (simplify) {
      std::map<std::string, unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up,
                                                                                      canonical,
+                                                                                     squeeze,
                                                                                      mapped);
      std::vector<unsigned long long int> kmer_output;
      for(auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
@@ -219,13 +234,13 @@ List kmers(const CharacterVector& x,
      return wrap_custom(kmer_output);
    }
    else {
-     return wrap_custom(make_kmer_paired_list(x, k, clean_up, canonical, mapped));
+     return wrap_custom(make_kmer_paired_list(x, k, clean_up, canonical, squeeze, mapped));
    }
  }
  else {
    if (simplify) {
      std::map<std::string,
-              unsigned long long int> temp_dict = make_kmer_paired_list(x, k, canonical, clean_up);
+              unsigned long long int> temp_dict = make_kmer_paired_list(x, k, clean_up, canonical, squeeze);
      std::vector<unsigned long long int> kmer_output;
      for (auto i = temp_dict.begin(), n = temp_dict.end(); i != n; i++){
        kmer_output.push_back(i->second);
@@ -241,13 +256,14 @@ bool kmers_to_libsvm(const CharacterVector &x,
                     const CharacterVector &target_path,
                     const CharacterVector &label = CharacterVector::create("0"),
                     int k = 3,
-                    bool canonical = true) {
+                    bool canonical = true,
+                    bool squeeze = false) {
   //std::string dna_string = as<std::string>(x);
   std::ofstream file;
   std::string path = as<std::string>(target_path);
   file.open(path);
   file << as<std::string>(label) << " ";
-  auto string_key = make_kmer_paired_list(x, k, true, canonical);
+  auto string_key = make_kmer_paired_list(x, k, true, canonical, squeeze);
   auto int_key = convert_kmer_string_to_index(string_key, k, 1);
   for (auto const& i : int_key) {
     file << i.first << ":" << i.second << " ";
