@@ -56,11 +56,63 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// squeezed_mers
+StringVector squeezed_mers(int k);
+RcppExport SEXP _molMIC_squeezed_mers(SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(squeezed_mers(k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// unsqueezed_mers
+StringVector unsqueezed_mers(int k);
+RcppExport SEXP _molMIC_unsqueezed_mers(SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(unsqueezed_mers(k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// squeezed_index_to_str
+StringVector squeezed_index_to_str(IntegerVector x, int k, int starting_index);
+RcppExport SEXP _molMIC_squeezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type starting_index(starting_indexSEXP);
+    rcpp_result_gen = Rcpp::wrap(squeezed_index_to_str(x, k, starting_index));
+    return rcpp_result_gen;
+END_RCPP
+}
+// unsqueezed_index_to_str
+StringVector unsqueezed_index_to_str(IntegerVector x, int k, int starting_index);
+RcppExport SEXP _molMIC_unsqueezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type starting_index(starting_indexSEXP);
+    rcpp_result_gen = Rcpp::wrap(unsqueezed_index_to_str(x, k, starting_index));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_molMIC_reverse_complement", (DL_FUNC) &_molMIC_reverse_complement, 1},
     {"_molMIC_kmers", (DL_FUNC) &_molMIC_kmers, 9},
     {"_molMIC_kmers_to_libsvm", (DL_FUNC) &_molMIC_kmers_to_libsvm, 6},
+    {"_molMIC_squeezed_mers", (DL_FUNC) &_molMIC_squeezed_mers, 1},
+    {"_molMIC_unsqueezed_mers", (DL_FUNC) &_molMIC_unsqueezed_mers, 1},
+    {"_molMIC_squeezed_index_to_str", (DL_FUNC) &_molMIC_squeezed_index_to_str, 3},
+    {"_molMIC_unsqueezed_index_to_str", (DL_FUNC) &_molMIC_unsqueezed_index_to_str, 3},
     {NULL, NULL, 0}
 };
 

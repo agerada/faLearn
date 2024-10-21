@@ -116,6 +116,11 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
     if (!is_valid_dna_string(contig)) {
       throw std::range_error("Invalid DNA string (probably empty/NULL)");
     }
+
+    if (contig.size() < kmer) {
+      continue;
+    }
+
     unsigned long long int n = contig.size() + 1 - kmer;
     for(unsigned long long int j = 0; j < n; j++){
       auto kmer_i = contig.substr(j, kmer);
@@ -176,6 +181,17 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
       unsigned long long int key_as_index = perms_dict[i->first];
       output_dict[key_as_index] = i->second;
     }
+  }
+  return output_dict;
+}
+
+std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_int_seq(
+    std::map<std::string, unsigned long long int> x,
+    int starting_index) {
+  std::map<unsigned long long int, unsigned long long int> output_dict;
+  for(auto i = x.begin(), n = x.end(); i != n; i++) {
+    output_dict[starting_index] = i->second;
+    starting_index++;
   }
   return output_dict;
 }
@@ -258,17 +274,134 @@ bool kmers_to_libsvm(const CharacterVector &x,
                     int k = 3,
                     bool canonical = true,
                     bool squeeze = false) {
-  //std::string dna_string = as<std::string>(x);
   std::ofstream file;
   std::string path = as<std::string>(target_path);
   file.open(path);
   file << as<std::string>(label) << " ";
-  auto string_key = make_kmer_paired_list(x, k, true, canonical, squeeze);
-  auto int_key = convert_kmer_string_to_index(string_key, k, 1);
-  for (auto const& i : int_key) {
-    file << i.first << ":" << i.second << " ";
+  std::map<unsigned long long int, unsigned long long int> int_key;
+  if (!squeeze) {
+    auto string_key = make_kmer_paired_list(x, k, true, canonical, squeeze);
+    auto int_key = convert_kmer_string_to_index(string_key, k, 1);
+    for (auto const& i : int_key) {
+      file << i.first << ":" << i.second << " ";
+    }
+  } else {
+    // If we're squeezing, we need a bit of extra work.
+    // Provide a kmer_perms dict as input to ensure that we have the correct
+    // alignment. Then just convert the str component (map->first) to a sequence
+    // of integers. We do not use the convert_kmer_string_to_index function
+    // since this maps to the full kmer set, which is not what we want.
+    auto perms_dict = generate_kmer_perm_dict(k);
+    auto string_key = make_kmer_paired_list(x, k, true, canonical, squeeze, perms_dict);
+    auto int_seq_key = convert_kmer_string_to_int_seq(string_key, 1);
+
+    // We now also need to remove 0-count kmers
+    for (auto it = int_seq_key.cbegin(); it != int_seq_key.cend();) {
+      if (it->second == 0) {
+        it = int_seq_key.erase(it++);
+      } else {
+        ++it;
+      }
+    }
+    for (auto const& i : int_seq_key) {
+      file << i.first << ":" << i.second << " ";
+    }
   }
   file << std::endl;
   file.close();
   return true;
+}
+
+std::vector<std::string> make_squeezed_mers(int k) {
+  auto perms_dict = generate_kmer_perm_dict(k);
+  for (auto i = perms_dict.begin(), n = perms_dict.end(); i != n; i++){
+    auto kmer_rev = reverse_complement(i->first);
+    if (kmer_rev > i->first) {
+      perms_dict.erase(kmer_rev);
+    }
+  }
+  std::vector<std::string> output;
+  for (auto i = perms_dict.begin(), n = perms_dict.end(); i != n; i++){
+    output.push_back(i->first);
+  }
+  return output;
+}
+
+std::vector<std::string> make_unsqueezed_mers(int k) {
+  auto perms_dict = generate_kmer_perm_dict(k);
+  std::vector<std::string> output;
+  for (auto i = perms_dict.begin(), n = perms_dict.end(); i != n; i++){
+    output.push_back(i->first);
+  }
+  return output;
+}
+
+//' Generates squeezed kmers
+//' @param k kmer length
+//' @return vector of squeezed kmers
+//' @export
+// [[Rcpp::export]]
+StringVector squeezed_mers(int k = 3) {
+  auto output = make_squeezed_mers(k);
+  StringVector output_sv(output.size());
+  output_sv = output;
+  return output_sv;
+}
+
+//' Generates unsqueezed kmers
+//' @param k kmer length
+//' @return vector of unsqueezed kmers
+//' @export
+// [[Rcpp::export]]
+StringVector unsqueezed_mers(int k = 3) {
+  auto output = make_unsqueezed_mers(k);
+  StringVector output_sv(output.size());
+  output_sv = output;
+  return output_sv;
+}
+
+//' Get str conversion of squeezed kmer using index
+//' @param x integer vector of kmer indices
+//' @param k kmer length
+//' @param starting_index starting index (libsvm is usually indexed starting at 1)
+//' @return vector of squeezed kmer strings
+//' @export
+// [[Rcpp::export]]
+StringVector squeezed_index_to_str(IntegerVector x,
+                               int k,
+                               int starting_index = 1) {
+  auto squeezed_mers = make_squeezed_mers(k);
+  std::vector<std::string> output;
+  for (auto i = x.begin(); i != x.end(); i++) {
+    if ((*i) - starting_index >= squeezed_mers.size()) {
+      throw std::range_error("Index out of bounds");
+    }
+    output.push_back(squeezed_mers[(*i) - starting_index]);
+  }
+  StringVector output_sv(output.size());
+  output_sv = output;
+  return output_sv;
+}
+
+//' Get str conversion of unsqueezed kmer using index
+//' @param x integer vector of kmer indices
+//' @param k kmer length
+//' @param starting_index starting index (libsvm is usually indexed starting at 1)
+//' @return vector of unsqueezed kmer strings
+//' @export
+// [[Rcpp::export]]
+StringVector unsqueezed_index_to_str(IntegerVector x,
+                               int k,
+                               int starting_index = 1) {
+  auto unsqueezed_mers = make_unsqueezed_mers(k);
+  std::vector<std::string> output;
+  for (auto i = x.begin(); i != x.end(); i++) {
+    if ((*i) - starting_index >= unsqueezed_mers.size()) {
+      throw std::range_error("Index out of bounds");
+    }
+    output.push_back(unsqueezed_mers[(*i) - starting_index]);
+  }
+  StringVector output_sv(output.size());
+  output_sv = output;
+  return output_sv;
 }

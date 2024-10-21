@@ -26,3 +26,39 @@ kmers_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3
     .Call(`_molMIC_kmers_to_libsvm`, x, target_path, label, k, canonical, squeeze)
 }
 
+#' Generates squeezed kmers
+#' @param k kmer length
+#' @return vector of squeezed kmers
+#' @export
+squeezed_mers <- function(k = 3L) {
+    .Call(`_molMIC_squeezed_mers`, k)
+}
+
+#' Generates unsqueezed kmers
+#' @param k kmer length
+#' @return vector of unsqueezed kmers
+#' @export
+unsqueezed_mers <- function(k = 3L) {
+    .Call(`_molMIC_unsqueezed_mers`, k)
+}
+
+#' Get str conversion of squeezed kmer using index
+#' @param x integer vector of kmer indices
+#' @param k kmer length
+#' @param starting_index starting index (libsvm is usually indexed starting at 1)
+#' @return vector of squeezed kmer strings
+#' @export
+squeezed_index_to_str <- function(x, k, starting_index = 1L) {
+    .Call(`_molMIC_squeezed_index_to_str`, x, k, starting_index)
+}
+
+#' Get str conversion of unsqueezed kmer using index
+#' @param x integer vector of kmer indices
+#' @param k kmer length
+#' @param starting_index starting index (libsvm is usually indexed starting at 1)
+#' @return vector of unsqueezed kmer strings
+#' @export
+unsqueezed_index_to_str <- function(x, k, starting_index = 1L) {
+    .Call(`_molMIC_unsqueezed_index_to_str`, x, k, starting_index)
+}
+
