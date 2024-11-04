@@ -73,7 +73,7 @@ genomes_to_kmer_libsvm <- function(source_dir,
 #'
 #' @return reverse complement of string
 #' @export
-#' @example
+#' @examples
 #' rev_comp("ATGC")
 rev_comp <- function(x) {
   as.character(Biostrings::reverseComplement(Biostrings::DNAString(x)))

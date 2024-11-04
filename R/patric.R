@@ -35,6 +35,28 @@ or use tidy_patric_meta_data()")
   patric_db
 }
 
+check_valid_patric_db <- function(x) {
+  # check inherits dataframe
+  if (!inherits(x, "data.frame")) {
+    stop("Data is not a data.frame")
+  }
+
+  # check columns
+  required_columns <- c("genome_id", "genome_name", "antibiotic",
+                        "measurement", "measurement_unit",
+                        "laboratory_typing_method", "resistant_phenotype")
+  if (!all(required_columns %in% colnames(x))) {
+    stop("Data does not contain all required columns for PATRIC-style database.
+         Please see ?load_patric_db()")
+  }
+}
+
+as_patric_db <- function(x) {
+  check_valid_patric_db(x)
+  class(x) <- append(class(x), "patric_db", after = 0)
+  x
+}
+
 #' Save PATRIC database locally
 #'
 #' @param save_path Save path (should be .txt)

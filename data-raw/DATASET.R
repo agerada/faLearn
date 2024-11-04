@@ -62,4 +62,62 @@ ecoffs <- ecoffs %>%
   dplyr::rename(antibiotic = ...1) %>%
   dplyr::mutate(antibiotic = AMR::as.ab(antibiotic))
 
-usethis::use_data(QC_table, ecoffs, overwrite = TRUE, internal = TRUE)
+## Example dataset
+
+example_raw <- readr::read_tsv("data-raw/example_raw.txt",
+                                col_types = readr::cols(.default = "c")) %>%
+  dplyr::mutate(genome_name = AMR::mo_name(AMR_org)) %>%
+  dplyr::relocate(genome_id,
+                  date_collected,
+                  AMR_org,
+                  antibiotic,
+                  measurement,
+                  measurement_unit,
+                  laboratory_typing_method,
+                  resistant_phenotype,
+                  lca_class,
+                  dplyr::starts_with("POS_QC"),
+                  dplyr::starts_with("QC"))
+
+# get the QC MIC (E. coli ATC 25922) for each antimicrobial
+qc_mic <- example_raw %>%
+  dplyr::distinct(genome_id, .keep_all = TRUE) %>%
+  dplyr::select(genome_id, dplyr::starts_with("POS_QC_")) %>%
+  tidyr::pivot_longer(dplyr::starts_with("POS_QC_"), names_to = "antibiotic",
+               values_to = "qc_mic") %>%
+  dplyr::mutate(antibiotic = stringr::str_remove(antibiotic, "POS_QC_")) %>%
+  dplyr::mutate(laboratory_typing_method = "Agar dilution")
+
+# get the growth control for each antimicrobial (P/W/F)
+qc_control <- example_raw %>%
+  dplyr::distinct(genome_id, .keep_all = TRUE) %>%
+  dplyr::select(genome_id, dplyr::starts_with("QC_")) %>%
+  tidyr::pivot_longer(dplyr::starts_with("QC_"), names_to = "antibiotic",
+               values_to = "qc_growth") %>%
+  dplyr::mutate(antibiotic = stringr::str_remove(antibiotic, "QC_")) %>%
+  dplyr::mutate(laboratory_typing_method = "Agar dilution")
+
+# Combine and remove any antimicrobials with QC outside range
+example_mics <- example_raw %>%
+  dplyr::left_join(qc_mic, by = c("genome_id", "antibiotic", "laboratory_typing_method")) %>%
+  dplyr::left_join(qc_control, by = c("genome_id", "antibiotic", "laboratory_typing_method")) %>%
+  dplyr::filter(laboratory_typing_method == "Agar dilution") %>%
+  dplyr::mutate(measurement = AMR::as.mic(measurement)) %>%
+  dplyr::mutate(qc_mic = AMR::as.mic(qc_mic)) %>%
+  dplyr::filter(qc_in_range(qc_mic, 25922, antibiotic)) %>%
+  dplyr::filter(qc_growth != "F") %>%
+  dplyr::select(!dplyr::starts_with("QC_") & !dplyr::starts_with("POS_QC_"))
+
+example_mics <- example_mics %>%
+  as_patric_db()
+
+example_discs <- example_raw %>%
+  dplyr::filter(laboratory_typing_method == "Disk diffusion") %>%
+  dplyr::mutate(measurement = AMR::as.disk(measurement)) %>%
+  dplyr::select(!dplyr::starts_with("QC_") & !dplyr::starts_with("POS_QC_"))
+
+example_discs <- example_discs %>%
+  as_patric_db()
+
+usethis::use_data(QC_table, ecoffs,
+  example_mics, example_discs, overwrite = TRUE, internal = TRUE)

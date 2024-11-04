@@ -11,6 +11,15 @@
 #' @return vector containing MICs, or dataframe of IDs and MICs
 #' @export
 #'
+#' @description
+#' This function helps extract MICs from a database of results. It is compatible
+#' with the PATRIC meta data format when used on a tidy_patric_db object,
+#' created using tidy_patric_db().
+#'
+#' If more than one MIC is present for a particular observation, the function
+#' can return the higher MIC by setting prefer_high_mic = TRUE. If
+#' prefer_high_mic = FALSE, the lower MIC will be returned.
+#'
 #' @examples
 #' df <- data.frame(genome_id = c("a_12", "b_42", "x_21", "x_21", "r_75"),
 #'                  gentamicin = c(0.25, 0.125, 32.0, 16.0, "<0.0125"))
@@ -64,17 +73,6 @@ get_mic <- function(x,
   }
 }
 
-#' Calculate sample weights
-#'
-#' @param x Vector of discrete variables
-#'
-#' @return sample weights
-#' @export
-sample_weights <- function(x) {
-  freq_table <- table(x)
-  as.vector(1 / freq_table[as.character(x)])
-}
-
 #' Clean up raw MIC for use as a feature
 #'
 #' @param mic character containing MIC/s
@@ -103,8 +101,8 @@ clean_raw_mic <- function(mic) {
 #' @return vector of MICs in AMR::mic format
 #' @description
 #' Censored MIC data is generally unsuitable for modelling without some
-#' conversion of censored data. This function halves MICs under the limit of
-#' detection (<=) and doubles MICs above the limit.
+#' conversion of censored data. The default behaviour is to halve MICs under the
+#'  limit of detection (<=) and double MICs above the limit.
 #' @export
 #'
 #' @examples
@@ -176,6 +174,163 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
   return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
 },
 USE.NAMES = F)
+
+#' Get the right trough of an MIC distribution
+#'
+#' @param x A vector of MICs
+#'
+#' @return The right trough of the MIC distribution (an MIC value)
+#'
+#' @examples
+#' mics <- AMR::as.mic(c(0.25, 4, 8, 8, 0.25, 0.5, 0.125, 1, 1, 2))
+#' right_trough(mics) == AMR::as.mic(2)
+trough <- function(x, direction = "right") {
+  x <- AMR::as.mic(x)
+  diffs <- x |>
+    droplevels() |>
+    table() |>
+    diff()
+  # get first negative diff
+  if (direction == "right") {
+    return(names(diffs[max(which(diffs < 0))])[[1]] |>
+             AMR::as.mic())
+  }
+  if (direction == "left") {
+    return(names(diffs[min(which(diffs < 0))])[[1]] |>
+             AMR::as.mic())
+  }
+  stop("Direction must be right or left")
+
+    AMR::as.mic()
+}
+
+mic_uncensor_dens_right <- function(x,
+                              dist = rlnorm, sweep_n = 100, ...) {
+  lvls <- table(droplevels(x))
+  right_t <- trough(x, direction = "right")
+  print(right_t)
+  right <- lvls[AMR::as.mic(names(lvls)) >= right_t]
+
+  if (...length() == 0 & !identical(dist, rlnorm)) {
+    stop("Parameter grid must be provided if not using rlnorm distribution")
+  }
+
+  if (...length() == 0) {
+    grid <- expand.grid(
+      meanlog = seq(0.1, 10, length.out = sweep_n),
+      sdlog = seq(0.1, 10, length.out = sweep_n)
+    )
+  } else{
+    grid <- expand.grid(...)
+  }
+
+  samples <- apply(grid, 1, \(x) {
+    sort(
+      do.call(
+        dist,
+        c(list(n = sum(right)), as.list(x))
+      )
+    )
+  }, simplify = FALSE)
+
+  max_mic <- max(x)
+
+  compare_against_these <- x[mic_uncensor(x) <= max_mic & mic_uncensor(x) >= right_t] |>
+    sort()
+  print('compare')
+  print(compare_against_these)
+
+  rmse <- vector("numeric", length = length(samples))
+  for (i in seq_along(samples)) {
+    sim <- samples[[i]]
+    sim <- sim[1:length(compare_against_these)]
+    rmse[[i]] <- sqrt(mean((sim - compare_against_these)^2))
+  }
+
+  best <- which.min(rmse)
+  best_params <- grid[best, ]
+  best_sims <- samples[[best]]
+  best_sims <- AMR::as.mic(force_mic(best_sims))
+  best_sims <- best_sims[best_sims >= max_mic]
+  best_sims <- sample(best_sims)
+
+  best_sims_tab <- table(force_mic(best_sims))
+  print(best_sims_tab)
+  if (length(best_sims) == 0) {
+    stop("Unable to fit a bootstrap to the data. Try a different distribution
+         or change/extend the parameter sweep.")
+  }
+
+  x_mod <- x
+  x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)] <- sample(names(best_sims_tab),
+                                                                           size = sum(AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)),
+                                                                           replace = TRUE, prob = best_sims_tab)
+  x_mod
+}
+
+mic_uncensor_dens_left <- function(x,
+                                    dist = rlnorm, sweep_n = 100, ...) {
+  lvls <- table(droplevels(x))
+  left_t <- trough(x, direction = "left")
+  print(left_t)
+  right <- lvls[AMR::as.mic(names(lvls)) >= right_t]
+
+  if (...length() == 0 & !identical(dist, rlnorm)) {
+    stop("Parameter grid must be provided if not using rlnorm distribution")
+  }
+
+  if (...length() == 0) {
+    grid <- expand.grid(
+      meanlog = seq(0.1, 10, length.out = sweep_n),
+      sdlog = seq(0.1, 10, length.out = sweep_n)
+    )
+  } else{
+    grid <- expand.grid(...)
+  }
+
+  samples <- apply(grid, 1, \(x) {
+    sort(
+      do.call(
+        dist,
+        c(list(n = sum(right)), as.list(x))
+      )
+    )
+  }, simplify = FALSE)
+
+  max_mic <- max(x)
+
+  compare_against_these <- x[mic_uncensor(x) <= max_mic & mic_uncensor(x) >= right_t] |>
+    sort()
+  print('compare')
+  print(compare_against_these)
+
+  rmse <- vector("numeric", length = length(samples))
+  for (i in seq_along(samples)) {
+    sim <- samples[[i]]
+    sim <- sim[1:length(compare_against_these)]
+    rmse[[i]] <- sqrt(mean((sim - compare_against_these)^2))
+  }
+
+  best <- which.min(rmse)
+  best_params <- grid[best, ]
+  best_sims <- samples[[best]]
+  best_sims <- AMR::as.mic(force_mic(best_sims))
+  best_sims <- best_sims[best_sims >= max_mic]
+  best_sims <- sample(best_sims)
+
+  best_sims_tab <- table(force_mic(best_sims))
+  print(best_sims_tab)
+  if (length(best_sims) == 0) {
+    stop("Unable to fit a bootstrap to the data. Try a different distribution
+         or change/extend the parameter sweep.")
+  }
+
+  x_mod <- x
+  x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)] <- sample(names(best_sims_tab),
+                                                                           size = sum(AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)),
+                                                                           replace = TRUE, prob = best_sims_tab)
+  x_mod
+}
 
 censor_rules <- list("B_ESCHR_COLI" = list(
   "AMK" = list(min = 2, max = 32),
