@@ -47,6 +47,9 @@ test_that("test cv", {
   expect_contains(names(model), expected_fields)
   expect_contains(names(model_lowmem), expected_fields)
 
+  # check eval log names are same
+  expect_equal(names(model$evaluation_log), names(model_lowmem$evaluation_log))
+
   # using some additional callbacks, other fields are added
   model <- xgboost::xgb.cv(data = dtrain,
                            prediction = TRUE,
@@ -101,4 +104,49 @@ test_that("test cv", {
                                          "pred",
                                          "models"))
 
+})
+
+test_that("iris example", {
+  data(iris)
+  iris <- iris[sample(1:nrow(iris)), ]
+  # make labels , 0 indexed
+  labels <- as.integer(iris$Species) - 1
+  dtrain <- xgboost::xgb.DMatrix(data = as.matrix(iris[, -5]),
+                                 label = labels)
+
+  # make folds
+  folds <- list()
+  for (i in 1:5) {
+    folds[[paste0("Fold", i)]] <- which((1:150) %% 5 == i - 1)
+  }
+
+  model <- xgboost::xgb.cv(data = dtrain,
+                           nrounds = 10,
+                           nfold = 5,
+                           verbose = FALSE,
+                           prediction = TRUE,
+                           folds = folds,
+                           num_class = 3,
+                           objective = "multi:softprob")
+  expect_s3_class(model, "xgb.cv.synchronous")
+  # convert preds to class
+  preds <- apply(model$pred, 1, which.max) - 1
+  # check accuracy
+  accuracy <- mean(preds == labels)
+
+  # now use the lowmem cv function
+  model_lowmem <- xgb.cv.lowmem(data = dtrain,
+                                nfold = 5,
+                                nrounds = 10,
+                                verbose = FALSE,
+                                prediction = TRUE,
+                                folds = folds,
+                                num_class = 3,
+                                objective = "multi:softprob")
+  expect_s3_class(model_lowmem, "xgb.cv.synchronous")
+  # convert preds to class
+  preds_lowmem <- apply(model_lowmem$pred, 1, which.max) - 1
+  # check accuracy
+  accuracy_lowmem <- mean(preds_lowmem == labels)
+  expect_equal(accuracy, accuracy_lowmem, tolerance = 1e-6)
 })

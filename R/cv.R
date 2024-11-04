@@ -135,7 +135,7 @@ xgb.cv.lowmem <- function(params = list(),
     model <- xgboost::xgb.train(params = params,
                                 data = dtrain,
                                 nrounds = nrounds,
-                                watchlist = list(train = dtrain, feval = dtest),
+                                watchlist = list(train = dtrain, eval = dtest),
                                 obj = obj,
                                 feval = feval,
                                 verbose = verbose,
@@ -159,37 +159,58 @@ xgb.cv.lowmem <- function(params = list(),
 
   }
 
+  # reorder predictions to match the order of the labels
+  if (prediction) {
+    # first, reorganise to matrix if softmax
+    if (model[["params"]]["objective"] == "multi:softprob") {
+      # convert to matrix of class probabilities
+      output$pred <- matrix(output$pred,
+                            ncol = model[["params"]][["num_class"]],
+                            byrow = TRUE)
+      # reorder matrix rows to match the order of the labels
+      output$pred <- output$pred[order(unlist(folds)), ]
+    } else {
+      output$pred <- output$pred[order(unlist(folds))]
+    }
+  }
+
   output$niter <- max(sapply(models, \(x) x$niter))
 
+  metric_names <- names(models[[1]]$evaluation_log)
+  train_metric_name <- metric_names[2]
+  test_metric_name <- metric_names[3]
+
   train_rmse <- lapply(models, \(x) {
-    x[['evaluation_log']] |>
-      dplyr::pull("train_rmse")
+    x[['evaluation_log']][[train_metric_name]]
     })
   train_rmse <-
     (lapply(train_rmse, "length<-", max(lengths(train_rmse))))
   train_rmse <- do.call(cbind, train_rmse)
-  train_rmse_means <- rowMeans(train_rmse)
+  train_rmse_means <- rowMeans(train_rmse, na.rm = TRUE)
 
-  train_rmse_std <- apply(train_rmse, 1, stats::sd)
+  train_rmse_std <- apply(train_rmse, 1, \(x) stats::sd(x, na.rm = TRUE))
 
   test_rmse <- lapply(models, \(x) {
-    x[['evaluation_log']] |>
-      dplyr::pull("feval_rmse")
+    x[['evaluation_log']][[test_metric_name]]
   })
+
   test_rmse <-
     (lapply(test_rmse, "length<-", max(lengths(test_rmse))))
   test_rmse <- do.call(cbind, test_rmse)
-  test_rmse_means <- rowMeans(test_rmse)
+  test_rmse_means <- rowMeans(test_rmse, na.rm = TRUE)
 
-  test_rmse_std <- apply(test_rmse, 1, stats::sd)
+  test_rmse_std <- apply(test_rmse, 1, \(x) stats::sd(x, na.rm = TRUE))
 
   output$evaluation_log <- data.frame(
-    iter = seq_len(output$niter),
-    train_rmse = train_rmse_means,
-    train_rmse_sd = train_rmse_std,
-    test_rmse = test_rmse_means,
-    test_rmse_sd = test_rmse_std
+    iter = seq_len(output$niter)
   )
+  output$evaluation_log[paste0(train_metric_name, "_mean")] <- train_rmse_means
+  output$evaluation_log[paste0(train_metric_name, "_std")] <- train_rmse_std
+
+  # replace any "eval" with "test" in the test metric name
+  test_metric_name <- gsub("eval", "test", test_metric_name)
+  output$evaluation_log[paste0(test_metric_name, "_mean")] <- test_rmse_means
+  output$evaluation_log[paste0(test_metric_name, "_std")] <- test_rmse_std
 
   rownames(output$evaluation_log) <- seq_len(nrow(output$evaluation_log))
 
