@@ -22,8 +22,8 @@ vector of MICs in AMR::mic format
 }
 \description{
 Censored MIC data is generally unsuitable for modelling without some
-conversion of censored data. This function halves MICs under the limit of
-detection (<=) and doubles MICs above the limit.
+conversion of censored data. The default behaviour is to halve MICs under the
+limit of detection (<=) and double MICs above the limit.
 }
 \examples{
 mic_uncensor(c(">64.0", "<0.25", "8.0"))

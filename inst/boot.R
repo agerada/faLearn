@@ -80,7 +80,7 @@ gent_mics_mod[AMR::as.mic(mic_uncensor(gent_mics_mod)) > AMR::as.mic(max_mic)] <
 # plot gent_mics and gent_mics_mod side by side
 par(mfrow = c(1, 2))
 plot(gent_mics, main = "Original gent_mics", xlab = "MIC")
-plot(mic_uncensor_dens(gent_mics), main = "Uncensored", xlab = "MIC")
+plot(mic_uncensor_dens_right(gent_mics), main = "Uncensored", xlab = "MIC")
 # plot(mic_uncensor_dens(gent_mics, dist = rnorm, mean = seq(0.1, 10, length.out = 100)), main = "Modified gent_mics (lnorm)", xlab = "MIC")
 
 lvls <- gent_mics %>%
@@ -202,7 +202,7 @@ mic_data$predicted_MIC <- ifelse(
   mic_data$MIC_value
 )
 
-gent_ecoffs <- ecoffs[ecoffs$antibiotic == "CIP",] %>%
+gent_ecoffs <- ecoffs[ecoffs$antibiotic == "AMX",] %>%
   dplyr::select(`0.002`:`512`)
 gent_ecoffs_freq <- gent_ecoffs %>%
   t() %>%
@@ -212,7 +212,7 @@ gent_ecoffs_mics <- colnames(gent_ecoffs)
 sampled_ecoffs <- sample(gent_ecoffs_mics, size = sum(gent_ecoffs_freq), replace = TRUE, prob = gent_ecoffs_freq)
 sampled_ecoffs <- sample(sampled_ecoffs, size = 1000) %>%
   AMR::as.mic()
-censored_ecoffs <- if_else(censored_ecoffs > AMR::as.mic("32"), AMR::as.mic(">32"), censored_ecoffs)
+censored_ecoffs <- dplyr::if_else(sampled_ecoffs > AMR::as.mic("16"), AMR::as.mic(">16"), sampled_ecoffs)
 
 
 # Plot the original and modified MIC distributions
@@ -220,9 +220,6 @@ censored_ecoffs <- if_else(censored_ecoffs > AMR::as.mic("32"), AMR::as.mic(">32
 par(mfrow = c(1, 3))
 plot(sampled_ecoffs, main = "Original censored_ecoffs", xlab = "MIC")
 plot(censored_ecoffs, main = "Modified censored_ecoffs", xlab = "MIC")
-plot(mic_uncensor_dens(censored_ecoffs,
-                       dist = "rnorm",
-                       mean = seq(32,64, length.out=10),
-                       sd = seq(0,2, length.out=10)), main = "Uncensored", xlab = "MIC")
+plot(mic_uncensor_dens_right(censored_ecoffs), main = "Uncensored", xlab = "MIC")
 
 

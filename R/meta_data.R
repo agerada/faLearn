@@ -175,16 +175,17 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
 },
 USE.NAMES = F)
 
-#' Get the right trough of an MIC distribution
+#' Get the trough of an MIC distribution
 #'
 #' @param x A vector of MICs
+#' @param direction Which direction to look (right or left)
 #'
-#' @return The right trough of the MIC distribution (an MIC value)
-#'
+#' @return The trough of the MIC distribution (an MIC value)
+#' @export
 #' @examples
 #' mics <- AMR::as.mic(c(0.25, 4, 8, 8, 0.25, 0.5, 0.125, 1, 1, 2))
-#' right_trough(mics) == AMR::as.mic(2)
-trough <- function(x, direction = "right") {
+#' find_trough(mics, direction = "right") == AMR::as.mic(2)
+find_trough <- function(x, direction = "right") {
   x <- AMR::as.mic(x)
   diffs <- x |>
     droplevels() |>
@@ -205,20 +206,35 @@ trough <- function(x, direction = "right") {
 }
 
 mic_uncensor_dens_right <- function(x,
-                              dist = rlnorm, sweep_n = 100, ...) {
+                              dist = stats::rnorm, sweep_n = 100, ...) {
+  if (!inherits(x, "mic")) {
+    x <- AMR::as.mic(x)
+  }
+
   lvls <- table(droplevels(x))
-  right_t <- trough(x, direction = "right")
+  print(lvls)
+  right_t <- lvls[length(lvls) - 4]
+  right_t <- find_trough(x, direction = "right")
+  print("right trough")
   print(right_t)
   right <- lvls[AMR::as.mic(names(lvls)) >= right_t]
+  print("stuff to the right")
+  print(right)
 
-  if (...length() == 0 & !identical(dist, rlnorm)) {
-    stop("Parameter grid must be provided if not using rlnorm distribution")
+  max_mic <- max(x)
+  print("max mic")
+  print(max_mic)
+
+  x_log <- log2(x)
+
+  if (...length() == 0 & !identical(dist, stats::rnorm)) {
+    stop("Parameter grid must be provided if not using rnorm distribution")
   }
 
   if (...length() == 0) {
     grid <- expand.grid(
-      meanlog = seq(0.1, 10, length.out = sweep_n),
-      sdlog = seq(0.1, 10, length.out = sweep_n)
+      mean = seq(-8, 10, length.out = sweep_n),
+      sd = seq(0.1, 10, length.out = sweep_n)
     )
   } else{
     grid <- expand.grid(...)
@@ -233,6 +249,10 @@ mic_uncensor_dens_right <- function(x,
     )
   }, simplify = FALSE)
 
+  # raise all samples to power 2
+  samples <- lapply(samples, function(x) 2^x)
+
+  print(samples)
   max_mic <- max(x)
 
   compare_against_these <- x[mic_uncensor(x) <= max_mic & mic_uncensor(x) >= right_t] |>
@@ -251,7 +271,10 @@ mic_uncensor_dens_right <- function(x,
   best_params <- grid[best, ]
   best_sims <- samples[[best]]
   best_sims <- AMR::as.mic(force_mic(best_sims))
-  best_sims <- best_sims[best_sims >= max_mic]
+  best_sims <- best_sims[best_sims > max_mic]
+  print(max_mic)
+  print(best_sims)
+  # stop()
   best_sims <- sample(best_sims)
 
   best_sims_tab <- table(force_mic(best_sims))
@@ -262,6 +285,8 @@ mic_uncensor_dens_right <- function(x,
   }
 
   x_mod <- x
+  print(max_mic)
+  print(x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)])
   x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)] <- sample(names(best_sims_tab),
                                                                            size = sum(AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)),
                                                                            replace = TRUE, prob = best_sims_tab)
@@ -269,13 +294,13 @@ mic_uncensor_dens_right <- function(x,
 }
 
 mic_uncensor_dens_left <- function(x,
-                                    dist = rlnorm, sweep_n = 100, ...) {
+                                    dist = stats::rlnorm, sweep_n = 100, ...) {
   lvls <- table(droplevels(x))
-  left_t <- trough(x, direction = "left")
+  left_t <- find_trough(x, direction = "left")
   print(left_t)
   right <- lvls[AMR::as.mic(names(lvls)) >= right_t]
 
-  if (...length() == 0 & !identical(dist, rlnorm)) {
+  if (...length() == 0 & !identical(dist, stats::rlnorm)) {
     stop("Parameter grid must be provided if not using rlnorm distribution")
   }
 
