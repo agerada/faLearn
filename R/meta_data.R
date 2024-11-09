@@ -454,12 +454,29 @@ force_mic <- function(value,
 
 #' Essential agreement for MIC validation
 #'
+#' @description
+#' Essential agreement calculation for comparing two MIC vectors.
+#'
 #' @param x AMR::mic or coercible
 #' @param y AMR::mic or coercible
 #' @param coerce_mic convert to AMR::mic
 #' @param mode Categorical or numeric
 #' @return logical vector
 #' @export
+#'
+#' @details
+#' Essential agreement is a central concept in the comparison of two sets of MIC
+#' values. It is most often used when validating a new method against a gold
+#' standard. This function reliably performs essential agreement in line with
+#' ISO 20776-2:2021. The function can be used in two modes: categorical and
+#' numeric. In categorical mode, the function will use traditional MIC
+#' concentrations to determine the MIC (therefore it will use force_mic() to
+#' convert both x and y to a clean MIC -- see ?force_mic()). In numeric mode,
+#' the function will compare the ratio of the two MICs. In most cases,
+#' categorical mode provides more reliable results. Values within +/- 2
+#' dilutions are considered to be in essential agreement.
+#'
+#' @references https://www.iso.org/standard/79377.html
 #'
 #' @examples
 #' x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
@@ -474,11 +491,6 @@ essential_agreement <- function(x,
     stop("Both MIC inputs to essential_agreement must be AMR::mic.
 Convert using AMR::as.mic() with or without molMIC::force_mic().")
   }
-
-  # if (any(!AMR::is.mic(c(x, y)))) {
-  #   x <- AMR::as.mic(x)
-  #   y <- AMR::as.mic(y)
-  # }
 
   if (mode == "categorical") {
 
