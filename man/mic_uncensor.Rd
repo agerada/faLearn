@@ -4,7 +4,14 @@
 \alias{mic_uncensor}
 \title{Uncensor MICs}
 \usage{
-mic_uncensor(mic, method = "scale", scale = 2, ab = NULL, mo = NULL)
+mic_uncensor(
+  mic,
+  method = "scale",
+  scale = 2,
+  ab = NULL,
+  mo = NULL,
+  distros = NULL
+)
 }
 \arguments{
 \item{mic}{vector of MICs to uncensor; will be coerced to MIC using AMR::as.mic}
@@ -16,15 +23,43 @@ mic_uncensor(mic, method = "scale", scale = 2, ab = NULL, mo = NULL)
 \item{ab}{antibiotic name (for method = bootstrap)}
 
 \item{mo}{microorganism name (for method = bootstrap)}
+
+\item{distros}{dataframe of epidemiological distributions (only used,
+optionally, for method = bootstrap)}
 }
 \value{
 vector of MICs in AMR::mic format
 }
 \description{
+Uncensor MICs
+}
+\details{
 Censored MIC data is generally unsuitable for modelling without some
-conversion of censored data. The default behaviour is to halve MICs under the
-limit of detection (<=) and double MICs above the limit.
+conversion of censored data. The default behaviour (method = scale) is to
+halve MICs under the limit of detection (<=) and double MICs above the limit
+of detection (>). When used with method = simple, this function effectively
+just removes the censoring symbols, e.g., <=2 becomes 2, and >64 becomes 64.
+
+The bootstrap method is the more complex of the three available methods. It
+attempts to use a second (uncensored) MIC distribution to sample values in
+the censored range. These values are then used to populate and uncensor
+the MIC data provided as input (mic). The second (uncensored) MIC
+distribution is ideally provided from similar experimental conditions.
+Alternatively, epidemiological distributions can be used. These distributions
+should be provided as a dataframe to the distros argument. The format for
+this dataframe is inspired by the EUCAST epidemiological distributions, see:
+https://www.eucast.org/mic_and_zone_distributions_and_ecoffs. The dataframe
+should contain columns for antimicrobial (converted using AMR::as.ab),
+organism (converted using AMR::as.mo), and MIC concentrations. An example
+is provided in the 'ecoffs' dataset available with this pacakge. Currently,
+only Escherichia coli is available in this dataset. Each observation (row)
+consists of the frequency a particular MIC concentration is observed in the
+distribution. If such a dataframe is not provided to distros, the function
+will attempt to use 'ecoffs', but remains limited to E. coli.
 }
 \examples{
-mic_uncensor(c(">64.0", "<0.25", "8.0"))
+mic_uncensor(c(">64.0", "<0.25", "8.0"), method = "scale", scale = 2)
+}
+\references{
+https://www.eucast.org/mic_and_zone_distributions_and_ecoffs
 }

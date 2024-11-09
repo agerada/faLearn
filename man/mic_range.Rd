@@ -13,7 +13,8 @@ mic_range(start = 512, dilutions = Inf, min = 0.002, precise = FALSE)
 
 \item{min}{minimum (lowest) concentration}
 
-\item{precise}{force range to be high precision (not usually desired behaviour)}
+\item{precise}{force range to be high precision (not usually desired
+behaviour)}
 }
 \value{
 Vector of numeric concentrations

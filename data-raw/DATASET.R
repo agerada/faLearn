@@ -56,11 +56,17 @@ QC_table$MAXIMUM_TARGET <- ifelse(
 
 ## ECOFFS
 
-ecoffs <- readr::read_csv("data-raw/ecoffs.csv",
-                          col_types = readr::cols(.default = "c"))
+ecoffs_files <- list.files("data-raw/ecoffs", full.names = TRUE)
+ecoffs <- readr::read_csv(ecoffs_files,
+                          col_types = readr::cols(.default = "c"),
+                          id = "organism") %>%
+  dplyr::mutate(organism = basename(organism)) %>%
+  dplyr::mutate(organism = tools::file_path_sans_ext(organism))
 ecoffs <- ecoffs %>%
   dplyr::rename(antibiotic = ...1) %>%
   dplyr::mutate(antibiotic = AMR::as.ab(antibiotic))
+
+ecoffs$organism <- AMR::as.mo(ecoffs$organism)
 
 ## Example dataset
 

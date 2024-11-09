@@ -92,26 +92,53 @@ clean_raw_mic <- function(mic) {
 
 #' Uncensor MICs
 #'
+#'
 #' @param mic vector of MICs to uncensor; will be coerced to MIC using AMR::as.mic
 #' @param method method to uncensor MICs (scale, simple, or bootstrap)
 #' @param scale scalar to multiply or divide MIC by (for method = scale)
 #' @param ab antibiotic name (for method = bootstrap)
 #' @param mo microorganism name (for method = bootstrap)
+#' @param distros dataframe of epidemiological distributions (only used,
+#' optionally, for method = bootstrap)
 #'
 #' @return vector of MICs in AMR::mic format
-#' @description
+#'
+#' @details
 #' Censored MIC data is generally unsuitable for modelling without some
-#' conversion of censored data. The default behaviour is to halve MICs under the
-#'  limit of detection (<=) and double MICs above the limit.
+#' conversion of censored data. The default behaviour (method = scale) is to
+#' halve MICs under the limit of detection (<=) and double MICs above the limit
+#' of detection (>). When used with method = simple, this function effectively
+#' just removes the censoring symbols, e.g., <=2 becomes 2, and >64 becomes 64.
+#'
+#' The bootstrap method is the more complex of the three available methods. It
+#' attempts to use a second (uncensored) MIC distribution to sample values in
+#' the censored range. These values are then used to populate and uncensor
+#' the MIC data provided as input (mic). The second (uncensored) MIC
+#' distribution is ideally provided from similar experimental conditions.
+#' Alternatively, epidemiological distributions can be used. These distributions
+#' should be provided as a dataframe to the distros argument. The format for
+#' this dataframe is inspired by the EUCAST epidemiological distributions, see:
+#' https://www.eucast.org/mic_and_zone_distributions_and_ecoffs. The dataframe
+#' should contain columns for antimicrobial (converted using AMR::as.ab),
+#' organism (converted using AMR::as.mo), and MIC concentrations. An example
+#' is provided in the 'ecoffs' dataset available with this pacakge. Currently,
+#' only Escherichia coli is available in this dataset. Each observation (row)
+#' consists of the frequency a particular MIC concentration is observed in the
+#' distribution. If such a dataframe is not provided to distros, the function
+#' will attempt to use 'ecoffs', but remains limited to E. coli.
+#'
+#' @references https://www.eucast.org/mic_and_zone_distributions_and_ecoffs
+#'
 #' @export
 #'
 #' @examples
-#' mic_uncensor(c(">64.0", "<0.25", "8.0"))
+#' mic_uncensor(c(">64.0", "<0.25", "8.0"), method = "scale", scale = 2)
 mic_uncensor <- function(mic,
                          method = "scale",
                          scale = 2,
                          ab = NULL,
-                         mo = NULL) {
+                         mo = NULL,
+                         distros = NULL) {
   if (method == "scale") {
     return(mic_uncensor_scale(mic, scale))
   }
@@ -119,7 +146,12 @@ mic_uncensor <- function(mic,
     return(mic_uncensor_simple(mic))
   }
   if (method == "bootstrap") {
-    return(AMR::as.mic(mic_uncensor_bootstrap(mic, ab, mo)))
+    if (any(is.null(ab),
+            is.null(mo))) {
+      stop("For method = bootstrap, both ab and mo must be provided")
+    }
+    return(AMR::as.mic(mic_uncensor_bootstrap(mic = mic, ab = ab, mo = mo,
+                                              distros = distros)))
   }
   stop("Method must be scale, simple or bootstrap")
 }
@@ -137,7 +169,7 @@ mic_uncensor_scale <- function(mic, scale) {
   )
 }
 
-mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
+mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo, distros) {
   if (is.na(mic)) {
     return(AMR::NA_mic_)
   }
@@ -148,8 +180,20 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
 
   ab <- AMR::as.ab(ab)
   mic <- AMR::as.mic(mic)
+  if (!is.null(mo)) {
+    mo <- AMR::as.mo(mo)
+  }
 
-  ecoff_sub <- ecoffs[ecoffs['antibiotic'] == ab,]
+  if (is.null(distros)) {
+    message(
+    "No custom distributions provided to mic_uncensor using bootstrap method.
+Using built-in epidemiological distributions from EUCAST:
+https://www.eucast.org/mic_and_zone_distributions_and_ecoffs.
+Note: Only Escherichia coli is currently supported.")
+    distros <- ecoffs
+  }
+
+  ecoff_sub <- distros[distros['antibiotic'] == ab & distros['organism'] == mo,]
   ecoff_mics <- ecoff_sub[as.character(mic_range())]
 
   if (nrow(ecoff_sub) == 0) {
@@ -167,195 +211,15 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
   ecoff_mics <- sapply(ecoff_mics, as.numeric)
 
   if (sum(ecoff_mics) == 0) {
-    warning(ab, "appears to be below or above epidemiological distribution, performing a simple mic uncensor.")
+    warning(ab, "appears to be below or above epidemiological distribution,
+performing a simple mic uncensor.")
     return(mic_uncensor_simple(mic))
   }
 
   return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
 },
-USE.NAMES = F)
-
-#' Get the trough of an MIC distribution
-#'
-#' @param x A vector of MICs
-#' @param direction Which direction to look (right or left)
-#'
-#' @return The trough of the MIC distribution (an MIC value)
-#' @export
-#' @examples
-#' mics <- AMR::as.mic(c(0.25, 4, 8, 8, 0.25, 0.5, 0.125, 1, 1, 2))
-#' find_trough(mics, direction = "right") == AMR::as.mic(2)
-find_trough <- function(x, direction = "right") {
-  x <- AMR::as.mic(x)
-  diffs <- x |>
-    droplevels() |>
-    table() |>
-    diff()
-  # get first negative diff
-  if (direction == "right") {
-    return(names(diffs[max(which(diffs < 0))])[[1]] |>
-             AMR::as.mic())
-  }
-  if (direction == "left") {
-    return(names(diffs[min(which(diffs < 0))])[[1]] |>
-             AMR::as.mic())
-  }
-  stop("Direction must be right or left")
-
-    AMR::as.mic()
-}
-
-mic_uncensor_dens_right <- function(x,
-                              dist = stats::rnorm, sweep_n = 100, ...) {
-  if (!inherits(x, "mic")) {
-    x <- AMR::as.mic(x)
-  }
-
-  lvls <- table(droplevels(x))
-  print(lvls)
-  right_t <- lvls[length(lvls) - 4]
-  right_t <- find_trough(x, direction = "right")
-  print("right trough")
-  print(right_t)
-  right <- lvls[AMR::as.mic(names(lvls)) >= right_t]
-  print("stuff to the right")
-  print(right)
-
-  max_mic <- max(x)
-  print("max mic")
-  print(max_mic)
-
-  x_log <- log2(x)
-
-  if (...length() == 0 & !identical(dist, stats::rnorm)) {
-    stop("Parameter grid must be provided if not using rnorm distribution")
-  }
-
-  if (...length() == 0) {
-    grid <- expand.grid(
-      mean = seq(-8, 10, length.out = sweep_n),
-      sd = seq(0.1, 10, length.out = sweep_n)
-    )
-  } else{
-    grid <- expand.grid(...)
-  }
-
-  samples <- apply(grid, 1, \(x) {
-    sort(
-      do.call(
-        dist,
-        c(list(n = sum(right)), as.list(x))
-      )
-    )
-  }, simplify = FALSE)
-
-  # raise all samples to power 2
-  samples <- lapply(samples, function(x) 2^x)
-
-  print(samples)
-  max_mic <- max(x)
-
-  compare_against_these <- x[mic_uncensor(x) <= max_mic & mic_uncensor(x) >= right_t] |>
-    sort()
-  print('compare')
-  print(compare_against_these)
-
-  rmse <- vector("numeric", length = length(samples))
-  for (i in seq_along(samples)) {
-    sim <- samples[[i]]
-    sim <- sim[1:length(compare_against_these)]
-    rmse[[i]] <- sqrt(mean((sim - compare_against_these)^2))
-  }
-
-  best <- which.min(rmse)
-  best_params <- grid[best, ]
-  best_sims <- samples[[best]]
-  best_sims <- AMR::as.mic(force_mic(best_sims))
-  best_sims <- best_sims[best_sims > max_mic]
-  print(max_mic)
-  print(best_sims)
-  # stop()
-  best_sims <- sample(best_sims)
-
-  best_sims_tab <- table(force_mic(best_sims))
-  print(best_sims_tab)
-  if (length(best_sims) == 0) {
-    stop("Unable to fit a bootstrap to the data. Try a different distribution
-         or change/extend the parameter sweep.")
-  }
-
-  x_mod <- x
-  print(max_mic)
-  print(x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)])
-  x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)] <- sample(names(best_sims_tab),
-                                                                           size = sum(AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)),
-                                                                           replace = TRUE, prob = best_sims_tab)
-  x_mod
-}
-
-mic_uncensor_dens_left <- function(x,
-                                    dist = stats::rlnorm, sweep_n = 100, ...) {
-  lvls <- table(droplevels(x))
-  left_t <- find_trough(x, direction = "left")
-  print(left_t)
-  right <- lvls[AMR::as.mic(names(lvls)) >= right_t]
-
-  if (...length() == 0 & !identical(dist, stats::rlnorm)) {
-    stop("Parameter grid must be provided if not using rlnorm distribution")
-  }
-
-  if (...length() == 0) {
-    grid <- expand.grid(
-      meanlog = seq(0.1, 10, length.out = sweep_n),
-      sdlog = seq(0.1, 10, length.out = sweep_n)
-    )
-  } else{
-    grid <- expand.grid(...)
-  }
-
-  samples <- apply(grid, 1, \(x) {
-    sort(
-      do.call(
-        dist,
-        c(list(n = sum(right)), as.list(x))
-      )
-    )
-  }, simplify = FALSE)
-
-  max_mic <- max(x)
-
-  compare_against_these <- x[mic_uncensor(x) <= max_mic & mic_uncensor(x) >= right_t] |>
-    sort()
-  print('compare')
-  print(compare_against_these)
-
-  rmse <- vector("numeric", length = length(samples))
-  for (i in seq_along(samples)) {
-    sim <- samples[[i]]
-    sim <- sim[1:length(compare_against_these)]
-    rmse[[i]] <- sqrt(mean((sim - compare_against_these)^2))
-  }
-
-  best <- which.min(rmse)
-  best_params <- grid[best, ]
-  best_sims <- samples[[best]]
-  best_sims <- AMR::as.mic(force_mic(best_sims))
-  best_sims <- best_sims[best_sims >= max_mic]
-  best_sims <- sample(best_sims)
-
-  best_sims_tab <- table(force_mic(best_sims))
-  print(best_sims_tab)
-  if (length(best_sims) == 0) {
-    stop("Unable to fit a bootstrap to the data. Try a different distribution
-         or change/extend the parameter sweep.")
-  }
-
-  x_mod <- x
-  x_mod[AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)] <- sample(names(best_sims_tab),
-                                                                           size = sum(AMR::as.mic(mic_uncensor(x_mod)) > AMR::as.mic(max_mic)),
-                                                                           replace = TRUE, prob = best_sims_tab)
-  x_mod
-}
+USE.NAMES = F,
+vectorize.args = c("mic", "ab", "mo"))
 
 censor_rules <- list("B_ESCHR_COLI" = list(
   "AMK" = list(min = 2, max = 32),
@@ -410,7 +274,8 @@ mic_censor <- Vectorize(
 #' @param start starting (highest) concentration
 #' @param dilutions number of dilutions
 #' @param min minimum (lowest) concentration
-#' @param precise force range to be high precision (not usually desired behaviour)
+#' @param precise force range to be high precision (not usually desired
+#' behaviour)
 #'
 #' @return Vector of numeric concentrations
 #' @export
@@ -469,6 +334,9 @@ mic_range <- function(start = 512,
 
 #' Force MIC-like into MIC-compatible format
 #'
+#' @description
+#' Convert a value that is "almost" an MIC into a valid MIC value.
+#'
 #' @param value vector of MIC-like values (numeric or character)
 #' @param levels_from_AMR conform to AMR::as.mic levels
 #' @param max_conc maximum concentration to force to
@@ -476,6 +344,19 @@ mic_range <- function(start = 512,
 #' @param method method to use when forcing MICs (closest or round_up)
 #' @param prefer where value is in between MIC (e.g., 24mg/L) chose the higher
 #' MIC ("max") or lower MIC ("min"); only applies to method = "closest"
+#'
+#' @details
+#' Some experimental or analytical conditions measure MIC (or surrogate) in a
+#' way that does not fully conform to traditional MIC levels
+#' (i.e., concentrations). This function allows these values to be coerced into
+#' an MIC value that is compatible with the AMR::mic class. When using method =
+#' "closest", the function will choose the closest MIC value to the input value
+#' (e.g., 2.45 will be coerced to 2). When using method = "round up", the
+#' function will round up to the next highest MIC value (e.g., 2.45 will be
+#' coerced to 4). "Round up" is technically the correct approach if the input
+#' value was generated from an experiment that censored between concentrations
+#' (e.g., broth or agar dilution). However, "closest" may be more appropriate in
+#' some cases.
 #'
 #' @return AMR::as.mic compatible character
 #' @export
