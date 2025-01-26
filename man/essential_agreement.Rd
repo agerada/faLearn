@@ -19,11 +19,26 @@ essential_agreement(x, y, coerce_mic = TRUE, mode = "categorical")
 logical vector
 }
 \description{
-Essential agreement for MIC validation
+Essential agreement calculation for comparing two MIC vectors.
+}
+\details{
+Essential agreement is a central concept in the comparison of two sets of MIC
+values. It is most often used when validating a new method against a gold
+standard. This function reliably performs essential agreement in line with
+ISO 20776-2:2021. The function can be used in two modes: categorical and
+numeric. In categorical mode, the function will use traditional MIC
+concentrations to determine the MIC (therefore it will use force_mic() to
+convert both x and y to a clean MIC -- see ?force_mic()). In numeric mode,
+the function will compare the ratio of the two MICs. In most cases,
+categorical mode provides more reliable results. Values within +/- 2
+dilutions are considered to be in essential agreement.
 }
 \examples{
 x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
 y <- AMR::as.mic(c("<0.25", "2", "16", "64"))
 essential_agreement(x, y)
 # TRUE FALSE FALSE TRUE
+}
+\references{
+https://www.iso.org/standard/79377.html
 }
