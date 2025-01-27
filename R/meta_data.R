@@ -221,19 +221,6 @@ performing a simple mic uncensor.")
 USE.NAMES = F,
 vectorize.args = c("mic", "ab", "mo"))
 
-censor_rules <- list("B_ESCHR_COLI" = list(
-  "AMK" = list(min = 2, max = 32),
-  "CHL" = list(min = 4, max = 64),
-  "GEN" = list(min = 1, max = 16),
-  "CIP" = list(min = 0.015, max = 4),
-  "MEM" = list(min = 0.016, max = 16),
-  "AMX" = list(min = 2, max = 64),
-  "AMC" = list(min = 2, max = 64),
-  "FEP" = list(min = 0.5, max = 64),
-  "CAZ" = list(min = 1, max = 128),
-  "TGC" = list(min = 0.25, max = 1)
-))
-
 #' Censor MIC values
 #'
 #' @param mic MIC measurements
@@ -243,31 +230,33 @@ censor_rules <- list("B_ESCHR_COLI" = list(
 #'
 #' @return cencored MIC values
 #' @export
-mic_censor <- Vectorize(
-  function(mic, ab, mo, rules = NULL) {
-    if (is.null(rules)) {
-      message("No censor rules provided, using default rules")
-      rules <- censor_rules
-    }
-    mic <- AMR::as.mic(mic)
-    min_thresh <- censor_rules[[mo]][[ab]][["min"]]
-    min_thresh <- ifelse(is.null(min_thresh),
-                         -Inf,
-                         min_thresh)
-    max_thresh <- censor_rules[[mo]][[ab]][["max"]]
-    max_thresh <- ifelse(is.null(max_thresh),
-                         Inf,
-                         max_thresh)
-    if (mic > max_thresh) {
-      return(paste0(">", max_thresh))
-    }
-    if (mic < min_thresh) {
-      return(paste0("<=", min_thresh))
-    }
-    return(mic)
-  },
-  USE.NAMES = FALSE
-)
+mic_censor <- function(mic, ab, mo, rules) {
+  mic_censor_vectorize <- Vectorize(
+    function(mic, ab, mo, rules) {
+      mic <- AMR::as.mic(mic)
+      min_thresh <- rules[[mo]][[ab]][["min"]]
+      min_thresh <- ifelse(is.null(min_thresh),
+                           -Inf,
+                           min_thresh)
+      max_thresh <- rules[[mo]][[ab]][["max"]]
+      max_thresh <- ifelse(is.null(max_thresh),
+                           Inf,
+                           max_thresh)
+      if (mic > max_thresh) {
+        return(paste0(">", max_thresh))
+      }
+      if (mic < min_thresh) {
+        return(paste0("<=", min_thresh))
+      }
+      return(mic)
+    },
+    USE.NAMES = FALSE,
+    vectorize.args = c("mic", "ab", "mo")
+  )
+
+  AMR::as.mic(mic_censor_vectorize(mic, ab, mo, rules))
+}
+
 
 #' Generate dilution series
 #'
