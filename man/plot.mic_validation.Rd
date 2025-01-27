@@ -29,6 +29,29 @@ represented in the data, based on a series of dilutions generated using mic_rang
 
 \item{...}{additional arguments}
 }
+\value{
+ggplot object
+}
 \description{
 Plot MIC validation results
+}
+\examples{
+gold_standard <- c("<0.25", "8", "64", ">64")
+test <- c("<0.25", "2", "16", "64")
+val <- compare_mic(gold_standard, test)
+plot(val)
+
+# works with validation that includes categorical agreement
+# categorical agreement is ignored
+ab <- c("AMK", "AMK", "AMK", "AMK")
+mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
+val <- compare_mic(gold_standard, test, ab, mo)
+plot(val)
+
+# if the validation contains multiple antibiotics, i.e.,
+ab <- c("CIP", "CIP", "AMK", "AMK")
+# the following will plot all antibiotics in a single plot (pooled results)
+plot(val)
+# use the faceting arguments to split the plot by antibiotic
+plot(val, facet_wrap_ncol = 2)
 }
