@@ -223,13 +223,42 @@ vectorize.args = c("mic", "ab", "mo"))
 
 #' Censor MIC values
 #'
-#' @param mic MIC measurements
-#' @param ab antibiotic name
-#' @param mo microorganism name
-#' @param rules censor rules
+#' @param mic MIC (coercible to AMR::as.mic)
+#' @param ab antibiotic name (coercible to AMR::as.ab)
+#' @param mo microorganism name (coercible to AMR::as.mo)
+#' @param rules censor rules - named list of pathogen (in AMR::as.mo code) to
+#' antibiotic (in AMR::as.ab code) to censoring rules. The censoring rules
+#' should provide a min or max value to censor MICs to. See example for more.
 #'
-#' @return cencored MIC values
+#' @return censored MIC values (S3 mic class)
+#'
+#' @description
+#' MIC datasets often arise from different laboratories or experimental
+#' conditions. In practice, this means that there can be different levels of
+#' censoring (<= and >) within the data. This function can be used to harmonise
+#' the dataset to a single level of censoring. The function requires a set of
+#' rules that specify the censoring levels (see example).
+#'
 #' @export
+#'
+#' @examples
+#' example_rules <- list("B_ESCHR_COLI" = list(
+#'   "AMK" = list(min = 2, max = 32),
+#'   "CHL" = list(min = 4, max = 64),
+#'   "GEN" = list(min = 1, max = 16),
+#'   "CIP" = list(min = 0.015, max = 4),
+#'   "MEM" = list(min = 0.016, max = 16),
+#'   "AMX" = list(min = 2, max = 64),
+#'   "AMC" = list(min = 2, max = 64),
+#'   "FEP" = list(min = 0.5, max = 64),
+#'   "CAZ" = list(min = 1, max = 128),
+#'   "TGC" = list(min = 0.25, max = 1)
+#'   ))
+#'
+#' mic_censor(AMR::as.mic(512),
+#'            "AMK",
+#'            "B_ESCHR_COLI",
+#'            example_rules) == AMR::as.mic(">32")
 mic_censor <- function(mic, ab, mo, rules) {
   mic_censor_vectorize <- Vectorize(
     function(mic, ab, mo, rules) {
