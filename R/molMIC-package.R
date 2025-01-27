@@ -1,5 +1,5 @@
 ## usethis namespace: start
-#' @useDynLib molMIC, .registration = TRUE
+#' @useDynLib MIC, .registration = TRUE
 ## usethis namespace: end
 NULL
 

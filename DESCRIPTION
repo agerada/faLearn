@@ -1,5 +1,5 @@
-Package: molMIC
-Title: molecularMIC: Perform MIC Predictions using Assembled Genomes
+Package: MIC
+Title: Antimicrobial minimium inhibitory concentration analysis
 Version: 0.10.0
 Authors@R: 
     person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),

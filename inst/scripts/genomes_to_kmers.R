@@ -45,7 +45,7 @@ dirs <- args$args
 input_dir <- dirs[[1]]
 output_dir <- dirs[[2]]
 
-molMIC::genomes_to_kmer_dataset(input_dir = input_dir,
+MIC::genomes_to_kmer_dataset(input_dir = input_dir,
                                 output_dir = output_dir,
                                 cores = opt$cores,
                                 kmers = opt$kmers,

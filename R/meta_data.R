@@ -489,7 +489,7 @@ essential_agreement <- function(x,
                                 mode = "categorical") {
   if (any(!AMR::is.mic(c(x, y))) & !coerce_mic) {
     stop("Both MIC inputs to essential_agreement must be AMR::mic.
-Convert using AMR::as.mic() with or without molMIC::force_mic().")
+Convert using AMR::as.mic() with or without MIC::force_mic().")
   }
 
   if (mode == "categorical") {

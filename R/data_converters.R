@@ -236,7 +236,7 @@ replace_multiple_slashes <- function(path) {
 #' files without a train-test split. In this case, all the files will be
 #' classed as 'train', and there will be no 'test' data. This is useful if
 #' one wants to perform cross-validation using xgboost::xgb.cv() or
-#' molMIC::xgb.cv.lowmem(). It is also possible to combine all data into train
+#' MIC::xgb.cv.lowmem(). It is also possible to combine all data into train
 #' and then perform splitting after loading into an xgboost::DMatrix, using
 #' xgboost::slice().
 #'

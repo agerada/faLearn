@@ -158,7 +158,7 @@ pull_PATRIC_genomes <- function(database = patric_ftp_path,
 
 #' Tidy PATRIC data
 #'
-#' @param x PATRIC database loaded using molMIC::load_patric_db
+#' @param x PATRIC database loaded using MIC::load_patric_db
 #' @param prefer_more_resistant High MICs, narrow zones, or resistant phenotypes
 #' will be preferred where multiple reported for the same isolate
 #' @param as_ab convert antibiotics to AMR::ab class (column names are antibiotic
@@ -175,7 +175,7 @@ tidy_patric_meta_data <- function(x,
                                   as_ab = TRUE,
                                   filter_abx = NULL) {
   if (!inherits(x, "patric_db")) {
-    stop("Please load data using molMIC::load_patric_db()")
+    stop("Please load data using MIC::load_patric_db()")
   }
 
   if (isTRUE(as_ab) | !is.null(filter_abx)) {
