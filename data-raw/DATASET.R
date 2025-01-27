@@ -1,4 +1,8 @@
-## code to prepare qc_targets dataset goes here
+## Code to prepare qc_targets dataset goes here
+
+## The source of this dataset is the WHONET QC Ranges and Targets available from
+## the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+## https://github.com/AClark-WHONET/AMRIE
 
 whonet_qc_ranges <- readr::read_tsv(
   "https://raw.githubusercontent.com/AClark-WHONET/AMRIE/main/Interpretation%20Engine/Resources/QC_Ranges.txt",
@@ -70,18 +74,15 @@ ecoffs$organism <- AMR::as.mo(ecoffs$organism)
 
 ## Example dataset
 
-example_raw <- readr::read_tsv("data-raw/example_raw.txt",
+example_raw <- readr::read_tsv("data-raw/raw_mics.txt",
                                 col_types = readr::cols(.default = "c")) %>%
   dplyr::mutate(genome_name = AMR::mo_name(AMR_org)) %>%
   dplyr::relocate(genome_id,
-                  date_collected,
                   AMR_org,
                   antibiotic,
                   measurement,
                   measurement_unit,
                   laboratory_typing_method,
-                  resistant_phenotype,
-                  lca_class,
                   dplyr::starts_with("POS_QC"),
                   dplyr::starts_with("QC"))
 
@@ -114,16 +115,29 @@ example_mics <- example_raw %>%
   dplyr::filter(qc_growth != "F") %>%
   dplyr::select(!dplyr::starts_with("QC_") & !dplyr::starts_with("POS_QC_"))
 
+example_mic_disks <- example_mics %>%
+  dplyr::mutate(AMR_org = AMR::as.mo(AMR_org)) %>%
+  tidyr::pivot_wider(names_from = antibiotic, values_from = measurement) %>%
+  dplyr::mutate(dplyr::across(AMR::is.mic, AMR::as.sir, .names = "{col}_sir"))
+
+example_mic_disks <- example_mic_disks %>%
+  dplyr::mutate(chloramphenicol_sir = AMR::as.sir(chloramphenicol, ab = "chloramphenicol", mo = AMR_org, breakpoint_type = "ECOFF"))
+
+example_mics <- example_mic_disks %>%
+  dplyr::select(!dplyr::where(AMR::is.sir)) %>%
+  tidyr::pivot_longer(cols = dplyr::where(AMR::is.mic), names_to = "antibiotic", values_to = "measurement")
+
+example_disks <- example_mic_disks %>%
+  dplyr::select(!dplyr::where(AMR::is.mic)) %>%
+  tidyr::pivot_longer(cols = dplyr::where(AMR::is.sir), names_to = "antibiotic", values_to = "resistant_phenotype") %>%
+  dplyr::mutate(antibiotic = stringr::str_remove(antibiotic, "_sir")) %>%
+  dplyr::select(genome_id, antibiotic, resistant_phenotype)
+
+example_mics <- example_mics %>%
+  dplyr::left_join(example_disks, by = c("genome_id", "antibiotic"))
+
 example_mics <- example_mics %>%
   as_patric_db()
 
-example_discs <- example_raw %>%
-  dplyr::filter(laboratory_typing_method == "Disk diffusion") %>%
-  dplyr::mutate(measurement = AMR::as.disk(measurement)) %>%
-  dplyr::select(!dplyr::starts_with("QC_") & !dplyr::starts_with("POS_QC_"))
-
-example_discs <- example_discs %>%
-  as_patric_db()
-
 usethis::use_data(QC_table, ecoffs,
-  example_mics, example_discs, overwrite = TRUE, internal = TRUE)
+  example_mics, overwrite = TRUE, internal = TRUE)

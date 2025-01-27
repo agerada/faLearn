@@ -12,5 +12,11 @@
 \item{...}{further optional parameters}
 }
 \description{
-Summary of MIC validation results
+Summarise the results of an MIC validation generated using compare_mic().
+}
+\examples{
+gold_standard <- c("<0.25", "8", "64", ">64")
+test <- c("<0.25", "2", "16", "64")
+val <- compare_mic(gold_standard, test)
+summary(val)
 }

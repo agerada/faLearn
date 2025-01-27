@@ -948,6 +948,15 @@ plot.mic_validation <- function(x,
 #' @param ... further optional parameters
 #'
 #' @export
+#'
+#' @description
+#' Summarise the results of an MIC validation generated using compare_mic().
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' summary(val)
 summary.mic_validation <- function(object,
                                    ...) {
   if (!"ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
@@ -997,6 +1006,19 @@ summary.mic_validation <- function(object,
 #' @param guideline Guideline to use (EUCAST or CLSI)
 #' @param year Guideline year (version)
 #' @return logical vector
+#'
+#' @description
+#' Check whether MIC values are within acceptable range for
+#' quality control (QC). Every MIC experiment should include a control strain
+#' with a known MIC. The results of the experiment are only valid if the control
+#' strain MIC falls within the acceptable range. This function checks whether
+#' an MIC result is within the acceptable range given: 1) a control strain
+#' (usually identified as an ATCC or NCTC number), 2) an antibiotic name, and 3)
+#' a guideline (EUCAST or CLSI). The acceptable range is defined by 'QC_table',
+#' which is a dataset which is loaded with this package.
+#'
+#' The source of the QC values is
+#'
 #' @export
 #'
 #' @examples
@@ -1025,7 +1047,11 @@ qc_in_range <- Vectorize(
     if (!startsWith(strain, "atcc")) {
       strain <- paste0("atcc", strain)
     }
-    qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
+    qc_subset <- QC_table[QC_table$STRAIN == strain &
+                            QC_table$ANTIBIOTIC == ab &
+                            QC_table$GUIDELINE == guideline &
+                            QC_table$YEAR == year &
+                            QC_table$METHOD == "MIC", ]
 
     if (nrow(qc_subset) == 0) {
       # no QC info in table
