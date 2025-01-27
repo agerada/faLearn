@@ -11,6 +11,15 @@
 #' @return vector containing MICs, or dataframe of IDs and MICs
 #' @export
 #'
+#' @description
+#' This function helps extract MICs from a database of results. It is compatible
+#' with the PATRIC meta data format when used on a tidy_patric_db object,
+#' created using tidy_patric_db().
+#'
+#' If more than one MIC is present for a particular observation, the function
+#' can return the higher MIC by setting prefer_high_mic = TRUE. If
+#' prefer_high_mic = FALSE, the lower MIC will be returned.
+#'
 #' @examples
 #' df <- data.frame(genome_id = c("a_12", "b_42", "x_21", "x_21", "r_75"),
 #'                  gentamicin = c(0.25, 0.125, 32.0, 16.0, "<0.0125"))
@@ -64,17 +73,6 @@ get_mic <- function(x,
   }
 }
 
-#' Calculate sample weights
-#'
-#' @param x Vector of discrete variables
-#'
-#' @return sample weights
-#' @export
-sample_weights <- function(x) {
-  freq_table <- table(x)
-  as.vector(1 / freq_table[as.character(x)])
-}
-
 #' Clean up raw MIC for use as a feature
 #'
 #' @param mic character containing MIC/s
@@ -94,26 +92,53 @@ clean_raw_mic <- function(mic) {
 
 #' Uncensor MICs
 #'
+#'
 #' @param mic vector of MICs to uncensor; will be coerced to MIC using AMR::as.mic
 #' @param method method to uncensor MICs (scale, simple, or bootstrap)
 #' @param scale scalar to multiply or divide MIC by (for method = scale)
 #' @param ab antibiotic name (for method = bootstrap)
 #' @param mo microorganism name (for method = bootstrap)
+#' @param distros dataframe of epidemiological distributions (only used,
+#' optionally, for method = bootstrap)
 #'
 #' @return vector of MICs in AMR::mic format
-#' @description
+#'
+#' @details
 #' Censored MIC data is generally unsuitable for modelling without some
-#' conversion of censored data. This function halves MICs under the limit of
-#' detection (<=) and doubles MICs above the limit.
+#' conversion of censored data. The default behaviour (method = scale) is to
+#' halve MICs under the limit of detection (<=) and double MICs above the limit
+#' of detection (>). When used with method = simple, this function effectively
+#' just removes the censoring symbols, e.g., <=2 becomes 2, and >64 becomes 64.
+#'
+#' The bootstrap method is the more complex of the three available methods. It
+#' attempts to use a second (uncensored) MIC distribution to sample values in
+#' the censored range. These values are then used to populate and uncensor
+#' the MIC data provided as input (mic). The second (uncensored) MIC
+#' distribution is ideally provided from similar experimental conditions.
+#' Alternatively, epidemiological distributions can be used. These distributions
+#' should be provided as a dataframe to the distros argument. The format for
+#' this dataframe is inspired by the EUCAST epidemiological distributions, see:
+#' https://www.eucast.org/mic_and_zone_distributions_and_ecoffs. The dataframe
+#' should contain columns for antimicrobial (converted using AMR::as.ab),
+#' organism (converted using AMR::as.mo), and MIC concentrations. An example
+#' is provided in the 'ecoffs' dataset available with this pacakge. Currently,
+#' only Escherichia coli is available in this dataset. Each observation (row)
+#' consists of the frequency a particular MIC concentration is observed in the
+#' distribution. If such a dataframe is not provided to distros, the function
+#' will attempt to use 'ecoffs', but remains limited to E. coli.
+#'
+#' @references https://www.eucast.org/mic_and_zone_distributions_and_ecoffs
+#'
 #' @export
 #'
 #' @examples
-#' mic_uncensor(c(">64.0", "<0.25", "8.0"))
+#' mic_uncensor(c(">64.0", "<0.25", "8.0"), method = "scale", scale = 2)
 mic_uncensor <- function(mic,
                          method = "scale",
                          scale = 2,
                          ab = NULL,
-                         mo = NULL) {
+                         mo = NULL,
+                         distros = NULL) {
   if (method == "scale") {
     return(mic_uncensor_scale(mic, scale))
   }
@@ -121,7 +146,12 @@ mic_uncensor <- function(mic,
     return(mic_uncensor_simple(mic))
   }
   if (method == "bootstrap") {
-    return(AMR::as.mic(mic_uncensor_bootstrap(mic, ab, mo)))
+    if (any(is.null(ab),
+            is.null(mo))) {
+      stop("For method = bootstrap, both ab and mo must be provided")
+    }
+    return(AMR::as.mic(mic_uncensor_bootstrap(mic = mic, ab = ab, mo = mo,
+                                              distros = distros)))
   }
   stop("Method must be scale, simple or bootstrap")
 }
@@ -139,7 +169,7 @@ mic_uncensor_scale <- function(mic, scale) {
   )
 }
 
-mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
+mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo, distros) {
   if (is.na(mic)) {
     return(AMR::NA_mic_)
   }
@@ -150,8 +180,20 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
 
   ab <- AMR::as.ab(ab)
   mic <- AMR::as.mic(mic)
+  if (!is.null(mo)) {
+    mo <- AMR::as.mo(mo)
+  }
 
-  ecoff_sub <- ecoffs[ecoffs['antibiotic'] == ab,]
+  if (is.null(distros)) {
+    message(
+    "No custom distributions provided to mic_uncensor using bootstrap method.
+Using built-in epidemiological distributions from EUCAST:
+https://www.eucast.org/mic_and_zone_distributions_and_ecoffs.
+Note: Only Escherichia coli is currently supported.")
+    distros <- ecoffs
+  }
+
+  ecoff_sub <- distros[distros['antibiotic'] == ab & distros['organism'] == mo,]
   ecoff_mics <- ecoff_sub[as.character(mic_range())]
 
   if (nrow(ecoff_sub) == 0) {
@@ -169,68 +211,88 @@ mic_uncensor_bootstrap <- Vectorize(function(mic, ab, mo = NULL) {
   ecoff_mics <- sapply(ecoff_mics, as.numeric)
 
   if (sum(ecoff_mics) == 0) {
-    warning(ab, "appears to be below or above epidemiological distribution, performing a simple mic uncensor.")
+    warning(ab, "appears to be below or above epidemiological distribution,
+performing a simple mic uncensor.")
     return(mic_uncensor_simple(mic))
   }
 
   return(AMR::as.mic(sample(names(ecoff_mics), size = 1, replace=T, prob = ecoff_mics)))
 },
-USE.NAMES = F)
-
-censor_rules <- list("B_ESCHR_COLI" = list(
-  "AMK" = list(min = 2, max = 32),
-  "CHL" = list(min = 4, max = 64),
-  "GEN" = list(min = 1, max = 16),
-  "CIP" = list(min = 0.015, max = 4),
-  "MEM" = list(min = 0.016, max = 16),
-  "AMX" = list(min = 2, max = 64),
-  "AMC" = list(min = 2, max = 64),
-  "FEP" = list(min = 0.5, max = 64),
-  "CAZ" = list(min = 1, max = 128),
-  "TGC" = list(min = 0.25, max = 1)
-))
+USE.NAMES = F,
+vectorize.args = c("mic", "ab", "mo"))
 
 #' Censor MIC values
 #'
-#' @param mic MIC measurements
-#' @param ab antibiotic name
-#' @param mo microorganism name
-#' @param rules censor rules
+#' @param mic MIC (coercible to AMR::as.mic)
+#' @param ab antibiotic name (coercible to AMR::as.ab)
+#' @param mo microorganism name (coercible to AMR::as.mo)
+#' @param rules censor rules - named list of pathogen (in AMR::as.mo code) to
+#' antibiotic (in AMR::as.ab code) to censoring rules. The censoring rules
+#' should provide a min or max value to censor MICs to. See example for more.
 #'
-#' @return cencored MIC values
+#' @return censored MIC values (S3 mic class)
+#'
+#' @description
+#' MIC datasets often arise from different laboratories or experimental
+#' conditions. In practice, this means that there can be different levels of
+#' censoring (<= and >) within the data. This function can be used to harmonise
+#' the dataset to a single level of censoring. The function requires a set of
+#' rules that specify the censoring levels (see example).
+#'
 #' @export
-mic_censor <- Vectorize(
-  function(mic, ab, mo, rules = NULL) {
-    if (is.null(rules)) {
-      message("No censor rules provided, using default rules")
-      rules <- censor_rules
-    }
-    mic <- AMR::as.mic(mic)
-    min_thresh <- censor_rules[[mo]][[ab]][["min"]]
-    min_thresh <- ifelse(is.null(min_thresh),
-                         -Inf,
-                         min_thresh)
-    max_thresh <- censor_rules[[mo]][[ab]][["max"]]
-    max_thresh <- ifelse(is.null(max_thresh),
-                         Inf,
-                         max_thresh)
-    if (mic > max_thresh) {
-      return(paste0(">", max_thresh))
-    }
-    if (mic < min_thresh) {
-      return(paste0("<=", min_thresh))
-    }
-    return(mic)
-  },
-  USE.NAMES = FALSE
-)
+#'
+#' @examples
+#' example_rules <- list("B_ESCHR_COLI" = list(
+#'   "AMK" = list(min = 2, max = 32),
+#'   "CHL" = list(min = 4, max = 64),
+#'   "GEN" = list(min = 1, max = 16),
+#'   "CIP" = list(min = 0.015, max = 4),
+#'   "MEM" = list(min = 0.016, max = 16),
+#'   "AMX" = list(min = 2, max = 64),
+#'   "AMC" = list(min = 2, max = 64),
+#'   "FEP" = list(min = 0.5, max = 64),
+#'   "CAZ" = list(min = 1, max = 128),
+#'   "TGC" = list(min = 0.25, max = 1)
+#'   ))
+#'
+#' mic_censor(AMR::as.mic(512),
+#'            "AMK",
+#'            "B_ESCHR_COLI",
+#'            example_rules) == AMR::as.mic(">32")
+mic_censor <- function(mic, ab, mo, rules) {
+  mic_censor_vectorize <- Vectorize(
+    function(mic, ab, mo, rules) {
+      mic <- AMR::as.mic(mic)
+      min_thresh <- rules[[mo]][[ab]][["min"]]
+      min_thresh <- ifelse(is.null(min_thresh),
+                           -Inf,
+                           min_thresh)
+      max_thresh <- rules[[mo]][[ab]][["max"]]
+      max_thresh <- ifelse(is.null(max_thresh),
+                           Inf,
+                           max_thresh)
+      if (mic > max_thresh) {
+        return(paste0(">", max_thresh))
+      }
+      if (mic < min_thresh) {
+        return(paste0("<=", min_thresh))
+      }
+      return(mic)
+    },
+    USE.NAMES = FALSE,
+    vectorize.args = c("mic", "ab", "mo")
+  )
+
+  AMR::as.mic(mic_censor_vectorize(mic, ab, mo, rules))
+}
 
 #' Generate dilution series
 #'
 #' @param start starting (highest) concentration
 #' @param dilutions number of dilutions
 #' @param min minimum (lowest) concentration
-#' @param precise force range to be high precision (not usually desired behaviour)
+#' @param precise force range to be high precision (not usually desired
+#' behaviour)
 #'
 #' @return Vector of numeric concentrations
 #' @export
@@ -289,6 +351,9 @@ mic_range <- function(start = 512,
 
 #' Force MIC-like into MIC-compatible format
 #'
+#' @description
+#' Convert a value that is "almost" an MIC into a valid MIC value.
+#'
 #' @param value vector of MIC-like values (numeric or character)
 #' @param levels_from_AMR conform to AMR::as.mic levels
 #' @param max_conc maximum concentration to force to
@@ -296,6 +361,19 @@ mic_range <- function(start = 512,
 #' @param method method to use when forcing MICs (closest or round_up)
 #' @param prefer where value is in between MIC (e.g., 24mg/L) chose the higher
 #' MIC ("max") or lower MIC ("min"); only applies to method = "closest"
+#'
+#' @details
+#' Some experimental or analytical conditions measure MIC (or surrogate) in a
+#' way that does not fully conform to traditional MIC levels
+#' (i.e., concentrations). This function allows these values to be coerced into
+#' an MIC value that is compatible with the AMR::mic class. When using method =
+#' "closest", the function will choose the closest MIC value to the input value
+#' (e.g., 2.45 will be coerced to 2). When using method = "round up", the
+#' function will round up to the next highest MIC value (e.g., 2.45 will be
+#' coerced to 4). "Round up" is technically the correct approach if the input
+#' value was generated from an experiment that censored between concentrations
+#' (e.g., broth or agar dilution). However, "closest" may be more appropriate in
+#' some cases.
 #'
 #' @return AMR::as.mic compatible character
 #' @export
@@ -393,12 +471,29 @@ force_mic <- function(value,
 
 #' Essential agreement for MIC validation
 #'
+#' @description
+#' Essential agreement calculation for comparing two MIC vectors.
+#'
 #' @param x AMR::mic or coercible
 #' @param y AMR::mic or coercible
 #' @param coerce_mic convert to AMR::mic
 #' @param mode Categorical or numeric
 #' @return logical vector
 #' @export
+#'
+#' @details
+#' Essential agreement is a central concept in the comparison of two sets of MIC
+#' values. It is most often used when validating a new method against a gold
+#' standard. This function reliably performs essential agreement in line with
+#' ISO 20776-2:2021. The function can be used in two modes: categorical and
+#' numeric. In categorical mode, the function will use traditional MIC
+#' concentrations to determine the MIC (therefore it will use force_mic() to
+#' convert both x and y to a clean MIC -- see ?force_mic()). In numeric mode,
+#' the function will compare the ratio of the two MICs. In most cases,
+#' categorical mode provides more reliable results. Values within +/- 2
+#' dilutions are considered to be in essential agreement.
+#'
+#' @references https://www.iso.org/standard/79377.html
 #'
 #' @examples
 #' x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
@@ -411,13 +506,8 @@ essential_agreement <- function(x,
                                 mode = "categorical") {
   if (any(!AMR::is.mic(c(x, y))) & !coerce_mic) {
     stop("Both MIC inputs to essential_agreement must be AMR::mic.
-Convert using AMR::as.mic() with or without molMIC::force_mic().")
+Convert using AMR::as.mic() with or without MIC::force_mic().")
   }
-
-  # if (any(!AMR::is.mic(c(x, y)))) {
-  #   x <- AMR::as.mic(x)
-  #   y <- AMR::as.mic(y)
-  # }
 
   if (mode == "categorical") {
 
@@ -459,7 +549,7 @@ Convert using AMR::as.mic() with or without molMIC::force_mic().")
   stop("Mode must be categorical or numerical")
 }
 
-#' Perform an MIC validation experiment
+#' Compare and validate MIC values
 #'
 #' @param gold_standard vector of MICs to compare against.
 #' @param test vector of MICs that are under investigation
@@ -470,7 +560,42 @@ Convert using AMR::as.mic() with or without molMIC::force_mic().")
 #' dilution (e.g., 0.55 will be converted to 0.5)
 #'
 #' @return S3 mic_validation object
+#'
+#' @description
+#' This function compares an vector of MIC values to another. Generally, this is
+#' in the context of a validation experiment -- an investigational assay or
+#' method (the "test") is compared to a gold standard. The rules used by this
+#' function are in line with "ISO 20776-2:2021 Part 2: Evaluation of performance
+#' of antimicrobial susceptibility test devices against reference broth
+#' micro-dilution."
+#'
+#' There are two levels of detail that are provided. If only the MIC values are
+#' provided, the function will look for essential agreement between the two sets
+#' of MIC. If the organism and antibiotic arguments are provided, the function
+#' will also calculate the categorical agreement using EUCAST breakpoints (or,
+#' if breakpoint not available and accept_ecoff = TRUE, ECOFFs).
+#'
+#' The function returns a special dataframe of results, which is also an
+#' mic_validation object. This object can be summarised using summary() for
+#' summary metrics, plotted using plot() for an essential agreement confusion
+#' matrix, and tabulated using table().
+#'
 #' @export
+#'
+#' @examples
+#' # Just using MIC values only
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' summary(val)
+#'
+#' # Using MIC values and antibiotic and organism names
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' ab <- c("AMK", "AMK", "AMK", "AMK")
+#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
+#' val <- compare_mic(gold_standard, test, ab, mo)
+#' "error" %in% names(val)  # val now has categorical agreement
 compare_mic <- function(gold_standard,
                         test,
                         ab = NULL,
@@ -609,11 +734,9 @@ plot_mic_validation_multi_ab <- function(x, match_axes,
     }
 
     x <- x +
-    # lemon::facet_rep_wrap(~ .data[["ab"]], nrow = 2, repeat.tick.labels = TRUE) +
     ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
     ggplot2::theme_bw(base_size = 13) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    #ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
 
@@ -756,13 +879,42 @@ fill_dilution_levels <- function(x,
 #' represented in the data, based on a series of dilutions generated using mic_range().
 #' @param ... additional arguments
 #'
+#' @return ggplot object
+#'
 #' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' plot(val)
+#'
+#' # works with validation that includes categorical agreement
+#' # categorical agreement is ignored
+#' ab <- c("AMK", "AMK", "AMK", "AMK")
+#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
+#' val <- compare_mic(gold_standard, test, ab, mo)
+#' plot(val)
+#'
+#' # if the validation contains multiple antibiotics, i.e.,
+#' ab <- c("CIP", "CIP", "AMK", "AMK")
+#' # the following will plot all antibiotics in a single plot (pooled results)
+#' plot(val)
+#' # use the faceting arguments to split the plot by antibiotic
+#' plot(val, facet_wrap_ncol = 2)
 plot.mic_validation <- function(x,
                                 match_axes = TRUE,
                                 add_missing_dilutions = TRUE,
                                 facet_wrap_ncol = NULL,
                                 facet_wrap_nrow = NULL,
                                 ...) {
+  # keep only columns needed for plotting
+  if (!"ab" %in% colnames(x)) {
+    x <- x[,c("gold_standard", "test", "essential_agreement")]
+  } else {
+    x <- x[,c("gold_standard", "test", "essential_agreement", "ab")]
+  }
+
   if (match_axes) {
     x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
     x[["test"]] <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
@@ -796,6 +948,15 @@ plot.mic_validation <- function(x,
 #' @param ... further optional parameters
 #'
 #' @export
+#'
+#' @description
+#' Summarise the results of an MIC validation generated using compare_mic().
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' summary(val)
 summary.mic_validation <- function(object,
                                    ...) {
   if (!"ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
@@ -845,6 +1006,19 @@ summary.mic_validation <- function(object,
 #' @param guideline Guideline to use (EUCAST or CLSI)
 #' @param year Guideline year (version)
 #' @return logical vector
+#'
+#' @description
+#' Check whether MIC values are within acceptable range for
+#' quality control (QC). Every MIC experiment should include a control strain
+#' with a known MIC. The results of the experiment are only valid if the control
+#' strain MIC falls within the acceptable range. This function checks whether
+#' an MIC result is within the acceptable range given: 1) a control strain
+#' (usually identified as an ATCC or NCTC number), 2) an antibiotic name, and 3)
+#' a guideline (EUCAST or CLSI). The acceptable range is defined by 'QC_table',
+#' which is a dataset which is loaded with this package.
+#'
+#' The source of the QC values is
+#'
 #' @export
 #'
 #' @examples
@@ -873,7 +1047,11 @@ qc_in_range <- Vectorize(
     if (!startsWith(strain, "atcc")) {
       strain <- paste0("atcc", strain)
     }
-    qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
+    qc_subset <- QC_table[QC_table$STRAIN == strain &
+                            QC_table$ANTIBIOTIC == ab &
+                            QC_table$GUIDELINE == guideline &
+                            QC_table$YEAR == year &
+                            QC_table$METHOD == "MIC", ]
 
     if (nrow(qc_subset) == 0) {
       # no QC info in table

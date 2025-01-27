@@ -1,10 +1,3 @@
-test_that("genome paths", {
-  dummy_genomes_path <- test_path("fixtures", "genomes")
-  paths <- genome_paths_from_dir(dummy_genomes_path)
-  ids <- strip_filename(paths)
-  expect_contains(ids, c("001", "002"))
-})
-
 path_to_test_libsvm <- "fixtures/genomes_libsvm/"
 tmp_out_dir <- file.path(tempdir(), "data_converters_tests/")
 

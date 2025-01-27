@@ -36,5 +36,26 @@ split_and_combine_files(
 named list of paths to created train/test files, original filenames
 }
 \description{
-Create test train files from a number of files
+This function combines files into a train and test set, stored on disk.
+It can be used in combination with genomes_to_kmer_libsvm() to create a
+dataset that can be loaded into XGBoost (either by first creating an
+xgboost::DMatrix, or by using the data argument in xgboost::xgb.train()
+or xgboost::xgb.cv()). The following three files will be created:
+\enumerate{
+\item train.txt - the training data
+\item test.txt - the testing data (if split < 1)
+\item names.csv - a csv file containing the original filenames and their
+corresponding type (train or test)
+}
+
+The function will check if the data is already in the appropriate format
+and will not overwrite unless forced using the overwrite argument.
+
+By providing 1.0 to the split argument, the function can be used to combine
+files without a train-test split. In this case, all the files will be
+classed as 'train', and there will be no 'test' data. This is useful if
+one wants to perform cross-validation using xgboost::xgb.cv() or
+MIC::xgb.cv.lowmem(). It is also possible to combine all data into train
+and then perform splitting after loading into an xgboost::DMatrix, using
+xgboost::slice().
 }

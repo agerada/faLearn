@@ -12,7 +12,7 @@ tidy_patric_meta_data(
 )
 }
 \arguments{
-\item{x}{PATRIC database loaded using molMIC::load_patric_db}
+\item{x}{PATRIC database loaded using MIC::load_patric_db}
 
 \item{prefer_more_resistant}{High MICs, narrow zones, or resistant phenotypes
 will be preferred where multiple reported for the same isolate}

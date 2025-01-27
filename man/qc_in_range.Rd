@@ -30,7 +30,16 @@ qc_in_range(
 logical vector
 }
 \description{
-Check that MIC is within QC range
+Check whether MIC values are within acceptable range for
+quality control (QC). Every MIC experiment should include a control strain
+with a known MIC. The results of the experiment are only valid if the control
+strain MIC falls within the acceptable range. This function checks whether
+an MIC result is within the acceptable range given: 1) a control strain
+(usually identified as an ATCC or NCTC number), 2) an antibiotic name, and 3)
+a guideline (EUCAST or CLSI). The acceptable range is defined by 'QC_table',
+which is a dataset which is loaded with this package.
+
+The source of the QC values is
 }
 \examples{
 qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE

@@ -145,11 +145,33 @@ test_that("test essential agreement", {
 })
 
 test_that("test mic_censor", {
+  censor_rules <- list("B_ESCHR_COLI" = list(
+    "AMK" = list(min = 2, max = 32),
+    "CHL" = list(min = 4, max = 64),
+    "GEN" = list(min = 1, max = 16),
+    "CIP" = list(min = 0.015, max = 4),
+    "MEM" = list(min = 0.016, max = 16),
+    "AMX" = list(min = 2, max = 64),
+    "AMC" = list(min = 2, max = 64),
+    "FEP" = list(min = 0.5, max = 64),
+    "CAZ" = list(min = 1, max = 128),
+    "TGC" = list(min = 0.25, max = 1)
+  ))
+
   suppressMessages(
     {
-      expect_equal(mic_censor(AMR::as.mic(128), "AMK", "B_ESCHR_COLI"), ">32")
-      expect_equal(mic_censor(AMR::as.mic(">128"), "AMK", "B_ESCHR_COLI"), ">32")
-      expect_equal(mic_censor(">128", "AMK", "B_ESCHR_COLI"), ">32")
+      expect_s3_class(mic_censor(AMR::as.mic(0.5), "TGC", "B_ESCHR_COLI", censor_rules), "mic")
+
+      expect_equal(mic_censor(AMR::as.mic(128), "AMK", "B_ESCHR_COLI", censor_rules),
+                   AMR::as.mic(">32"))
+      expect_equal(mic_censor(AMR::as.mic(">128"), "AMK", "B_ESCHR_COLI", censor_rules),
+                   AMR::as.mic(">32"))
+      expect_equal(mic_censor(">128", "AMK", "B_ESCHR_COLI", censor_rules),
+                   AMR::as.mic(">32"))
+
+      # test vectorized
+      expect_equal(mic_censor(c(AMR::as.mic(128), AMR::as.mic(0.5)), "AMK", "B_ESCHR_COLI", censor_rules),
+                   c(AMR::as.mic(">32"), AMR::as.mic("<=2")))
     }
   )
 })

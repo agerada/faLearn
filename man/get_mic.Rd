@@ -33,7 +33,13 @@ get_mic(
 vector containing MICs, or dataframe of IDs and MICs
 }
 \description{
-Get MIC meta-data from feature database
+This function helps extract MICs from a database of results. It is compatible
+with the PATRIC meta data format when used on a tidy_patric_db object,
+created using tidy_patric_db().
+
+If more than one MIC is present for a particular observation, the function
+can return the higher MIC by setting prefer_high_mic = TRUE. If
+prefer_high_mic = FALSE, the lower MIC will be returned.
 }
 \examples{
 df <- data.frame(genome_id = c("a_12", "b_42", "x_21", "x_21", "r_75"),

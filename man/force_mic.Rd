@@ -31,7 +31,20 @@ MIC ("max") or lower MIC ("min"); only applies to method = "closest"}
 AMR::as.mic compatible character
 }
 \description{
-Force MIC-like into MIC-compatible format
+Convert a value that is "almost" an MIC into a valid MIC value.
+}
+\details{
+Some experimental or analytical conditions measure MIC (or surrogate) in a
+way that does not fully conform to traditional MIC levels
+(i.e., concentrations). This function allows these values to be coerced into
+an MIC value that is compatible with the AMR::mic class. When using method =
+"closest", the function will choose the closest MIC value to the input value
+(e.g., 2.45 will be coerced to 2). When using method = "round up", the
+function will round up to the next highest MIC value (e.g., 2.45 will be
+coerced to 4). "Round up" is technically the correct approach if the input
+value was generated from an experiment that censored between concentrations
+(e.g., broth or agar dilution). However, "closest" may be more appropriate in
+some cases.
 }
 \examples{
 force_mic(c("2.32", "<4.12", ">1.01"))

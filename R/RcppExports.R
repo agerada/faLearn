@@ -2,7 +2,7 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 reverse_complement <- function(dna) {
-    .Call(`_molMIC_reverse_complement`, dna)
+    .Call(`_MIC_reverse_complement`, dna)
 }
 
 #' Generates genome kmers
@@ -19,11 +19,11 @@ reverse_complement <- function(dna) {
 #' @return list of kmer values, either as a list of a single vector (if simplify = TRUE), or as a named list containing "kmer_string" and "kmer_value".
 #' @export
 kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE, anchor = TRUE, clean_up = TRUE, key_as_int = FALSE, starting_index = 1L) {
-    .Call(`_molMIC_kmers`, x, k, simplify, canonical, squeeze, anchor, clean_up, key_as_int, starting_index)
+    .Call(`_MIC_kmers`, x, k, simplify, canonical, squeeze, anchor, clean_up, key_as_int, starting_index)
 }
 
 kmers_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3L, canonical = TRUE, squeeze = FALSE) {
-    .Call(`_molMIC_kmers_to_libsvm`, x, target_path, label, k, canonical, squeeze)
+    .Call(`_MIC_kmers_to_libsvm`, x, target_path, label, k, canonical, squeeze)
 }
 
 #' Generates squeezed kmers
@@ -31,7 +31,7 @@ kmers_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3
 #' @return vector of squeezed kmers
 #' @export
 squeezed_mers <- function(k = 3L) {
-    .Call(`_molMIC_squeezed_mers`, k)
+    .Call(`_MIC_squeezed_mers`, k)
 }
 
 #' Generates unsqueezed kmers
@@ -39,7 +39,7 @@ squeezed_mers <- function(k = 3L) {
 #' @return vector of unsqueezed kmers
 #' @export
 unsqueezed_mers <- function(k = 3L) {
-    .Call(`_molMIC_unsqueezed_mers`, k)
+    .Call(`_MIC_unsqueezed_mers`, k)
 }
 
 #' Get str conversion of squeezed kmer using index
@@ -49,7 +49,7 @@ unsqueezed_mers <- function(k = 3L) {
 #' @return vector of squeezed kmer strings
 #' @export
 squeezed_index_to_str <- function(x, k, starting_index = 1L) {
-    .Call(`_molMIC_squeezed_index_to_str`, x, k, starting_index)
+    .Call(`_MIC_squeezed_index_to_str`, x, k, starting_index)
 }
 
 #' Get str conversion of unsqueezed kmer using index
@@ -59,6 +59,6 @@ squeezed_index_to_str <- function(x, k, starting_index = 1L) {
 #' @return vector of unsqueezed kmer strings
 #' @export
 unsqueezed_index_to_str <- function(x, k, starting_index = 1L) {
-    .Call(`_molMIC_unsqueezed_index_to_str`, x, k, starting_index)
+    .Call(`_MIC_unsqueezed_index_to_str`, x, k, starting_index)
 }
 

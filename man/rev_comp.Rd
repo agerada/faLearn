@@ -15,3 +15,6 @@ reverse complement of string
 \description{
 Reverse complement of string
 }
+\examples{
+rev_comp("ATGC")
+}

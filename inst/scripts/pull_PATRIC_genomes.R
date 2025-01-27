@@ -32,7 +32,7 @@ args <- optparse::parse_args(
 taxonomic_name <- args$args[[1]]
 opt <- args$options
 
-molMIC::pull_PATRIC_genomes(database = opt$database,
+MIC::pull_PATRIC_genomes(database = opt$database,
                     taxonomic_name = taxonomic_name,
                     filter = opt$filter,
                     output_directory = opt$output_directory,

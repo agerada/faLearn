@@ -35,6 +35,28 @@ or use tidy_patric_meta_data()")
   patric_db
 }
 
+check_valid_patric_db <- function(x) {
+  # check inherits dataframe
+  if (!inherits(x, "data.frame")) {
+    stop("Data is not a data.frame")
+  }
+
+  # check columns
+  required_columns <- c("genome_id", "genome_name", "antibiotic",
+                        "measurement", "measurement_unit",
+                        "laboratory_typing_method", "resistant_phenotype")
+  if (!all(required_columns %in% colnames(x))) {
+    stop("Data does not contain all required columns for PATRIC-style database.
+         Please see ?load_patric_db()")
+  }
+}
+
+as_patric_db <- function(x) {
+  check_valid_patric_db(x)
+  class(x) <- append(class(x), "patric_db", after = 0)
+  x
+}
+
 #' Save PATRIC database locally
 #'
 #' @param save_path Save path (should be .txt)
@@ -136,7 +158,7 @@ pull_PATRIC_genomes <- function(database = patric_ftp_path,
 
 #' Tidy PATRIC data
 #'
-#' @param x PATRIC database loaded using molMIC::load_patric_db
+#' @param x PATRIC database loaded using MIC::load_patric_db
 #' @param prefer_more_resistant High MICs, narrow zones, or resistant phenotypes
 #' will be preferred where multiple reported for the same isolate
 #' @param as_ab convert antibiotics to AMR::ab class (column names are antibiotic
@@ -153,7 +175,7 @@ tidy_patric_meta_data <- function(x,
                                   as_ab = TRUE,
                                   filter_abx = NULL) {
   if (!inherits(x, "patric_db")) {
-    stop("Please load data using molMIC::load_patric_db()")
+    stop("Please load data using MIC::load_patric_db()")
   }
 
   if (isTRUE(as_ab) | !is.null(filter_abx)) {

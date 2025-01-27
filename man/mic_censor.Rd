@@ -4,20 +4,45 @@
 \alias{mic_censor}
 \title{Censor MIC values}
 \usage{
-mic_censor(mic, ab, mo, rules = NULL)
+mic_censor(mic, ab, mo, rules)
 }
 \arguments{
-\item{mic}{MIC measurements}
+\item{mic}{MIC (coercible to AMR::as.mic)}
 
-\item{ab}{antibiotic name}
+\item{ab}{antibiotic name (coercible to AMR::as.ab)}
 
-\item{mo}{microorganism name}
+\item{mo}{microorganism name (coercible to AMR::as.mo)}
 
-\item{rules}{censor rules}
+\item{rules}{censor rules - named list of pathogen (in AMR::as.mo code) to
+antibiotic (in AMR::as.ab code) to censoring rules. The censoring rules
+should provide a min or max value to censor MICs to. See example for more.}
 }
 \value{
-cencored MIC values
+censored MIC values (S3 mic class)
 }
 \description{
-Censor MIC values
+MIC datasets often arise from different laboratories or experimental
+conditions. In practice, this means that there can be different levels of
+censoring (<= and >) within the data. This function can be used to harmonise
+the dataset to a single level of censoring. The function requires a set of
+rules that specify the censoring levels (see example).
+}
+\examples{
+example_rules <- list("B_ESCHR_COLI" = list(
+  "AMK" = list(min = 2, max = 32),
+  "CHL" = list(min = 4, max = 64),
+  "GEN" = list(min = 1, max = 16),
+  "CIP" = list(min = 0.015, max = 4),
+  "MEM" = list(min = 0.016, max = 16),
+  "AMX" = list(min = 2, max = 64),
+  "AMC" = list(min = 2, max = 64),
+  "FEP" = list(min = 0.5, max = 64),
+  "CAZ" = list(min = 1, max = 128),
+  "TGC" = list(min = 0.25, max = 1)
+  ))
+
+mic_censor(AMR::as.mic(512),
+           "AMK",
+           "B_ESCHR_COLI",
+           example_rules) == AMR::as.mic(">32")
 }
