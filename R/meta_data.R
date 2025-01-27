@@ -493,7 +493,9 @@ force_mic <- function(value,
 #' categorical mode provides more reliable results. Values within +/- 2
 #' dilutions are considered to be in essential agreement.
 #'
-#' @references https://www.iso.org/standard/79377.html
+#' @references
+#' International Organization for Standardization. ISO 20776-2:2021
+#' Available from: https://www.iso.org/standard/79377.html
 #'
 #' @examples
 #' x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
@@ -1017,10 +1019,15 @@ summary.mic_validation <- function(object,
 #' a guideline (EUCAST or CLSI). The acceptable range is defined by 'QC_table',
 #' which is a dataset which is loaded with this package.
 #'
-#' The source of the QC values is
+#' The source of the QC values is the WHONET QC Ranges and Targets available from
+#' the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+#' https://github.com/AClark-WHONET/AMRIE
 #'
 #' @export
-#'
+#' @references
+#' O’Brien TF, Stelling JM. WHONET: An Information System for Monitoring
+#' Antimicrobial Resistance. Emerg Infect Dis. 1995 Jun;1(2):66–66.
+
 #' @examples
 #' qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE
 #' qc_in_range(AMR::as.mic(8.0), 25922, "GEN") == FALSE
@@ -1084,8 +1091,33 @@ qc_in_range <- Vectorize(
 #' @param guideline Guideline to use (EUCAST or CLSI)
 #' @param year Guideline year (version)
 #'
+#' @description
+#' MIC experiments should include a control strain with a known MIC.
+#' The MIC result for the control strain should be a particular target MIC. This
+#' function checks whether the target MIC was achieved given: 1) a control
+#' strain (usually identified as an ATCC or NCTC number), 2) an antibiotic name,
+#' and 3) a guideline (EUCAST or CLSI).
+#'
+#' Since QC target values are currently not publicly available in an easy to
+#' use format, this function takes a pragmatic approach -- for most antibiotics
+#' and QC strains, the target is assumed to be the midpoint of the acceptable
+#' range. This approximation is not necessarily equal to the QC target reported
+#' by guideline setting bodies such as EUCAST. Therefore, this function is
+#' considered experimental and should be used with caution.
+#'
+#' This function can be used alongnside qc_in_range(), which checks whether the
+#' MIC is within the acceptable range.
+#'
+#' The source of the QC values is the WHONET QC Ranges and Targets available from
+#' the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+#' https://github.com/AClark-WHONET/AMRIE
+#'
 #' @return logical vector
 #' @export
+#'
+#' @references
+#' O’Brien TF, Stelling JM. WHONET: An Information System for Monitoring
+#' Antimicrobial Resistance. Emerg Infect Dis. 1995 Jun;1(2):66–66.
 #'
 #' @examples
 #' qc_on_target(AMR::as.mic(0.5), 25922, "GEN") == TRUE
@@ -1113,7 +1145,10 @@ qc_on_target <- Vectorize(
       strain <- paste0("atcc", strain)
     }
 
-    qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
+    qc_subset <- QC_table[QC_table$STRAIN == strain &
+                            QC_table$ANTIBIOTIC == ab &
+                            QC_table$GUIDELINE == guideline &
+                            QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
 
     if (nrow(qc_subset) == 0) {
       # no QC info in table
