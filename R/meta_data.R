@@ -734,11 +734,9 @@ plot_mic_validation_multi_ab <- function(x, match_axes,
     }
 
     x <- x +
-    # lemon::facet_rep_wrap(~ .data[["ab"]], nrow = 2, repeat.tick.labels = TRUE) +
     ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(fill=NA))) +
     ggplot2::theme_bw(base_size = 13) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    #ggplot2::theme(legend.position = c(0.9,0.2)) +
     ggplot2::xlab("Gold standard MIC (mg/L)") +
     ggplot2::ylab("Test (mg/L)")
 
@@ -888,6 +886,7 @@ plot.mic_validation <- function(x,
                                 facet_wrap_ncol = NULL,
                                 facet_wrap_nrow = NULL,
                                 ...) {
+  x <- x[,c("gold_standard", "test", "essential_agreement")]
   if (match_axes) {
     x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
     x[["test"]] <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
