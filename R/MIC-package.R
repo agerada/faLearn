@@ -1,3 +1,6 @@
+#' @keywords internal
+"_PACKAGE"
+
 ## usethis namespace: start
 #' @useDynLib MIC, .registration = TRUE
 ## usethis namespace: end

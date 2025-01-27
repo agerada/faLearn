@@ -2,7 +2,8 @@
 % Please edit documentation in R/meta_data.R
 \name{qc_on_target}
 \alias{qc_on_target}
-\title{Check that QC measurement is at the required target}
+\title{Check that QC measurement is at the required target
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}}
 \usage{
 qc_on_target(
   measurement,

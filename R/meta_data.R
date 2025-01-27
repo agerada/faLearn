@@ -1083,6 +1083,7 @@ qc_in_range <- Vectorize(
 )
 
 #' Check that QC measurement is at the required target
+#' `r lifecycle::badge('experimental')`
 #'
 #' @param measurement measured QC MIC
 #' @param strain control strain identifier (usually ATCC)
@@ -1090,7 +1091,6 @@ qc_in_range <- Vectorize(
 #' @param ignore_na ignores NA (returns TRUE)
 #' @param guideline Guideline to use (EUCAST or CLSI)
 #' @param year Guideline year (version)
-#'
 #' @description
 #' MIC experiments should include a control strain with a known MIC.
 #' The MIC result for the control strain should be a particular target MIC. This
