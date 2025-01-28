@@ -1379,6 +1379,27 @@ compare_sir <- function(gold_standard, test) {
   )
 }
 
+#' Calculate MIC bias
+#'
+#' @param gold_standard AMR::mic vector
+#' @param test AMR::mic vector
+#'
+#' @return numeric value
+#' @export
+#'
+#' @description
+#' Calculate the bias between two AMR::mic vectors. The bias is calculated as
+#' the percentage of test MICs that are above the gold standard MICs minus the
+#' percentage of test MICs that are below the gold standard MICs.
+#'
+#' @references
+#' International Organization for Standardization. ISO 20776-2:2021
+#' Available from: https://www.iso.org/standard/79377.html
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' bias(gold_standard, test)
 bias <- function(gold_standard, test) {
   if (length(gold_standard) != length(test)) {
     stop("Inputs to bias must be same length")
