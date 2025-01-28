@@ -108,7 +108,7 @@ std::string reverse_complement(std::string dna){
 
 std::map<std::string, unsigned long long int> make_kmer_paired_list(
     const CharacterVector &x,
-    int kmer,
+    unsigned int kmer,
     bool drop_n = false,
     bool canonical = true,
     bool squeeze = false,
@@ -193,7 +193,7 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 
 std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_int_seq(
     std::map<std::string, unsigned long long int> x,
-    int starting_index) {
+    unsigned int starting_index) {
   std::map<unsigned long long int, unsigned long long int> output_dict;
   for(auto i = x.begin(), n = x.end(); i != n; i++) {
     output_dict[starting_index] = i->second;
@@ -425,7 +425,7 @@ StringVector unsqueezed_mers(int k = 3) {
 // [[Rcpp::export]]
 StringVector squeezed_index_to_str(IntegerVector x,
                                int k,
-                               int starting_index = 1) {
+                               unsigned int starting_index = 1) {
   auto squeezed_mers = make_squeezed_mers(k);
   std::vector<std::string> output;
   for (auto i = x.begin(); i != x.end(); i++) {
@@ -450,7 +450,7 @@ StringVector squeezed_index_to_str(IntegerVector x,
 // [[Rcpp::export]]
 StringVector unsqueezed_index_to_str(IntegerVector x,
                                int k,
-                               int starting_index = 1) {
+                               unsigned int starting_index = 1) {
   auto unsqueezed_mers = make_unsqueezed_mers(k);
   std::vector<std::string> output;
   for (auto i = x.begin(); i != x.end(); i++) {
