@@ -6,3 +6,4 @@
 ^tmp/
 ^pre_R_package/
 ^data-raw$
+^README\.Rmd$
