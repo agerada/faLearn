@@ -16,6 +16,7 @@ knitr::opts_chunk$set(
 # MIC
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/agerada/MIC/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/agerada/MIC/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 ## Introduction
