@@ -32,5 +32,4 @@
 #'  \item{`Confidence interval`}{see EUCAST documentation below}
 #' }
 #' @source EUCAST \url{https://www.eucast.org/mic_and_zone_distributions_and_ecoffs}
-#' }
 "ecoffs"

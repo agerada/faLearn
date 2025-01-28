@@ -4,9 +4,9 @@
 \name{MIC-package}
 \alias{MIC}
 \alias{MIC-package}
-\title{MIC: Antimicrobial minimium inhibitory concentration analysis}
+\title{MIC: Analysis of Antimicrobial Minimum Inhibitory Concentration Data}
 \description{
-Make phenotypic MIC predictions using assembled bacterial genomes. Package contains helper functions to collect genomes from PATRIC database and analyse results.
+Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data. Validate the results of an MIC experiment by comparing the observed MIC values to a gold standard assay, in line with standards from the 'International Organization for Standardization' (ISO). Perform MIC prediction from genomic data stored in the 'Pathosystems Resource Integration Center' ('BV-BRC') database.
 }
 \author{
 \strong{Maintainer}: Alessandro Gerada \email{alessandro.gerada@liverpool.ac.uk} (\href{https://orcid.org/0000-0002-6743-4271}{ORCID})

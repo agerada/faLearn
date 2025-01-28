@@ -22,7 +22,6 @@ A data frame with 85 rows and 25 columns:
 \source{
 EUCAST \url{https://www.eucast.org/mic_and_zone_distributions_and_ecoffs}
 }
-}
 \usage{
 ecoffs
 }
