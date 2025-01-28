@@ -31,3 +31,14 @@ methodology ("mic_", "disk_", "pheno_"). S3 class "tidy_patric_db".
 \description{
 Tidy PATRIC data
 }
+\examples{
+db <- data.frame(genome_id = 1,
+                genome_name = "E. coli",
+                antibiotic = "amoxicillin",
+                measurement = 2.0,
+                measurement_unit = "mg/L",
+                laboratory_typing_method = "Agar dilution",
+                resistant_phenotype = "R")
+db <- load_patric_db(db)
+tidy_patric_meta_data(db)
+}

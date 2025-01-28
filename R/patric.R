@@ -77,14 +77,19 @@ as_patric_db <- function(x) {
   x
 }
 
-#' Save PATRIC database locally
+#' Download PATRIC database
 #'
 #' @param save_path Save path (should be .txt)
 #' @param ftp_path PATRIC database FTP path to download
 #' @param overwrite Force overwrite
 #'
+#' @return NULL
+
 #' @export
-#'
+#' @examples
+#' \dontrun{
+#' save_patric_db("patric_db.txt")
+#' }
 save_patric_db <- function(save_path,
                            ftp_path = patric_ftp_path,
                            overwrite = FALSE) {
@@ -103,19 +108,26 @@ save_patric_db <- function(save_path,
 
 #' Automated download of genomes from PATRIC database
 #'
-#' @param database local or ftp path to PATRIC database, or loaded database using load__patric_db()
-#' @param taxonomic_name character of taxonomic bacterial name to download
-#' @param filter "MIC" or "disk" or "all" phenotypes
 #' @param output_directory local directory to save to
+#' @param taxonomic_name character of taxonomic bacterial name to download
+#' @param database local or ftp path to PATRIC database, or loaded database using load_patric_db()
+#' @param filter "MIC" or "disk" or "all" phenotypes
 #' @param n_genomes number of genomes (0 = all)
 #'
 #' @return NULL
 #'
 #' @export
-pull_PATRIC_genomes <- function(database = patric_ftp_path,
-                                taxonomic_name,
+#' @examples
+#' \dontrun{
+#' pull_PATRIC_genomes("target/dir/",
+#'                     taxonomic_name = "Escherichia coli",
+#'                     filter = "MIC",
+#'                     n_genomes = 10)
+#'}
+pull_PATRIC_genomes <- function(output_directory,
+                                taxonomic_name = NULL,
+                                database = patric_ftp_path,
                                 filter = "MIC",
-                                output_directory,
                                 n_genomes = 0) {
   supported_modality_filters <- c("all", "mic", "disc")
   filter <- tolower(filter)
@@ -132,7 +144,11 @@ pull_PATRIC_genomes <- function(database = patric_ftp_path,
     patric_amr_list <- load_patric_db(database)
   }
 
-  filtered_data <- patric_amr_list[grep(taxonomic_name, patric_amr_list$genome_name), ]
+  if (is.null(taxonomic_name)) {
+    filtered_data <- patric_amr_list
+  } else {
+    filtered_data <- patric_amr_list[grep(taxonomic_name, patric_amr_list$genome_name), ]
+  }
 
   filtered_data <- filtered_data |> dplyr::filter(dplyr::case_when(
     filter == "mic" & measurement_unit == "mg/L" ~ TRUE,
@@ -192,6 +208,16 @@ pull_PATRIC_genomes <- function(database = patric_ftp_path,
 #' @return Tidy data, with antimicrobials in wide format, column names describing
 #' methodology ("mic_", "disk_", "pheno_"). S3 class "tidy_patric_db".
 #' @export
+#' @examples
+#' db <- data.frame(genome_id = 1,
+#'                 genome_name = "E. coli",
+#'                 antibiotic = "amoxicillin",
+#'                 measurement = 2.0,
+#'                 measurement_unit = "mg/L",
+#'                 laboratory_typing_method = "Agar dilution",
+#'                 resistant_phenotype = "R")
+#' db <- load_patric_db(db)
+#' tidy_patric_meta_data(db)
 tidy_patric_meta_data <- function(x,
                                   prefer_more_resistant = TRUE,
                                   as_ab = TRUE,

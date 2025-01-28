@@ -2,7 +2,7 @@
 % Please edit documentation in R/patric.R
 \name{save_patric_db}
 \alias{save_patric_db}
-\title{Save PATRIC database locally}
+\title{Download PATRIC database}
 \usage{
 save_patric_db(save_path, ftp_path = patric_ftp_path, overwrite = FALSE)
 }
@@ -14,5 +14,10 @@ save_patric_db(save_path, ftp_path = patric_ftp_path, overwrite = FALSE)
 \item{overwrite}{Force overwrite}
 }
 \description{
-Save PATRIC database locally
+Download PATRIC database
+}
+\examples{
+\dontrun{
+save_patric_db("patric_db.txt")
+}
 }
