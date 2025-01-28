@@ -1,3 +1,5 @@
+devtools::load_all()
+
 ## Code to prepare qc_targets dataset goes here
 
 ## The source of this dataset is the WHONET QC Ranges and Targets available from
@@ -63,11 +65,11 @@ QC_table$MAXIMUM_TARGET <- ifelse(
 ecoffs_files <- list.files("data-raw/ecoffs", full.names = TRUE)
 ecoffs <- readr::read_csv(ecoffs_files,
                           col_types = readr::cols(.default = "c"),
-                          id = "organism") %>%
-  dplyr::mutate(organism = basename(organism)) %>%
+                          id = "organism") |>
+  dplyr::mutate(organism = basename(organism)) |>
   dplyr::mutate(organism = tools::file_path_sans_ext(organism))
-ecoffs <- ecoffs %>%
-  dplyr::rename(antibiotic = ...1) %>%
+ecoffs <- ecoffs |>
+  dplyr::rename(antibiotic = ...1) |>
   dplyr::mutate(antibiotic = AMR::as.ab(antibiotic))
 
 ecoffs$organism <- AMR::as.mo(ecoffs$organism)
