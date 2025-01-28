@@ -77,31 +77,57 @@ ecoffs$organism <- AMR::as.mo(ecoffs$organism)
 
 ## Example dataset
 set.seed(42)
-n <- 100
-ab <- AMR::as.ab("Gentamicin")
-mo <- AMR::as.mo("Escherichia coli")
+n <- 300
+ab <- c(rep(AMR::as.ab("Gentamicin"), n / 3),
+        rep(AMR::as.ab("Meropenem"), n / 3),
+        rep(AMR::as.ab("Amoxicillin"), n / 3))
+mo <- rep(AMR::as.mo("Escherichia coli"), n)
 bimodal_probs <- c(1,1,2,3,4,5,4,3,2,1,1,
                    1,2,3,4,3,2,1,1)
-# bimodal_probs <- bimodal_probs / sum(bimodal_probs)
-gs <- sample(mic_range(), size = n, prob = bimodal_probs, replace = T)
-gs <- AMR::as.mic(gs)
+bimodal_probs <- bimodal_probs / sum(bimodal_probs)
+res_probs <- c(0.01,0.01,2,3,4,5,4,3,2,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01)
+res_probs <- res_probs / sum(res_probs)
+sens_probs <- c(0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,2,3,4,3,2,0.01,0.01)
+sens_probs <- sens_probs / sum(sens_probs)
 
+gs <- sample(mic_range(), size = n / 3, prob = bimodal_probs, replace = T)
+gs <- AMR::as.mic(gs)
 # now to generate the test values, assume that the value is the same as gs
 # but with added noise
 # log2 transform needed when adding noise otherwise lower MICs get proportionately
 # more noise
-test_values <- log2(gs) + rnorm(length(gs), 0, 1)
-test_values <- 2^test_values
-test_values[test_values < min(mic_range())] <- min(mic_range())
-test_values <- force_mic(test_values)
-test_values <- AMR::as.mic(test_values)
+bimodal_values <- log2(gs) + rnorm(length(gs), 0, 1)
+bimodal_values <- 2^bimodal_values
+bimodal_values[bimodal_values < min(mic_range())] <- min(mic_range())
+bimodal_values <- force_mic(bimodal_values)
+bimodal_values <- AMR::as.mic(bimodal_values)
 
-example_mics <- data.frame(gs = gs,
-                           test_values = test_values)
+# repeat for sensitivity and resistance
+sens <- sample(mic_range(), size = n / 3, prob = sens_probs, replace = T)
+sens <- AMR::as.mic(sens)
+sens_values <- log2(sens) + rnorm(length(sens), 0, 1)
+sens_values <- 2^sens_values
+sens_values[sens_values < min(mic_range())] <- min(mic_range())
+sens_values <- force_mic(sens_values)
+sens_values <- AMR::as.mic(sens_values)
+
+res <- sample(mic_range(), size = n / 3, prob = res_probs, replace = T)
+res <- AMR::as.mic(res)
+res_values <- log2(res) + rnorm(length(res), 0, 1)
+res_values <- 2^res_values
+res_values[res_values < min(mic_range())] <- min(mic_range())
+res_values <- force_mic(res_values)
+res_values <- AMR::as.mic(res_values)
+
+# combine the values
+values <- c(bimodal_values, sens_values, res_values)
+gs <- c(gs, sens, res)
+
+example_mics <- data.frame(gs = gs, test = values)
 example_mics$mo <- mo
 example_mics$ab <- ab
 
 readr::write_tsv(example_mics, "data-raw/example_mics.txt")
 
-use_data(QC_table, ecoffs, example_mics,
-         overwrite = TRUE, internal = TRUE)
+use_data(QC_table, overwrite = TRUE, internal = TRUE)
+use_data(example_mics, ecoffs, overwrite = TRUE, internal = FALSE)
