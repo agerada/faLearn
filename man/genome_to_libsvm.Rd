@@ -34,8 +34,9 @@ boolean indicating success
 This function converts a single genome to a libsvm file containing kmer
 counts. The libsvm format will be as follows:
 
-label 1:count 2:count 3:count ...
-
+\preformatted{
+  label 1:count 2:count 3:count ...
+}
 Label is optional and defaults to 0. The kmer counts are indexed by the
 kmer index, which is the lexicographically sorted index of the kmer.
 Libsvm is a sparse format.
@@ -49,5 +50,5 @@ readLines(temp_libsvm_path)
 For multiple genomes in a directory, processed in parallel, see \code{\link[=genomes_to_kmer_libsvm]{genomes_to_kmer_libsvm()}}
 
 For more details on libsvm format, see
-\link{https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html}
+\url{https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html}
 }

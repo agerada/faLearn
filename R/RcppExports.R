@@ -55,8 +55,9 @@ kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE
 #' This function converts a single genome to a libsvm file containing kmer
 #' counts. The libsvm format will be as follows:
 #'
-#' label 1:count 2:count 3:count ...
-#'
+#' \preformatted{
+#'   label 1:count 2:count 3:count ...
+#' }
 #' Label is optional and defaults to 0. The kmer counts are indexed by the
 #' kmer index, which is the lexicographically sorted index of the kmer.
 #' Libsvm is a sparse format.
@@ -65,7 +66,7 @@ kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE
 #' For multiple genomes in a directory, processed in parallel, see [genomes_to_kmer_libsvm()]
 #'
 #' For more details on libsvm format, see
-#' [https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html]
+#' \url{https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html}
 #'
 #' @export
 #' @examples
