@@ -2,19 +2,40 @@ patric_ftp_path <- "ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
 
 #' Load PATRIC database
 #'
-#' @param path Character to local or ftp path (.txt or .rds)
+#' @param x Character path to local or ftp path (.txt or .rds), or
+#' data.frame object.
 #'
 #' @return PATRIC database (S3 class 'patric_db')
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' patric_db <- load_patric_db()
+#' patric_db <- load_patric_db()  # will get from PATRIC ftp
 #' }
-load_patric_db <- function(
-    path = patric_ftp_path) {
-  if (endsWith(path, ".rds")) {
-    tryCatch(patric_db <- readRDS(path),
+#'
+#' # make data.frame with single row
+#' p <- data.frame(genome_id = 1,
+#'                 genome_name = "E. coli",
+#'                 antibiotic = "amoxicillin",
+#'                 measurement = 2.0,
+#'                 measurement_unit = "mg/L",
+#'                 laboratory_typing_method = "Agar dilution",
+#'                 resistant_phenotype = "R")
+#' load_patric_db(p)
+load_patric_db <- function(x = patric_ftp_path) {
+  if (inherits(x, "patric_db")) {
+    message("Input to load_patric_db appears to already be a patric_db")
+    return(x)
+  }
+  if (inherits(x, "data.frame")) {
+    tryCatch(check_valid_patric_db(x),
+             error = function(e) stop("Data does not appear to be a compatible dataframe.
+                                      See ?load_patric_db"))
+    return(as_patric_db(x))
+  }
+
+  if (endsWith(x, ".rds")) {
+    tryCatch(patric_db <- readRDS(x),
              error = function(e) e)
     if (inherits(patric_db, "patric_db")) {
       return(patric_db)
@@ -23,16 +44,15 @@ load_patric_db <- function(
 or use tidy_patric_meta_data()")
     }
   }
-  if (!endsWith(path, ".txt")) {
+  if (!endsWith(x, ".txt")) {
     stop("Path to PATRIC database must be to a .txt file")
   }
-  if (startsWith(path, "ftp")) {
-    path <- url(path)
+  if (startsWith(x, "ftp")) {
+    x <- url(x)
   }
-  patric_db <- readr::read_delim(path, delim = "\t",
+  patric_db <- readr::read_delim(x, delim = "\t",
                                  col_types = readr::cols(.default = "c"))
-  class(patric_db) <- append(class(patric_db), "patric_db", after = 0)
-  patric_db
+  as_patric_db(patric_db)
 }
 
 check_valid_patric_db <- function(x) {
@@ -88,6 +108,8 @@ save_patric_db <- function(save_path,
 #' @param filter "MIC" or "disk" or "all" phenotypes
 #' @param output_directory local directory to save to
 #' @param n_genomes number of genomes (0 = all)
+#'
+#' @return NULL
 #'
 #' @export
 pull_PATRIC_genomes <- function(database = patric_ftp_path,

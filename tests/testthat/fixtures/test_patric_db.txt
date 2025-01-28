@@ -1,0 +1,2 @@
+genome_id	genome_name	antibiotic	measurement	measurement_unit	laboratory_typing_method	resistant_phenotype
+1	E. coli	amoxicillin	2	mg/L	Agar dilution	R
