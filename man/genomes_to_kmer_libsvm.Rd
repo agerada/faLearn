@@ -59,3 +59,6 @@ order of observations guaranteed and stored in a .csv file).
 }
 
 }
+\seealso{
+to convert a single genome, use \code{\link[=genome_to_libsvm]{genome_to_libsvm()}}
+}

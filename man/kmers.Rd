@@ -21,23 +21,36 @@ kmers(
 
 \item{k}{kmer length}
 
-\item{simplify}{returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.}
+\item{simplify}{returns a numeric vector of kmer counts,
+without associated string. This is useful to save memory,
+but should always be used with anchor = true.}
 
-\item{canonical}{only record canonical kmers (i.e., the lexicographically smaller of a kmer and its reverse complement)}
+\item{canonical}{only record canonical kmers
+(i.e., the lexicographically smaller of a kmer and its reverse complement)}
 
 \item{squeeze}{remove non-canonical kmers}
 
-\item{anchor}{includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.}
+\item{anchor}{includes unobserved kmers (with counts of 0).
+This is useful when generating a dense matrix where kmers of different
+genomes align.}
 
-\item{clean_up}{only include valid bases (ACTG) in kmer counts (excludes non-coding results such as N)}
+\item{clean_up}{only include valid bases (ACTG) in kmer counts
+(excludes non-coding results such as N)}
 
-\item{key_as_int}{return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.}
+\item{key_as_int}{return kmer index (as "kmer_index")
+rather than the full kmer string. Useful for index-coded data structures
+such as libsvm.}
 
 \item{starting_index}{the starting index, only used if key_as_int = TRUE.}
 }
 \value{
-list of kmer values, either as a list of a single vector (if simplify = TRUE), or as a named list containing "kmer_string" and "kmer_value".
+list of kmer values, either as a list of a single vector
+(if simplify = TRUE), or as a named list containing "kmer_string" and
+"kmer_value".
 }
 \description{
 Generates genome kmers
+}
+\examples{
+kmers("ATCGCAGT")
 }

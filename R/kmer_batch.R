@@ -39,6 +39,7 @@
 #'   )
 #' }
 #'
+#' @seealso to convert a single genome, use [genome_to_libsvm()]
 #' @export
 genomes_to_kmer_libsvm <- function(source_dir,
                                    target_dir,
@@ -56,7 +57,7 @@ genomes_to_kmer_libsvm <- function(source_dir,
                              ignore.case = TRUE)
   p <- progressr::progressor(along = genome_paths)
   future.apply::future_lapply(genome_paths, \(x) {
-    kmers_to_libsvm(as.character(Biostrings::readDNAStringSet(x)),
+    genome_to_libsvm(as.character(Biostrings::readDNAStringSet(x)),
                     file.path(normalizePath(target_dir),
                               paste0(strip_filename(x), ".txt")),
                     k = k,
@@ -65,16 +66,4 @@ genomes_to_kmer_libsvm <- function(source_dir,
     p(glue::glue("Completed: {basename(x)}"))
   }, future.seed = TRUE)
   return(TRUE)
-}
-
-#' Reverse complement of string
-#'
-#' @param x string
-#'
-#' @return reverse complement of string
-#' @export
-#' @examples
-#' rev_comp("ATGC")
-rev_comp <- function(x) {
-  as.character(Biostrings::reverseComplement(Biostrings::DNAString(x)))
 }
