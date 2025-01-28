@@ -79,27 +79,27 @@ BEGIN_RCPP
 END_RCPP
 }
 // squeezed_index_to_str
-StringVector squeezed_index_to_str(IntegerVector x, int k, int starting_index);
+StringVector squeezed_index_to_str(IntegerVector x, int k, unsigned int starting_index);
 RcppExport SEXP _MIC_squeezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< int >::type starting_index(starting_indexSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type starting_index(starting_indexSEXP);
     rcpp_result_gen = Rcpp::wrap(squeezed_index_to_str(x, k, starting_index));
     return rcpp_result_gen;
 END_RCPP
 }
 // unsqueezed_index_to_str
-StringVector unsqueezed_index_to_str(IntegerVector x, int k, int starting_index);
+StringVector unsqueezed_index_to_str(IntegerVector x, int k, unsigned int starting_index);
 RcppExport SEXP _MIC_unsqueezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< int >::type starting_index(starting_indexSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type starting_index(starting_indexSEXP);
     rcpp_result_gen = Rcpp::wrap(unsqueezed_index_to_str(x, k, starting_index));
     return rcpp_result_gen;
 END_RCPP
