@@ -1,10 +1,14 @@
 Package: MIC
-Title: Antimicrobial minimium inhibitory concentration analysis
+Title: Analysis of Antimicrobial Minimum Inhibitory Concentration Data
 Version: 0.10.2
 Authors@R: 
     person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6743-4271"))
-Description: Make phenotypic MIC predictions using assembled bacterial genomes. Package contains helper functions to collect genomes from PATRIC database and analyse results.
+Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data.
+    Validate the results of an MIC experiment by comparing the observed MIC values to
+    a gold standard assay, in line with standards from the 'International Organization for
+    Standardization' (ISO). Perform MIC prediction from genomic data stored in the
+    'Pathosystems Resource Integration Center' ('BV-BRC') database.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
