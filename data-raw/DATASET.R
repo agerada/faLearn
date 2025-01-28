@@ -1,3 +1,4 @@
+library(devtools)
 devtools::load_all()
 
 ## Code to prepare qc_targets dataset goes here
