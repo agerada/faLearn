@@ -1332,9 +1332,36 @@ and lower range. EUCAST/CLSI guidance may be different."))
                                          year))
 }
 
+#' Compare SIR results and generate categorical agreement
+#'
+#' @param gold_standard Susceptibility results in AMR::sir format
+#' @param test Susceptibility results in AMR::sir format
+#'
+#' @return factor vector with the following levels: M, vM, m.
+#' @export
+#'
+#' @description
+#' Compare two AMR::sir vectors and generate a categorical agreement vector with
+#' the following levels: M (major error), vM (very major error), m (minor error).
+#' The error definitions are:
+#'
+#' 1. Major error (M): The test result is resistant (R) when the gold standard
+#' is susceptible (S).
+#' 2. vM (very major error): The test result is susceptible (S) when the gold
+#' standard is resistant (R).
+#' 3. Minor error (m): The test result is intermediate (I) when the gold standard
+#' is susceptible (S) or resistant (R), or vice versa.
+#'
+#' @examples
+#' gold_standard <- c("S", "R", "I", "I")
+#' test <- c("S", "I", "R", "R")
+#' compare_sir(gold_standard, test)
 compare_sir <- function(gold_standard, test) {
   if (length(gold_standard) != length(test)) {
     stop("Inputs to compare_sir must be same length")
+  }
+  if (!all(AMR::is.sir(gold_standard)) | !all(AMR::is.sir(test))) {
+    stop("Inputs to compare_sir must be AMR::sir objects")
   }
   return(
     factor(
@@ -1346,7 +1373,8 @@ compare_sir <- function(gold_standard, test) {
         gold_standard == "S" & test == "R" ~ "M",
         gold_standard == "R" & test == "S" ~ "vM",
         TRUE ~ NA
-      )
+      ),
+      levels = c("M", "vM", "m")
     )
   )
 }
