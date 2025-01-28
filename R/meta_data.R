@@ -670,7 +670,7 @@ compare_mic <- function(gold_standard,
                                      })
     output[["gold_standard_sir"]] <- gold_standard_sir
     output[["test_sir"]] <- test_sir
-    output["error"] <- compare_sir(gold_standard_sir,
+    output[["error"]] <- compare_sir(gold_standard_sir,
                                    test_sir)
   }
 
@@ -1354,7 +1354,9 @@ and lower range. EUCAST/CLSI guidance may be different."))
 #'
 #' @examples
 #' gold_standard <- c("S", "R", "I", "I")
+#' gold_standard <- AMR::as.sir(gold_standard)
 #' test <- c("S", "I", "R", "R")
+#' test <- AMR::as.sir(test)
 #' compare_sir(gold_standard, test)
 compare_sir <- function(gold_standard, test) {
   if (length(gold_standard) != length(test)) {

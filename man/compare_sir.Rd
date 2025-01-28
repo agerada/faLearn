@@ -29,6 +29,8 @@ is susceptible (S) or resistant (R), or vice versa.
 }
 \examples{
 gold_standard <- c("S", "R", "I", "I")
+gold_standard <- AMR::as.sir(gold_standard)
 test <- c("S", "I", "R", "R")
+test <- AMR::as.sir(test)
 compare_sir(gold_standard, test)
 }
