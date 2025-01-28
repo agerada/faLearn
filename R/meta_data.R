@@ -1173,6 +1173,7 @@ qc_on_target <- Vectorize(
 )
 
 #' Standardise MIC to control strain
+#' `r lifecycle::badge('experimental')`
 #'
 #' @param test_measurement Measured MIC to standardise
 #' @param qc_measurement Measured QC MIC to standardise to
@@ -1188,14 +1189,43 @@ qc_on_target <- Vectorize(
 #' @return AMR::mic vector
 #' @export
 #'
+#' @description
+#' MIC experiments are generally quality-controlled by including a control strain
+#' with a known MIC. The MIC result for the control strain should be a particular
+#' target MIC, or at least within an acceptable range. This function standardises
+#' a measured MIC to the target MIC given: 1) a control strain (usually identified
+#' as an ATCC or NCTC number), 2) an antibiotic name, and 3) a guideline (EUCAST
+#' or CLSI). The definition of standardisation in this context is to adjust the
+#' measured MIC based on the QC MIC. This is based on the following principles
+#' and assumption:
+#'
+#' 1. A measured MIC is composed of two components: the true MIC and a
+#' measurement error. The measurement error is considered to be inevitable when
+#' measuring MICs, and is likely to be further composed of variability in
+#' laboratory conditions and operator interpretation.
+#' 2. It is assumed that the MIC of the control strain in the experiment has
+#' also been affected by this error.
+#'
+#' The standardisation applied by this function uses the measured QC strain
+#' MIC as a reference point, and scales the rest of the MICs to this reference.
+#' In general, this means that the MICs are doubled or halved, depending on the
+#' result of the QC MIC. A worked example is provided below and illustrates
+#' the transformation that this function applies.
+#'
+#' There is no current evidence base for this approach, therefore, this
+#' function is considered experimental and should be used with caution.
+#'
 #' @examples
+#' # Ref strain QC MIC for GEN is 0.5
 #' standardise_mic(
-#'   test_measurement = c(AMR::as.mic(">8.0"),
-#'                        AMR::as.mic(4.0),
-#'                        AMR::as.mic(2)),
+#'   test_measurement = c(AMR::as.mic(">8.0"),  # QC = 1, censored MIC remains censored
+#'                        AMR::as.mic(4.0),  # QC = 0.5 which is on target, so stays same
+#'                        AMR::as.mic(2),  # QC = 1, so scaled down to 1
+#'                        AMR::as.mic(2)),  # QC = 0.25, so scaled up to 8
 #'   qc_measurement = c(AMR::as.mic(1),
 #'                      AMR::as.mic(0.5),
-#'                      AMR::as.mic(1)),
+#'                      AMR::as.mic(1),
+#'                      AMR::as.mic(0.25)),
 #'   strain = 25922,
 #'   ab = AMR::as.ab("GEN"))
 standardise_mic <- function(test_measurement,
@@ -1354,8 +1384,6 @@ tabulate_flex <- function(t, ea, bold, ea_color, gold_standard_name, test_name) 
   t_flex <- t |>
     stats::addmargins(FUN = list(Total = sum)) |>
     as.data.frame.matrix() |>
-    # cbind(., Totals = row_sums) %>%
-    # rbind(., Totals = col_sums) %>%
     tibble::rownames_to_column(var = "test_mics") |>
     dplyr::mutate("test" = test_name, .before = "test_mics") |>
     flextable::flextable()
@@ -1396,7 +1424,15 @@ tabulate_flex <- function(t, ea, bold, ea_color, gold_standard_name, test_name) 
 #' @param test_name Name of the test to display in output
 #' @param ... further arguments
 #'
+#' @return table or flextable object
+#'
 #' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' table(val)
 table.mic_validation <- function(x,
                                  format = 'flextable',
                                  fill_dilutions = TRUE,
