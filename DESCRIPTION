@@ -7,7 +7,7 @@ Authors@R:
 Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data.
     Validate the results of an MIC experiment by comparing the observed MIC values to
     a gold standard assay, in line with standards from the 'International Organization for
-    Standardization' (ISO). Perform MIC prediction from genomic data stored in the
+    Standardization' (ISO). Perform MIC prediction from whole genome sequence data stored in the
     'Pathosystems Resource Integration Center' ('BV-BRC') database.
 License: GPL (>= 3)
 Encoding: UTF-8
