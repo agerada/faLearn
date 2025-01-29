@@ -1,4 +1,5 @@
 test_that("test cv", {
+  skip_on_cran()
   mat <- matrix(rnorm(1000), ncol = 10)
   label <- rnorm(100)
   dtrain <- xgboost::xgb.DMatrix(data = mat, label = label)
