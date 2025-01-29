@@ -56,19 +56,81 @@ remotes::install_github("agerada/MIC")
 
 ## Example
 
+Load the `MIC` package -- it is highly recommended that `AMR` is also loaded.
+Where possible, `MIC` functions maintain compatibility with `AMR` objects, in
+particular the `mic` and `sir` classes.
+
 ```{r val-example}
 library(MIC)
 library(AMR)
+```
 
-mic1 <- c("2", "4", "2", "0.25", "0.5")
-mic2 <- c("1", "4", "2", "4", "0.25")
-mic1 <- as.mic(mic1)
-mic2 <- as.mic(mic2)
-val <- compare_mic(mic1, mic2)
+To compare two `mic` vectors (e.g., one from a gold standard and one from a
+prediction or investigational assay), the `compare_mic` function can be used.
+An example dataset of MIC values is provided with the package, which will be
+used here.
+
+```{r}
+data("example_mics")
+head(example_mics)
+```
+
+The dataset contains MIC values (in `mic` format) for a "test" assay, and a
+"gold standard" (`gs`) assay. We will use `compare_mic` to compare the MICs and
+validate the "test" assay:
+
+```{r}
+val <- compare_mic(gold_standard = example_mics$gs, test = example_mics$test)
+val
+```
+
+Calling `summary` provides the essential agreement (EA) rates and assay bias:
+
+```{r}
 summary(val)
 ```
+
+If organisms and antimicrobials are provided, `compare_mic` will also calculate
+and return the categorical agreement (CA) rates, in the form of minor, major,
+and very major errors:
+
+```{r message=FALSE}
+val <- compare_mic(gold_standard = example_mics$gs, test = example_mics$test,
+                   mo = example_mics$mo, ab = example_mics$ab)
+val
+```
+
+This time, calling `summary` will provide a breakdown of the categorical
+agreement rates in addition to the EA rates:
+
+```{r}
+summary(val)
+```
+
+Using `as.data.frame` allows us to continue working with the summarised results:
+
+```{r}
+head(as.data.frame(val))
+```
+
+The results of an `mic_validation` can be plotted in a confusion matrix 
+(failed essential agreements are in red):
 
 ```{r fig-val-ea}
 plot(val)
 ```
 
+The plot can also be faceted by antimicrobial:
+
+```{r}
+plot(val, facet_wrap_nrow = 1)
+```
+
+The `table` function can be used to generate a table of the results:
+
+```{r message=FALSE}
+# generate table for MEM
+mem_dat <- subset(example_mics, ab == "MEM")
+mem_val <- compare_mic(gold_standard = mem_dat$gs, test = mem_dat$test)
+table(mem_val)
+```
