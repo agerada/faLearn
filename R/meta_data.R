@@ -900,6 +900,7 @@ fill_dilution_levels <- function(x,
 #'
 #' # if the validation contains multiple antibiotics, i.e.,
 #' ab <- c("CIP", "CIP", "AMK", "AMK")
+#' val <- compare_mic(gold_standard, test, ab, mo)
 #' # the following will plot all antibiotics in a single plot (pooled results)
 #' plot(val)
 #' # use the faceting arguments to split the plot by antibiotic
@@ -926,7 +927,8 @@ plot.mic_validation <- function(x,
     }
   }
 
-  if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1) {
+  if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1 |
+      all(is.null(c(facet_wrap_ncol, facet_wrap_nrow)))) {
     p <- plot_mic_validation_single_ab(x, match_axes, ...)
 
     if ("ab" %in% colnames(x) & "mo" %in% colnames(x)) {
@@ -1433,7 +1435,8 @@ table.default <- function(x, ...) {
 
 tabulate_flex <- function(t, ea, bold, ea_color, gold_standard_name, test_name) {
   t_flex <- t |>
-    stats::addmargins(FUN = list(Total = sum)) |>
+    stats::addmargins(FUN = list(Total = sum),
+                      quiet = TRUE) |>
     as.data.frame.matrix() |>
     tibble::rownames_to_column(var = "test_mics") |>
     dplyr::mutate("test" = test_name, .before = "test_mics") |>
