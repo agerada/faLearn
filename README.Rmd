@@ -116,14 +116,14 @@ head(as.data.frame(val))
 The results of an `mic_validation` can be plotted in a confusion matrix 
 (failed essential agreements are in red):
 
-```{r fig-val-ea}
+```{r fig-val-ea, dpi=300}
 plot(val)
 ```
 
 The plot can also be faceted by antimicrobial:
 
-```{r}
-plot(val, facet_wrap_nrow = 1)
+```{r dpi=300, fig.height=14}
+plot(val, facet_wrap_ncol = 1)
 ```
 
 The `table` function can be used to generate a table of the results:

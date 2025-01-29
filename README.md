@@ -164,7 +164,7 @@ plot(val)
 The plot can also be faceted by antimicrobial:
 
 ``` r
-plot(val, facet_wrap_nrow = 1)
+plot(val, facet_wrap_ncol = 1)
 ```
 
 <img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
