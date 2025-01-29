@@ -604,6 +604,10 @@ compare_mic <- function(gold_standard,
                         mo = NULL,
                         accept_ecoff = FALSE,
                         simplify = TRUE) {
+  if (length(gold_standard) != length(test)) {
+    stop("Gold standard and test must be the same length")
+  }
+
   gold_standard_mod <- gold_standard |>
     force_mic(levels_from_AMR = !simplify) |>
     AMR::as.mic()
@@ -612,7 +616,7 @@ compare_mic <- function(gold_standard,
     force_mic(levels_from_AMR = !simplify) |>
     AMR::as.mic()
 
-  output <- data.frame(
+  output <- list(
     gold_standard = gold_standard_mod,
     test = test_mod,
     essential_agreement = factor(essential_agreement(gold_standard_mod, test_mod),
@@ -620,11 +624,23 @@ compare_mic <- function(gold_standard,
   )
 
   if (!is.null(ab)) {
-    output["ab"] <- ab
+    if (length(ab) == 1) {
+      ab <- rep(ab, length(gold_standard))
+    }
+    if (length(ab) > 1 & length(ab) != length(gold_standard)) {
+      stop("Antibiotic names must be the same length as MIC values, or single value")
+    }
+    output[["ab"]] <- ab
   }
 
   if (!is.null(mo)) {
-    output["mo"] <- mo
+    if (length(mo) == 1) {
+      mo <- rep(mo, length(gold_standard))
+    }
+    if (length(mo) > 1 & length(mo) != length(gold_standard)) {
+      stop("Microorganism names must be the same length as MIC values, or single value")
+    }
+    output[["mo"]] <- mo
   }
 
   if (!is.null(ab) & !is.null(mo)) {
@@ -676,6 +692,38 @@ compare_mic <- function(gold_standard,
 
   class(output) <- append(class(output), "mic_validation", 0)
   output
+}
+
+#' Print MIC validation object
+#'
+#' @param x mic_validation object
+#' @param ... additional arguments
+#'
+#' @return character
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' print(val)
+print.mic_validation <- function(x, ...) {
+  if (!is.null(x$ab) & !is.null(x$mo)) {
+    antibiotic_str <- paste(unique(x$ab), collapse = ", ")
+    organism_str <- paste(unique(x$mo), collapse = ", ")
+    return(
+      cat(glue::glue("MIC validation object with {length(x$gold_standard)} observations
+                     Agreement type: essential and categorical
+                     Antibiotics: {antibiotic_str}
+                     Organisms: {organism_str}"))
+      )
+    }
+
+  return(
+    cat(glue::glue("MIC validation object with {length(x$gold_standard)} observations
+                   Agreement type: essential"))
+  )
+
 }
 
 plot_mic_validation_single_ab <- function(x, match_axes, ...) {
@@ -911,6 +959,7 @@ plot.mic_validation <- function(x,
                                 facet_wrap_ncol = NULL,
                                 facet_wrap_nrow = NULL,
                                 ...) {
+  x <- as.data.frame(x)
   # keep only columns needed for plotting
   if (!"ab" %in% colnames(x)) {
     x <- x[,c("gold_standard", "test", "essential_agreement")]
@@ -961,29 +1010,34 @@ plot.mic_validation <- function(x,
 #' test <- c("<0.25", "2", "16", "64")
 #' val <- compare_mic(gold_standard, test)
 #' summary(val)
+#' # or, for more detailed results
+#' as.data.frame(summary(val))
 summary.mic_validation <- function(object,
                                    ...) {
-  if (!"ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
-    return(
-      list(EA_n = sum(object$essential_agreement == TRUE),
-           EA_pcent = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
-           bias = bias(object$gold_standard, object$test))
-    )
+  if (!"ab" %in% names(object) & !"mo" %in% names(object)) {
+    output <- list(EA_n = sum(object$essential_agreement == TRUE),
+                   EA_pcent = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
+                   bias = bias(object$gold_standard, object$test),
+                   n = length(object$essential_agreement))
+    class(output) <- append(class(output), "mic_validation_summary", after = 0)
+    return(output)
   }
 
-  if ("ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
-    return(
-      object |>
+  if ("ab" %in% names(object) & !"mo" %in% names(object)) {
+      output <- object |>
+        as.data.frame() |>
         dplyr::group_by(.data[["ab"]]) |>
         dplyr::summarise(EA_n = sum(.data[["essential_agreement"]] == TRUE),
                          EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
-                         bias = bias(object$gold_standard, object$test))
-    )
+                         bias = bias(object$gold_standard, object$test),
+                         n = dplyr::n())
+      class(output) <- append(class(output), "mic_validation_summary", after = 0)
+      return(output)
   }
 
-  if ("ab" %in% colnames(object) & "mo" %in% colnames(object)) {
-    return(
-      object |>
+  if ("ab" %in% names(object) & "mo" %in% names(object)) {
+    output <- object |>
+        as.data.frame() |>
         dplyr::group_by(.data[["ab"]], .data[["mo"]]) |>
         dplyr::summarise(
           EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
@@ -997,6 +1051,59 @@ summary.mic_validation <- function(object,
           major_error_n = sum(.data[["error"]] == "M", na.rm = TRUE),
           very_major_error_n = sum(.data[["error"]] == "vM", na.rm = TRUE),
           n = dplyr::n())
+    class(output) <- append(class(output), "mic_validation_summary", after = 0)
+    return(output)
+
+  }
+}
+
+#' Print MIC validation summary
+#'
+#' @param x mic_validation_summary object
+#' @param ... additional arguments
+#'
+#' @return character
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' print(summary(val))
+print.mic_validation_summary <- function(x, ...) {
+  if (!"ab" %in% names(x) & !"mo" %in% names(x)) {
+    return(
+      cat(glue::glue("MIC validation summary
+                     Essential agreement: {x$EA_n} ({round(x$EA_pcent * 100, 2)}%)
+                     Bias: {x$bias}"))
+    )
+  }
+  if ("ab" %in% names(x) & !"mo" %in% names(x)) {
+    antibiotic_str <- paste(unique(x$ab), collapse = ", ")
+    return(
+      cat(glue::glue("MIC validation summary
+                     Number of observations: {sum(x$n)}
+                     Antibiotic: {antibiotic_str}
+                     Essential agreement: {sum(x$EA_n)} ({round(sum(x$EA_n) / sum(x$n) * 100, 2)}%)
+                     Mean bias: {mean(x$bias)}
+                     *Use as.data.frame() to see full summary*"))
+    )
+  }
+  if (length(x) > 1 & "ab" %in% names(x) & "mo" %in% names(x)) {
+    antibiotic_str <- paste(unique(x$ab), collapse = ", ")
+    organism_str <- paste(unique(x$mo), collapse = ", ")
+
+    return(
+      cat(glue::glue("MIC validation summary
+                     Antibiotic: {antibiotic_str}
+                     Organism: {organism_str}
+                     Essential agreement: {sum(x$EA_n)} ({round(sum(x$EA_n) / sum(x$n) * 100, 2)}%)
+                     Resistant: {sum(x$resistant_n)} ({round(sum(x$resistant_n) / sum(x$n) * 100, 2)}%)
+                     Minor errors: {sum(x$minor_error_n)} ({round(sum(x$minor_error_n) / sum(x$n) * 100, 2)}%)
+                     Major errors: {sum(x$major_error_n)} ({round(sum(x$major_error_n) / sum(x$n) * 100, 2)}%)
+                     Very major errors: {sum(x$very_major_error_n)} ({round(sum(x$very_major_error_n) / sum(x$n) * 100, 2)}%)
+                     N: {sum(x$n)}
+                     *Use as.data.frame() to see full summary*"))
     )
   }
 }
