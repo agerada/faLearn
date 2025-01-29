@@ -1041,6 +1041,7 @@ summary.mic_validation <- function(object,
         dplyr::group_by(.data[["ab"]], .data[["mo"]]) |>
         dplyr::summarise(
           EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
+          bias = bias(.data[["gold_standard"]], .data[["test"]]),
           resistant_pcent = AMR::proportion_R(.data[["gold_standard_sir"]], minimum = 1, as_percent = FALSE) * 100,
           minor_error_pcent = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
           major_error_pcent = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
@@ -1102,6 +1103,7 @@ print.mic_validation_summary <- function(x, ...) {
                      Minor errors: {sum(x$minor_error_n)} ({round(sum(x$minor_error_n) / sum(x$n) * 100, 2)}%)
                      Major errors: {sum(x$major_error_n)} ({round(sum(x$major_error_n) / sum(x$n) * 100, 2)}%)
                      Very major errors: {sum(x$very_major_error_n)} ({round(sum(x$very_major_error_n) / sum(x$n) * 100, 2)}%)
+                     Mean bias: {mean(x$bias)}
                      N: {sum(x$n)}
                      *Use as.data.frame() to see full summary*"))
     )
