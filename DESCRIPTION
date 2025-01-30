@@ -2,7 +2,7 @@ Package: MIC
 Title: Analysis of Antimicrobial Minimum Inhibitory Concentration Data
 Version: 0.10.2
 Authors@R: 
-    person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
+    person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6743-4271"))
 Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data.
     Validate the results of an MIC experiment by comparing observed MIC values to
