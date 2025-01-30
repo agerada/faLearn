@@ -355,8 +355,7 @@ replace_multiple_slashes <- function(path) {
 #'   names_backup = file.path(tmp_dir, "names.csv"),
 #'   overwrite = TRUE)
 #'
-#'  xgboost::xgb.DMatrix(paths[["train"]])
-#'  xgboost::xgb.DMatrix(paths[["test"]])
+#'  readLines(paths[["train"]])
 split_and_combine_files <- function(path_to_files,
                                     file_ext = ".txt",
                                     split = 0.8,

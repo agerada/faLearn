@@ -83,6 +83,5 @@ for (i in 1:10) {
   names_backup = file.path(tmp_dir, "names.csv"),
   overwrite = TRUE)
 
- xgboost::xgb.DMatrix(paths[["train"]])
- xgboost::xgb.DMatrix(paths[["test"]])
+ readLines(paths[["train"]])
 }
