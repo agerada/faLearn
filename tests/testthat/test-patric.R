@@ -31,7 +31,7 @@ test_that("check valid patric_db works",{
 test_that("check can save patric db", {
   skip_on_cran()
   tmp_path_db <- tempfile(fileext = ".txt")
-  save_patric_db(tmp_path_db)
+  download_patric_db(tmp_path_db)
   expect_s3_class(load_patric_db(tmp_path_db), "patric_db")
 })
 

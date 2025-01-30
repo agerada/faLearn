@@ -88,9 +88,9 @@ as_patric_db <- function(x) {
 #' @export
 #' @examples
 #' \dontrun{
-#' save_patric_db("patric_db.txt")
+#' download_patric_db("patric_db.txt")
 #' }
-save_patric_db <- function(save_path,
+download_patric_db <- function(save_path,
                            ftp_path = patric_ftp_path,
                            overwrite = FALSE) {
   if (file.exists(save_path) & !overwrite) {
