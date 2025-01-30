@@ -38,6 +38,12 @@ models that predict MIC values from genomic data.
 
 ## Installation
 
+### CRAN
+
+``` r
+install.packages("MIC")
+```
+
 ### GitHub
 
 ``` r
