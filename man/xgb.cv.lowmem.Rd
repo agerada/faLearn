@@ -100,8 +100,9 @@ train <- list(data = matrix(rnorm(20), ncol = 2),
 dtrain <- xgboost::xgb.DMatrix(train$data, label = train$label)
 cv <- xgb.cv.lowmem(data = dtrain,
                    params = list(objective = "binary:logistic"),
-                   nrounds = 5,
+                   nrounds = 2,
                    nfold = 3,
-                   prediction = TRUE)
+                   prediction = TRUE,
+                   nthread = 1)
 cv
 }

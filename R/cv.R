@@ -57,7 +57,8 @@
 #'                    params = list(objective = "binary:logistic"),
 #'                    nrounds = 2,
 #'                    nfold = 3,
-#'                    prediction = TRUE)
+#'                    prediction = TRUE,
+#'                    nthread = 1)
 #' cv
 xgb.cv.lowmem <- function(params = list(),
                           data,
