@@ -5,10 +5,10 @@ Authors@R:
     person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6743-4271"))
 Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data.
-    Validate the results of an MIC experiment by comparing the observed MIC values to
+    Validate the results of an MIC experiment by comparing observed MIC values to
     a gold standard assay, in line with standards from the 'International Organization for
     Standardization' (ISO). Perform MIC prediction from whole genome sequence data stored in the
-    'Pathosystems Resource Integration Center' ('BV-BRC') database.
+    'Pathosystems Resource Integration Center' ('BV-BRC') database or locally.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
