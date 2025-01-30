@@ -52,7 +52,7 @@
 #' @examples
 #' train <- list(data = matrix(rnorm(20), ncol = 2),
 #'              label = rbinom(10, 1, 0.5))
-#' dtrain <- xgboost::xgb.DMatrix(train$data, label = train$label)
+#' dtrain <- xgboost::xgb.DMatrix(train$data, label = train$label, nthread = 1)
 #' cv <- xgb.cv.lowmem(data = dtrain,
 #'                    params = list(objective = "binary:logistic"),
 #'                    nrounds = 2,
