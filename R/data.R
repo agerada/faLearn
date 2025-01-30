@@ -32,4 +32,10 @@
 #'  \item{`Confidence interval`}{see EUCAST documentation below}
 #' }
 #' @source EUCAST \url{https://www.eucast.org/mic_and_zone_distributions_and_ecoffs}
+#'
+#' These data have (or this document, presentation or video has) been produced
+#' in part under ECDC service contracts and made available by EUCAST at no cost
+#' to the user and can be accessed on the EUCAST website www.eucast.org.
+#' The views and opinions expressed are those of EUCAST at a given point in time.
+#' EUCAST recommendations are frequently updated and the latest versions are available at www.eucast.org.
 "ecoffs"
