@@ -44,3 +44,5 @@ Suggests:
     caret,
     lifecycle
 Config/testthat/edition: 3
+URL: https://github.com/agerada/MIC
+BugReports: https://github.com/agerada/MIC/issues
