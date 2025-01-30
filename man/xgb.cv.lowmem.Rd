@@ -95,13 +95,13 @@ as a field within the return object). To save models, use the save_models
 argument, rather than the cb.cv.predict(save_models = TRUE) callback.
 }
 \examples{
-library(xgboost)
-data(agaricus.train, package = "xgboost")
-dtrain <- xgb.DMatrix(agaricus.train$data, label = agaricus.train$label)
+train <- list(data = matrix(rnorm(20), ncol = 2),
+             label = rbinom(10, 1, 0.5))
+dtrain <- xgboost::xgb.DMatrix(train$data, label = train$label)
 cv <- xgb.cv.lowmem(data = dtrain,
                    params = list(objective = "binary:logistic"),
-                   nrounds = 10,
-                   nfold = 5,
+                   nrounds = 5,
+                   nfold = 3,
                    prediction = TRUE)
 cv
 }
