@@ -809,6 +809,10 @@ plot_mic_validation_multi_ab <- function(x, match_axes,
 #'
 #' @return MIC value
 #' @export
+#'
+#' @examples
+#' mic_s_breakpoint("B_ESCHR_COLI", "AMK")
+#' mic_s_breakpoint("B_ESCHR_COLI", "CHL", accept_ecoff = TRUE)
 mic_s_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
   mic_range <- mic_range()
   sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
@@ -843,6 +847,10 @@ mic_s_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
 #'
 #' @return MIC value
 #' @export
+#'
+#' @examples
+#' mic_r_breakpoint("B_ESCHR_COLI", "AMK")
+#' mic_r_breakpoint("B_ESCHR_COLI", "CHL", accept_ecoff = TRUE)
 mic_r_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
   mic_range <- rev(mic_range())
   sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
@@ -1001,6 +1009,8 @@ plot.mic_validation <- function(x,
 #' @param ... further optional parameters
 #'
 #' @export
+#'
+#' @return S3 mic_validation_summary object
 #'
 #' @description
 #' Summarise the results of an MIC validation generated using compare_mic().
@@ -1526,12 +1536,13 @@ bias <- function(gold_standard, test) {
 
 #' Table
 #'
-#' @param x an object that can be tabulated into an essential agreement
+#' @param x an mic_validation object to be tabulated into an essential agreement
 #' frequency table, or object/s to be passed to base::table
 #' @param ... further arguments
 #'
 #' @rdname table
 #' @export
+#'
 table <- function(x, ...) {
   UseMethod("table")
 }

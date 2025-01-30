@@ -39,6 +39,28 @@
 #'   )
 #' }
 #'
+#' set.seed(123)
+#' # create 10 random DNA files
+#' tmp_dir <- tempdir()
+#' # remove any existing .fna files
+#' file.remove(
+#'  list.files(tmp_dir, pattern = "*.fna", full.names = TRUE)
+#' )
+#' for (i in 1:10) {
+#' writeLines(paste0(">", i, "\n", paste0(sample(c("A", "T", "C", "G"),
+#'  100, replace = TRUE), collapse = "")), file.path(tmp_dir, paste0(i, ".fna")))
+#' }
+#'
+#' tmp_target_dir <- file.path(tmp_dir, "kmers")
+#' unlink(tmp_target_dir, recursive = TRUE)
+#'
+#' # convert genomes to k-mers
+#' genomes_to_kmer_libsvm(tmp_dir, tmp_target_dir, k = 3)
+#'
+#' # check the output
+#' list.files(tmp_target_dir)
+#' readLines(list.files(tmp_target_dir, full.names = TRUE)[1])
+#'
 #' @seealso to convert a single genome, use [genome_to_libsvm()]
 #' @export
 genomes_to_kmer_libsvm <- function(source_dir,

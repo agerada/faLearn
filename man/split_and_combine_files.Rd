@@ -59,3 +59,30 @@ MIC::xgb.cv.lowmem(). It is also possible to combine all data into train
 and then perform splitting after loading into an xgboost::DMatrix, using
 xgboost::slice().
 }
+\examples{
+set.seed(123)
+# create 10 random libsvm files
+tmp_dir <- tempdir()
+# remove any existing .txt files
+file.remove(
+list.files(tmp_dir, pattern = "*.txt", full.names = TRUE)
+)
+for (i in 1:10) {
+ # each line is K: V
+ writeLines(paste0(i, ": ", paste0(sample(1:100, 10, replace = TRUE),
+ collapse = " ")), file.path(tmp_dir, paste0(i, ".txt")))
+ }
+
+ # split files into train and test directories
+ paths <- split_and_combine_files(
+  tmp_dir,
+  file_ext = "txt",
+  split = 0.8,
+  train_target_path = file.path(tmp_dir, "train.txt"),
+  test_target_path = file.path(tmp_dir, "test.txt"),
+  names_backup = file.path(tmp_dir, "names.csv"),
+  overwrite = TRUE)
+
+ xgboost::xgb.DMatrix(paths[["train"]])
+ xgboost::xgb.DMatrix(paths[["test"]])
+}

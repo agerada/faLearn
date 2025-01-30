@@ -11,6 +11,9 @@
 
 \item{...}{further optional parameters}
 }
+\value{
+S3 mic_validation_summary object
+}
 \description{
 Summarise the results of an MIC validation generated using compare_mic().
 }

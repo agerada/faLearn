@@ -20,3 +20,27 @@ move_files(source_dir, target_dir, move_which, ext = ".txt", copy = FALSE)
 \description{
 Move or copy files using logical vector
 }
+\examples{
+set.seed(123)
+# create 10 random DNA files
+tmp_dir <- tempdir()
+# remove any existing .fna files
+file.remove(
+ list.files(tmp_dir, pattern = "*.fna", full.names = TRUE)
+)
+for (i in 1:10) {
+writeLines(paste0(">", i, "\n", paste0(sample(c("A", "T", "C", "G"),
+ 100, replace = TRUE), collapse = "")), file.path(tmp_dir, paste0(i, ".fna")))
+}
+
+# move files with even numbers to a new directory
+new_dir <- file.path(tempdir(), "even_files")
+unlink(new_dir, recursive = TRUE)
+move_files(tmp_dir,
+           new_dir,
+           move_which = as.integer(
+              tools::file_path_sans_ext(
+                  list.files(tmp_dir, pattern = "*.fna"))) \%\% 2 == 0,
+           ext = "fna")
+list.files(new_dir)
+}

@@ -49,6 +49,16 @@
 #' argument, rather than the cb.cv.predict(save_models = TRUE) callback.
 #'
 #' @export
+#' @examples
+#' library(xgboost)
+#' data(agaricus.train, package = "xgboost")
+#' dtrain <- xgb.DMatrix(agaricus.train$data, label = agaricus.train$label)
+#' cv <- xgb.cv.lowmem(data = dtrain,
+#'                    params = list(objective = "binary:logistic"),
+#'                    nrounds = 10,
+#'                    nfold = 5,
+#'                    prediction = TRUE)
+#' cv
 xgb.cv.lowmem <- function(params = list(),
                           data,
                           nrounds,

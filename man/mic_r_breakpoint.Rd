@@ -22,3 +22,7 @@ MIC value
 \description{
 R breakpoint for MIC
 }
+\examples{
+mic_r_breakpoint("B_ESCHR_COLI", "AMK")
+mic_r_breakpoint("B_ESCHR_COLI", "CHL", accept_ecoff = TRUE)
+}
