@@ -2,7 +2,8 @@
 % Please edit documentation in R/meta_data.R
 \name{qc_on_target}
 \alias{qc_on_target}
-\title{Check that QC measurement is at the required target}
+\title{Check that QC measurement is at the required target
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}}
 \usage{
 qc_on_target(
   measurement,
@@ -30,8 +31,30 @@ qc_on_target(
 logical vector
 }
 \description{
-Check that QC measurement is at the required target
+MIC experiments should include a control strain with a known MIC.
+The MIC result for the control strain should be a particular target MIC. This
+function checks whether the target MIC was achieved given: 1) a control
+strain (usually identified as an ATCC or NCTC number), 2) an antibiotic name,
+and 3) a guideline (EUCAST or CLSI).
+
+Since QC target values are currently not publicly available in an easy to
+use format, this function takes a pragmatic approach -- for most antibiotics
+and QC strains, the target is assumed to be the midpoint of the acceptable
+range. This approximation is not necessarily equal to the QC target reported
+by guideline setting bodies such as EUCAST. Therefore, this function is
+considered experimental and should be used with caution.
+
+This function can be used alongnside qc_in_range(), which checks whether the
+MIC is within the acceptable range.
+
+The source of the QC values is the WHONET QC Ranges and Targets available from
+the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+https://github.com/AClark-WHONET/AMRIE
 }
 \examples{
 qc_on_target(AMR::as.mic(0.5), 25922, "GEN") == TRUE
+}
+\references{
+O’Brien TF, Stelling JM. WHONET: An Information System for Monitoring
+Antimicrobial Resistance. Emerg Infect Dis. 1995 Jun;1(2):66–66.
 }

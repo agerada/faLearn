@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{unsqueezed_mers}
 \alias{unsqueezed_mers}
-\title{Generates unsqueezed kmers}
+\title{Generates all permutations of unsqueezed kmers}
 \usage{
 unsqueezed_mers(k = 3L)
 }
@@ -13,5 +13,8 @@ unsqueezed_mers(k = 3L)
 vector of unsqueezed kmers
 }
 \description{
-Generates unsqueezed kmers
+Generates all permutations of unsqueezed kmers
+}
+\examples{
+unsqueezed_mers(3)
 }

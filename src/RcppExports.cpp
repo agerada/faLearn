@@ -40,9 +40,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// kmers_to_libsvm
-bool kmers_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k, bool canonical, bool squeeze);
-RcppExport SEXP _MIC_kmers_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP, SEXP squeezeSEXP) {
+// genome_to_libsvm
+bool genome_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k, bool canonical, bool squeeze);
+RcppExport SEXP _MIC_genome_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP, SEXP squeezeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -52,7 +52,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< bool >::type canonical(canonicalSEXP);
     Rcpp::traits::input_parameter< bool >::type squeeze(squeezeSEXP);
-    rcpp_result_gen = Rcpp::wrap(kmers_to_libsvm(x, target_path, label, k, canonical, squeeze));
+    rcpp_result_gen = Rcpp::wrap(genome_to_libsvm(x, target_path, label, k, canonical, squeeze));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -79,27 +79,27 @@ BEGIN_RCPP
 END_RCPP
 }
 // squeezed_index_to_str
-StringVector squeezed_index_to_str(IntegerVector x, int k, int starting_index);
+StringVector squeezed_index_to_str(IntegerVector x, int k, unsigned int starting_index);
 RcppExport SEXP _MIC_squeezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< int >::type starting_index(starting_indexSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type starting_index(starting_indexSEXP);
     rcpp_result_gen = Rcpp::wrap(squeezed_index_to_str(x, k, starting_index));
     return rcpp_result_gen;
 END_RCPP
 }
 // unsqueezed_index_to_str
-StringVector unsqueezed_index_to_str(IntegerVector x, int k, int starting_index);
+StringVector unsqueezed_index_to_str(IntegerVector x, int k, unsigned int starting_index);
 RcppExport SEXP _MIC_unsqueezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< int >::type starting_index(starting_indexSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type starting_index(starting_indexSEXP);
     rcpp_result_gen = Rcpp::wrap(unsqueezed_index_to_str(x, k, starting_index));
     return rcpp_result_gen;
 END_RCPP
@@ -108,7 +108,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_MIC_reverse_complement", (DL_FUNC) &_MIC_reverse_complement, 1},
     {"_MIC_kmers", (DL_FUNC) &_MIC_kmers, 9},
-    {"_MIC_kmers_to_libsvm", (DL_FUNC) &_MIC_kmers_to_libsvm, 6},
+    {"_MIC_genome_to_libsvm", (DL_FUNC) &_MIC_genome_to_libsvm, 6},
     {"_MIC_squeezed_mers", (DL_FUNC) &_MIC_squeezed_mers, 1},
     {"_MIC_unsqueezed_mers", (DL_FUNC) &_MIC_unsqueezed_mers, 1},
     {"_MIC_squeezed_index_to_str", (DL_FUNC) &_MIC_squeezed_index_to_str, 3},

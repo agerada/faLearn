@@ -493,7 +493,9 @@ force_mic <- function(value,
 #' categorical mode provides more reliable results. Values within +/- 2
 #' dilutions are considered to be in essential agreement.
 #'
-#' @references https://www.iso.org/standard/79377.html
+#' @references
+#' International Organization for Standardization. ISO 20776-2:2021
+#' Available from: https://www.iso.org/standard/79377.html
 #'
 #' @examples
 #' x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
@@ -602,6 +604,10 @@ compare_mic <- function(gold_standard,
                         mo = NULL,
                         accept_ecoff = FALSE,
                         simplify = TRUE) {
+  if (length(gold_standard) != length(test)) {
+    stop("Gold standard and test must be the same length")
+  }
+
   gold_standard_mod <- gold_standard |>
     force_mic(levels_from_AMR = !simplify) |>
     AMR::as.mic()
@@ -610,7 +616,7 @@ compare_mic <- function(gold_standard,
     force_mic(levels_from_AMR = !simplify) |>
     AMR::as.mic()
 
-  output <- data.frame(
+  output <- list(
     gold_standard = gold_standard_mod,
     test = test_mod,
     essential_agreement = factor(essential_agreement(gold_standard_mod, test_mod),
@@ -618,11 +624,23 @@ compare_mic <- function(gold_standard,
   )
 
   if (!is.null(ab)) {
-    output["ab"] <- ab
+    if (length(ab) == 1) {
+      ab <- rep(ab, length(gold_standard))
+    }
+    if (length(ab) > 1 & length(ab) != length(gold_standard)) {
+      stop("Antibiotic names must be the same length as MIC values, or single value")
+    }
+    output[["ab"]] <- ab
   }
 
   if (!is.null(mo)) {
-    output["mo"] <- mo
+    if (length(mo) == 1) {
+      mo <- rep(mo, length(gold_standard))
+    }
+    if (length(mo) > 1 & length(mo) != length(gold_standard)) {
+      stop("Microorganism names must be the same length as MIC values, or single value")
+    }
+    output[["mo"]] <- mo
   }
 
   if (!is.null(ab) & !is.null(mo)) {
@@ -668,12 +686,44 @@ compare_mic <- function(gold_standard,
                                      })
     output[["gold_standard_sir"]] <- gold_standard_sir
     output[["test_sir"]] <- test_sir
-    output["error"] <- compare_sir(gold_standard_sir,
+    output[["error"]] <- compare_sir(gold_standard_sir,
                                    test_sir)
   }
 
   class(output) <- append(class(output), "mic_validation", 0)
   output
+}
+
+#' Print MIC validation object
+#'
+#' @param x mic_validation object
+#' @param ... additional arguments
+#'
+#' @return character
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' print(val)
+print.mic_validation <- function(x, ...) {
+  if (!is.null(x$ab) & !is.null(x$mo)) {
+    antibiotic_str <- paste(unique(x$ab), collapse = ", ")
+    organism_str <- paste(unique(x$mo), collapse = ", ")
+    return(
+      cat(glue::glue("MIC validation object with {length(x$gold_standard)} observations
+                     Agreement type: essential and categorical
+                     Antibiotics: {antibiotic_str}
+                     Organisms: {organism_str}"))
+      )
+    }
+
+  return(
+    cat(glue::glue("MIC validation object with {length(x$gold_standard)} observations
+                   Agreement type: essential"))
+  )
+
 }
 
 plot_mic_validation_single_ab <- function(x, match_axes, ...) {
@@ -759,6 +809,10 @@ plot_mic_validation_multi_ab <- function(x, match_axes,
 #'
 #' @return MIC value
 #' @export
+#'
+#' @examples
+#' mic_s_breakpoint("B_ESCHR_COLI", "AMK")
+#' mic_s_breakpoint("B_ESCHR_COLI", "CHL", accept_ecoff = TRUE)
 mic_s_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
   mic_range <- mic_range()
   sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
@@ -793,6 +847,10 @@ mic_s_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
 #'
 #' @return MIC value
 #' @export
+#'
+#' @examples
+#' mic_r_breakpoint("B_ESCHR_COLI", "AMK")
+#' mic_r_breakpoint("B_ESCHR_COLI", "CHL", accept_ecoff = TRUE)
 mic_r_breakpoint <- function(mo, ab, accept_ecoff = FALSE, ...) {
   mic_range <- rev(mic_range())
   sir_range <- AMR::as.sir(AMR::as.mic(mic_range),
@@ -898,6 +956,7 @@ fill_dilution_levels <- function(x,
 #'
 #' # if the validation contains multiple antibiotics, i.e.,
 #' ab <- c("CIP", "CIP", "AMK", "AMK")
+#' val <- compare_mic(gold_standard, test, ab, mo)
 #' # the following will plot all antibiotics in a single plot (pooled results)
 #' plot(val)
 #' # use the faceting arguments to split the plot by antibiotic
@@ -908,6 +967,7 @@ plot.mic_validation <- function(x,
                                 facet_wrap_ncol = NULL,
                                 facet_wrap_nrow = NULL,
                                 ...) {
+  x <- as.data.frame(x)
   # keep only columns needed for plotting
   if (!"ab" %in% colnames(x)) {
     x <- x[,c("gold_standard", "test", "essential_agreement")]
@@ -924,7 +984,8 @@ plot.mic_validation <- function(x,
     }
   }
 
-  if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1) {
+  if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1 |
+      all(is.null(c(facet_wrap_ncol, facet_wrap_nrow)))) {
     p <- plot_mic_validation_single_ab(x, match_axes, ...)
 
     if ("ab" %in% colnames(x) & "mo" %in% colnames(x)) {
@@ -949,6 +1010,8 @@ plot.mic_validation <- function(x,
 #'
 #' @export
 #'
+#' @return S3 mic_validation_summary object
+#'
 #' @description
 #' Summarise the results of an MIC validation generated using compare_mic().
 #'
@@ -957,32 +1020,38 @@ plot.mic_validation <- function(x,
 #' test <- c("<0.25", "2", "16", "64")
 #' val <- compare_mic(gold_standard, test)
 #' summary(val)
+#' # or, for more detailed results
+#' as.data.frame(summary(val))
 summary.mic_validation <- function(object,
                                    ...) {
-  if (!"ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
-    return(
-      list(EA_n = sum(object$essential_agreement == TRUE),
-           EA_pcent = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
-           bias = bias(object$gold_standard, object$test))
-    )
+  if (!"ab" %in% names(object) & !"mo" %in% names(object)) {
+    output <- list(EA_n = sum(object$essential_agreement == TRUE),
+                   EA_pcent = sum(object$essential_agreement == TRUE) / length(object$essential_agreement),
+                   bias = bias(object$gold_standard, object$test),
+                   n = length(object$essential_agreement))
+    class(output) <- append(class(output), "mic_validation_summary", after = 0)
+    return(output)
   }
 
-  if ("ab" %in% colnames(object) & !"mo" %in% colnames(object)) {
-    return(
-      object |>
+  if ("ab" %in% names(object) & !"mo" %in% names(object)) {
+      output <- object |>
+        as.data.frame() |>
         dplyr::group_by(.data[["ab"]]) |>
         dplyr::summarise(EA_n = sum(.data[["essential_agreement"]] == TRUE),
                          EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
-                         bias = bias(object$gold_standard, object$test))
-    )
+                         bias = bias(object$gold_standard, object$test),
+                         n = dplyr::n())
+      class(output) <- append(class(output), "mic_validation_summary", after = 0)
+      return(output)
   }
 
-  if ("ab" %in% colnames(object) & "mo" %in% colnames(object)) {
-    return(
-      object |>
+  if ("ab" %in% names(object) & "mo" %in% names(object)) {
+    output <- object |>
+        as.data.frame() |>
         dplyr::group_by(.data[["ab"]], .data[["mo"]]) |>
         dplyr::summarise(
           EA_pcent = sum(.data[["essential_agreement"]] == TRUE) / length(.data[["essential_agreement"]]),
+          bias = bias(.data[["gold_standard"]], .data[["test"]]),
           resistant_pcent = AMR::proportion_R(.data[["gold_standard_sir"]], minimum = 1, as_percent = FALSE) * 100,
           minor_error_pcent = sum(.data[["error"]] == "m", na.rm = TRUE) / length(.data[["error"]]) * 100,
           major_error_pcent = sum(.data[["error"]] == "M", na.rm = TRUE) / length(.data[["error"]]) * 100,
@@ -993,6 +1062,60 @@ summary.mic_validation <- function(object,
           major_error_n = sum(.data[["error"]] == "M", na.rm = TRUE),
           very_major_error_n = sum(.data[["error"]] == "vM", na.rm = TRUE),
           n = dplyr::n())
+    class(output) <- append(class(output), "mic_validation_summary", after = 0)
+    return(output)
+
+  }
+}
+
+#' Print MIC validation summary
+#'
+#' @param x mic_validation_summary object
+#' @param ... additional arguments
+#'
+#' @return character
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' print(summary(val))
+print.mic_validation_summary <- function(x, ...) {
+  if (!"ab" %in% names(x) & !"mo" %in% names(x)) {
+    return(
+      cat(glue::glue("MIC validation summary
+                     Essential agreement: {x$EA_n} ({round(x$EA_pcent * 100, 2)}%)
+                     Bias: {x$bias}"))
+    )
+  }
+  if ("ab" %in% names(x) & !"mo" %in% names(x)) {
+    antibiotic_str <- paste(unique(x$ab), collapse = ", ")
+    return(
+      cat(glue::glue("MIC validation summary
+                     Number of observations: {sum(x$n)}
+                     Antibiotic: {antibiotic_str}
+                     Essential agreement: {sum(x$EA_n)} ({round(sum(x$EA_n) / sum(x$n) * 100, 2)}%)
+                     Mean bias: {mean(x$bias)}
+                     *Use as.data.frame() to see full summary*"))
+    )
+  }
+  if (length(x) > 1 & "ab" %in% names(x) & "mo" %in% names(x)) {
+    antibiotic_str <- paste(unique(x$ab), collapse = ", ")
+    organism_str <- paste(unique(x$mo), collapse = ", ")
+
+    return(
+      cat(glue::glue("MIC validation summary
+                     Antibiotic: {antibiotic_str}
+                     Organism: {organism_str}
+                     Essential agreement: {sum(x$EA_n)} ({round(sum(x$EA_n) / sum(x$n) * 100, 2)}%)
+                     Resistant: {sum(x$resistant_n)} ({round(sum(x$resistant_n) / sum(x$n) * 100, 2)}%)
+                     Minor errors: {sum(x$minor_error_n)} ({round(sum(x$minor_error_n) / sum(x$n) * 100, 2)}%)
+                     Major errors: {sum(x$major_error_n)} ({round(sum(x$major_error_n) / sum(x$n) * 100, 2)}%)
+                     Very major errors: {sum(x$very_major_error_n)} ({round(sum(x$very_major_error_n) / sum(x$n) * 100, 2)}%)
+                     Mean bias: {mean(x$bias)}
+                     N: {sum(x$n)}
+                     *Use as.data.frame() to see full summary*"))
     )
   }
 }
@@ -1017,10 +1140,15 @@ summary.mic_validation <- function(object,
 #' a guideline (EUCAST or CLSI). The acceptable range is defined by 'QC_table',
 #' which is a dataset which is loaded with this package.
 #'
-#' The source of the QC values is
+#' The source of the QC values is the WHONET QC Ranges and Targets available from
+#' the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+#' https://github.com/AClark-WHONET/AMRIE
 #'
 #' @export
-#'
+#' @references
+#' O’Brien TF, Stelling JM. WHONET: An Information System for Monitoring
+#' Antimicrobial Resistance. Emerg Infect Dis. 1995 Jun;1(2):66–66.
+
 #' @examples
 #' qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE
 #' qc_in_range(AMR::as.mic(8.0), 25922, "GEN") == FALSE
@@ -1076,6 +1204,7 @@ qc_in_range <- Vectorize(
 )
 
 #' Check that QC measurement is at the required target
+#' `r lifecycle::badge('experimental')`
 #'
 #' @param measurement measured QC MIC
 #' @param strain control strain identifier (usually ATCC)
@@ -1083,9 +1212,33 @@ qc_in_range <- Vectorize(
 #' @param ignore_na ignores NA (returns TRUE)
 #' @param guideline Guideline to use (EUCAST or CLSI)
 #' @param year Guideline year (version)
+#' @description
+#' MIC experiments should include a control strain with a known MIC.
+#' The MIC result for the control strain should be a particular target MIC. This
+#' function checks whether the target MIC was achieved given: 1) a control
+#' strain (usually identified as an ATCC or NCTC number), 2) an antibiotic name,
+#' and 3) a guideline (EUCAST or CLSI).
+#'
+#' Since QC target values are currently not publicly available in an easy to
+#' use format, this function takes a pragmatic approach -- for most antibiotics
+#' and QC strains, the target is assumed to be the midpoint of the acceptable
+#' range. This approximation is not necessarily equal to the QC target reported
+#' by guideline setting bodies such as EUCAST. Therefore, this function is
+#' considered experimental and should be used with caution.
+#'
+#' This function can be used alongnside qc_in_range(), which checks whether the
+#' MIC is within the acceptable range.
+#'
+#' The source of the QC values is the WHONET QC Ranges and Targets available from
+#' the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+#' https://github.com/AClark-WHONET/AMRIE
 #'
 #' @return logical vector
 #' @export
+#'
+#' @references
+#' O’Brien TF, Stelling JM. WHONET: An Information System for Monitoring
+#' Antimicrobial Resistance. Emerg Infect Dis. 1995 Jun;1(2):66–66.
 #'
 #' @examples
 #' qc_on_target(AMR::as.mic(0.5), 25922, "GEN") == TRUE
@@ -1113,7 +1266,10 @@ qc_on_target <- Vectorize(
       strain <- paste0("atcc", strain)
     }
 
-    qc_subset <- QC_table[QC_table$STRAIN == strain & QC_table$ANTIBIOTIC == ab & QC_table$GUIDELINE == guideline & QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
+    qc_subset <- QC_table[QC_table$STRAIN == strain &
+                            QC_table$ANTIBIOTIC == ab &
+                            QC_table$GUIDELINE == guideline &
+                            QC_table$YEAR == year & QC_table$METHOD == "MIC", ]
 
     if (nrow(qc_subset) == 0) {
       # no QC info in table
@@ -1138,6 +1294,7 @@ qc_on_target <- Vectorize(
 )
 
 #' Standardise MIC to control strain
+#' `r lifecycle::badge('experimental')`
 #'
 #' @param test_measurement Measured MIC to standardise
 #' @param qc_measurement Measured QC MIC to standardise to
@@ -1153,14 +1310,43 @@ qc_on_target <- Vectorize(
 #' @return AMR::mic vector
 #' @export
 #'
+#' @description
+#' MIC experiments are generally quality-controlled by including a control strain
+#' with a known MIC. The MIC result for the control strain should be a particular
+#' target MIC, or at least within an acceptable range. This function standardises
+#' a measured MIC to the target MIC given: 1) a control strain (usually identified
+#' as an ATCC or NCTC number), 2) an antibiotic name, and 3) a guideline (EUCAST
+#' or CLSI). The definition of standardisation in this context is to adjust the
+#' measured MIC based on the QC MIC. This is based on the following principles
+#' and assumption:
+#'
+#' 1. A measured MIC is composed of two components: the true MIC and a
+#' measurement error. The measurement error is considered to be inevitable when
+#' measuring MICs, and is likely to be further composed of variability in
+#' laboratory conditions and operator interpretation.
+#' 2. It is assumed that the MIC of the control strain in the experiment has
+#' also been affected by this error.
+#'
+#' The standardisation applied by this function uses the measured QC strain
+#' MIC as a reference point, and scales the rest of the MICs to this reference.
+#' In general, this means that the MICs are doubled or halved, depending on the
+#' result of the QC MIC. A worked example is provided below and illustrates
+#' the transformation that this function applies.
+#'
+#' There is no current evidence base for this approach, therefore, this
+#' function is considered experimental and should be used with caution.
+#'
 #' @examples
+#' # Ref strain QC MIC for GEN is 0.5
 #' standardise_mic(
-#'   test_measurement = c(AMR::as.mic(">8.0"),
-#'                        AMR::as.mic(4.0),
-#'                        AMR::as.mic(2)),
+#'   test_measurement = c(AMR::as.mic(">8.0"),  # QC = 1, censored MIC remains censored
+#'                        AMR::as.mic(4.0),  # QC = 0.5 which is on target, so stays same
+#'                        AMR::as.mic(2),  # QC = 1, so scaled down to 1
+#'                        AMR::as.mic(2)),  # QC = 0.25, so scaled up to 8
 #'   qc_measurement = c(AMR::as.mic(1),
 #'                      AMR::as.mic(0.5),
-#'                      AMR::as.mic(1)),
+#'                      AMR::as.mic(1),
+#'                      AMR::as.mic(0.25)),
 #'   strain = 25922,
 #'   ab = AMR::as.ab("GEN"))
 standardise_mic <- function(test_measurement,
@@ -1267,9 +1453,38 @@ and lower range. EUCAST/CLSI guidance may be different."))
                                          year))
 }
 
+#' Compare SIR results and generate categorical agreement
+#'
+#' @param gold_standard Susceptibility results in AMR::sir format
+#' @param test Susceptibility results in AMR::sir format
+#'
+#' @return factor vector with the following levels: M, vM, m.
+#' @export
+#'
+#' @description
+#' Compare two AMR::sir vectors and generate a categorical agreement vector with
+#' the following levels: M (major error), vM (very major error), m (minor error).
+#' The error definitions are:
+#'
+#' 1. Major error (M): The test result is resistant (R) when the gold standard
+#' is susceptible (S).
+#' 2. vM (very major error): The test result is susceptible (S) when the gold
+#' standard is resistant (R).
+#' 3. Minor error (m): The test result is intermediate (I) when the gold standard
+#' is susceptible (S) or resistant (R), or vice versa.
+#'
+#' @examples
+#' gold_standard <- c("S", "R", "I", "I")
+#' gold_standard <- AMR::as.sir(gold_standard)
+#' test <- c("S", "I", "R", "R")
+#' test <- AMR::as.sir(test)
+#' compare_sir(gold_standard, test)
 compare_sir <- function(gold_standard, test) {
   if (length(gold_standard) != length(test)) {
     stop("Inputs to compare_sir must be same length")
+  }
+  if (!all(AMR::is.sir(gold_standard)) | !all(AMR::is.sir(test))) {
+    stop("Inputs to compare_sir must be AMR::sir objects")
   }
   return(
     factor(
@@ -1281,11 +1496,33 @@ compare_sir <- function(gold_standard, test) {
         gold_standard == "S" & test == "R" ~ "M",
         gold_standard == "R" & test == "S" ~ "vM",
         TRUE ~ NA
-      )
+      ),
+      levels = c("M", "vM", "m")
     )
   )
 }
 
+#' Calculate MIC bias
+#'
+#' @param gold_standard AMR::mic vector
+#' @param test AMR::mic vector
+#'
+#' @return numeric value
+#' @export
+#'
+#' @description
+#' Calculate the bias between two AMR::mic vectors. The bias is calculated as
+#' the percentage of test MICs that are above the gold standard MICs minus the
+#' percentage of test MICs that are below the gold standard MICs.
+#'
+#' @references
+#' International Organization for Standardization. ISO 20776-2:2021
+#' Available from: https://www.iso.org/standard/79377.html
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' bias(gold_standard, test)
 bias <- function(gold_standard, test) {
   if (length(gold_standard) != length(test)) {
     stop("Inputs to bias must be same length")
@@ -1299,12 +1536,13 @@ bias <- function(gold_standard, test) {
 
 #' Table
 #'
-#' @param x an object that can be tabulated into an essential agreement
+#' @param x an mic_validation object to be tabulated into an essential agreement
 #' frequency table, or object/s to be passed to base::table
 #' @param ... further arguments
 #'
 #' @rdname table
 #' @export
+#'
 table <- function(x, ...) {
   UseMethod("table")
 }
@@ -1317,10 +1555,9 @@ table.default <- function(x, ...) {
 
 tabulate_flex <- function(t, ea, bold, ea_color, gold_standard_name, test_name) {
   t_flex <- t |>
-    stats::addmargins(FUN = list(Total = sum)) |>
+    stats::addmargins(FUN = list(Total = sum),
+                      quiet = TRUE) |>
     as.data.frame.matrix() |>
-    # cbind(., Totals = row_sums) %>%
-    # rbind(., Totals = col_sums) %>%
     tibble::rownames_to_column(var = "test_mics") |>
     dplyr::mutate("test" = test_name, .before = "test_mics") |>
     flextable::flextable()
@@ -1361,7 +1598,15 @@ tabulate_flex <- function(t, ea, bold, ea_color, gold_standard_name, test_name) 
 #' @param test_name Name of the test to display in output
 #' @param ... further arguments
 #'
+#' @return table or flextable object
+#'
 #' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' val <- compare_mic(gold_standard, test)
+#' table(val)
 table.mic_validation <- function(x,
                                  format = 'flextable',
                                  fill_dilutions = TRUE,

@@ -6,3 +6,6 @@
 ^tmp/
 ^pre_R_package/
 ^data-raw$
+^README\.Rmd$
+^\.github$
+^cran-comments\.md$

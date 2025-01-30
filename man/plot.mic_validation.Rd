@@ -50,6 +50,7 @@ plot(val)
 
 # if the validation contains multiple antibiotics, i.e.,
 ab <- c("CIP", "CIP", "AMK", "AMK")
+val <- compare_mic(gold_standard, test, ab, mo)
 # the following will plot all antibiotics in a single plot (pooled results)
 plot(val)
 # use the faceting arguments to split the plot by antibiotic

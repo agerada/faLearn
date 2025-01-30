@@ -22,3 +22,7 @@ MIC value
 \description{
 S breakpoint for MIC
 }
+\examples{
+mic_s_breakpoint("B_ESCHR_COLI", "AMK")
+mic_s_breakpoint("B_ESCHR_COLI", "CHL", accept_ecoff = TRUE)
+}

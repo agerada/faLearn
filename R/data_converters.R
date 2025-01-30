@@ -17,6 +17,30 @@ strip_filename <- function(paths) {
 #'
 #' @return named vector of train and test directories
 #' @export
+#'
+#' @examples
+#' set.seed(123)
+#' # create 10 random DNA files
+#' tmp_dir <- tempdir()
+#' # remove any existing .fna files
+#' file.remove(
+#'   list.files(tmp_dir, pattern = "*.fna", full.names = TRUE)
+#' )
+#'
+#' for (i in 1:10) {
+#'  writeLines(paste0(">", i, "\n", paste0(sample(c("A", "T", "C", "G"),
+#'  100, replace = TRUE), collapse = "")), file.path(tmp_dir, paste0(i, ".fna")))
+#' }
+#'
+#' # split files into train and test directories
+#' paths <- train_test_filesystem(tmp_dir,
+#'                                file_ext = "fna",
+#'                                split = 0.8,
+#'                                shuffle = TRUE,
+#'                                overwrite = TRUE)
+#'
+#' list.files(paths[["train"]])
+#' list.files(paths[["test"]])
 train_test_filesystem <- function(path_to_files,
                                   file_ext,
                                   split = 0.8,
@@ -38,14 +62,28 @@ train_test_filesystem <- function(path_to_files,
     dir.exists(file.path(path_to_files, train_folder)) &&
     dir.exists(file.path(path_to_files, test_folder))) {
     message("files already appear to be in train test subdirectories")
-    out_paths <- normalizePath(file.path(path_to_files, c(train_folder, test_folder)))
-    names(out_paths) <- c(train_folder, test_folder)
-    return(out_paths)
+
+    if (!overwrite) {
+      out_paths <- normalizePath(file.path(path_to_files, c(train_folder, test_folder)))
+      names(out_paths) <- c(train_folder, test_folder)
+      return(out_paths)
+    }
+
   }
 
   if (!isTRUE(shuffle)) {
     libsvm_filepaths <- sort(libsvm_filepaths)
   }
+
+  if (dir.exists(file.path(path_to_files, train_folder)) | dir.exists(file.path(path_to_files, test_folder))) {
+    message("train or test folders already exist")
+    if (!overwrite) {
+      stop("Aborting, force using overwrite = TRUE")
+    }
+  }
+
+  unlink(file.path(path_to_files, train_folder), recursive = TRUE)
+  unlink(file.path(path_to_files, test_folder), recursive = TRUE)
 
   dir.create(file.path(path_to_files, train_folder))
   dir.create(file.path(path_to_files, test_folder))
@@ -99,6 +137,31 @@ train_test_filesystem <- function(path_to_files,
 #' @param overwrite force overwrite of files that already exist
 #'
 #' @export
+#'
+#' @return NULL
+#'
+#' @examples
+#' set.seed(123)
+#' # create 10 random DNA files
+#' tmp_dir <- tempdir()
+#' # remove any existing .fna files
+#' file.remove(
+#'  list.files(tmp_dir, pattern = "*.fna", full.names = TRUE)
+#' )
+#' for (i in 1:10) {
+#' writeLines(paste0(">", i, "\n", paste0(sample(c("A", "T", "C", "G"),
+#'   100, replace = TRUE), collapse = "")), file.path(tmp_dir, paste0(i, ".fna")))
+#' }
+#'
+#' # split files into train and test directories
+#' paths <- train_test_filesystem(tmp_dir,
+#'                                file_ext = "fna",
+#'                                split = 0.8,
+#'                                shuffle = TRUE,
+#'                                overwrite = TRUE)
+#' # combine files back into a single directory
+#' combined_file_system(tmp_dir, "fna")
+#' list.files(tmp_dir)
 combined_file_system <- function(path_to_folders,
                                  file_ext,
                                  train_folder = "train",
@@ -157,6 +220,32 @@ combined_file_system <- function(path_to_folders,
 #' @param copy copy files (rather than move)
 #'
 #' @export
+#'
+#' @return NULL
+#'
+#' @examples
+#' set.seed(123)
+#' # create 10 random DNA files
+#' tmp_dir <- tempdir()
+#' # remove any existing .fna files
+#' file.remove(
+#'  list.files(tmp_dir, pattern = "*.fna", full.names = TRUE)
+#' )
+#' for (i in 1:10) {
+#' writeLines(paste0(">", i, "\n", paste0(sample(c("A", "T", "C", "G"),
+#'  100, replace = TRUE), collapse = "")), file.path(tmp_dir, paste0(i, ".fna")))
+#' }
+#'
+#' # move files with even numbers to a new directory
+#' new_dir <- file.path(tempdir(), "even_files")
+#' unlink(new_dir, recursive = TRUE)
+#' move_files(tmp_dir,
+#'            new_dir,
+#'            move_which = as.integer(
+#'               tools::file_path_sans_ext(
+#'                   list.files(tmp_dir, pattern = "*.fna"))) %% 2 == 0,
+#'            ext = "fna")
+#' list.files(new_dir)
 move_files <- function(source_dir,
                        target_dir,
                        move_which,
@@ -241,6 +330,32 @@ replace_multiple_slashes <- function(path) {
 #' xgboost::slice().
 #'
 #' @export
+#'
+#' @examples
+#' set.seed(123)
+#' # create 10 random libsvm files
+#' tmp_dir <- tempdir()
+#' # remove any existing .txt files
+#' file.remove(
+#' list.files(tmp_dir, pattern = "*.txt", full.names = TRUE)
+#' )
+#' for (i in 1:10) {
+#'  # each line is K: V
+#'  writeLines(paste0(i, ": ", paste0(sample(1:100, 10, replace = TRUE),
+#'  collapse = " ")), file.path(tmp_dir, paste0(i, ".txt")))
+#'  }
+#'
+#'  # split files into train and test directories
+#'  paths <- split_and_combine_files(
+#'   tmp_dir,
+#'   file_ext = "txt",
+#'   split = 0.8,
+#'   train_target_path = file.path(tmp_dir, "train.txt"),
+#'   test_target_path = file.path(tmp_dir, "test.txt"),
+#'   names_backup = file.path(tmp_dir, "names.csv"),
+#'   overwrite = TRUE)
+#'
+#'  readLines(paths[["train"]])
 split_and_combine_files <- function(path_to_files,
                                     file_ext = ".txt",
                                     split = 0.8,

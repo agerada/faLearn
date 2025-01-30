@@ -73,7 +73,13 @@ template<typename T>
 bool is_valid_dna_string(T dna){
   return dna.size() > 0 ? true : false;
 }
-
+//' Reverse complement of DNA string
+//'
+//' @param dna DNA string
+//' @return reverse complement of DNA string
+//' @export
+//' @examples
+//' reverse_complement("ATCG")
 // [[Rcpp::export]]
 std::string reverse_complement(std::string dna){
 
@@ -102,7 +108,7 @@ std::string reverse_complement(std::string dna){
 
 std::map<std::string, unsigned long long int> make_kmer_paired_list(
     const CharacterVector &x,
-    int kmer,
+    unsigned int kmer,
     bool drop_n = false,
     bool canonical = true,
     bool squeeze = false,
@@ -187,7 +193,7 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 
 std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_int_seq(
     std::map<std::string, unsigned long long int> x,
-    int starting_index) {
+    unsigned int starting_index) {
   std::map<unsigned long long int, unsigned long long int> output_dict;
   for(auto i = x.begin(), n = x.end(); i != n; i++) {
     output_dict[starting_index] = i->second;
@@ -200,15 +206,27 @@ std::map<unsigned long long int, unsigned long long int> convert_kmer_string_to_
 //'
 //' @param x genome in string format
 //' @param k kmer length
-//' @param simplify returns a numeric vector of kmer counts, without associated string. This is useful to save memory, but should always be used with anchor = true.
-//' @param canonical only record canonical kmers (i.e., the lexicographically smaller of a kmer and its reverse complement)
+//' @param simplify returns a numeric vector of kmer counts,
+//' without associated string. This is useful to save memory,
+//' but should always be used with anchor = true.
+//' @param canonical only record canonical kmers
+//' (i.e., the lexicographically smaller of a kmer and its reverse complement)
 //' @param squeeze remove non-canonical kmers
-//' @param anchor includes unobserved kmers (with counts of 0). This is useful when generating a dense matrix where kmers of different genomes align.
-//' @param clean_up only include valid bases (ACTG) in kmer counts (excludes non-coding results such as N)
-//' @param key_as_int return kmer index (as "kmer_index") rather than the full kmer string. Useful for index-coded data structures such as libsvm.
+//' @param anchor includes unobserved kmers (with counts of 0).
+//' This is useful when generating a dense matrix where kmers of different
+//' genomes align.
+//' @param clean_up only include valid bases (ACTG) in kmer counts
+//' (excludes non-coding results such as N)
+//' @param key_as_int return kmer index (as "kmer_index")
+//' rather than the full kmer string. Useful for index-coded data structures
+//' such as libsvm.
 //' @param starting_index the starting index, only used if key_as_int = TRUE.
-//' @return list of kmer values, either as a list of a single vector (if simplify = TRUE), or as a named list containing "kmer_string" and "kmer_value".
+//' @return list of kmer values, either as a list of a single vector
+//' (if simplify = TRUE), or as a named list containing "kmer_string" and
+//' "kmer_value".
 //' @export
+//' @examples
+//' kmers("ATCGCAGT")
 // [[Rcpp::export]]
 List kmers(const CharacterVector& x,
           int k = 3,
@@ -267,8 +285,40 @@ List kmers(const CharacterVector& x,
  }
 }
 
+//' Converts a genome to kmers stored in libsvm format on disk
+//'
+//' @param x genome in string format
+//' @param target_path path to store libsvm file (.txt)
+//' @param label libsvm label
+//' @param k kmer length
+//' @param canonical only record canonical kmers
+//' (i.e., the lexicographically smaller of a kmer and its reverse complement)
+//' @param squeeze remove non-canonical kmers
+//' @return boolean indicating success
+//' @description
+//' This function converts a single genome to a libsvm file containing kmer
+//' counts. The libsvm format will be as follows:
+//'
+//' \preformatted{
+//'   label 1:count 2:count 3:count ...
+//' }
+//' Label is optional and defaults to 0. The kmer counts are indexed by the
+//' kmer index, which is the lexicographically sorted index of the kmer.
+//' Libsvm is a sparse format.
+//'
+//' @seealso
+//' For multiple genomes in a directory, processed in parallel, see [genomes_to_kmer_libsvm()]
+//'
+//' For more details on libsvm format, see
+//' \url{https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html}
+//'
+//' @export
+//' @examples
+//' temp_libsvm_path <- tempfile(fileext = ".txt")
+//' genome_to_libsvm("ATCGCAGT", temp_libsvm_path)
+//' readLines(temp_libsvm_path)
 // [[Rcpp::export]]
-bool kmers_to_libsvm(const CharacterVector &x,
+bool genome_to_libsvm(const CharacterVector &x,
                     const CharacterVector &target_path,
                     const CharacterVector &label = CharacterVector::create("0"),
                     int k = 3,
@@ -336,10 +386,12 @@ std::vector<std::string> make_unsqueezed_mers(int k) {
   return output;
 }
 
-//' Generates squeezed kmers
+//' Generates all permutations of squeezed kmers
 //' @param k kmer length
 //' @return vector of squeezed kmers
 //' @export
+//' @examples
+//' squeezed_mers(3)
 // [[Rcpp::export]]
 StringVector squeezed_mers(int k = 3) {
   auto output = make_squeezed_mers(k);
@@ -348,10 +400,12 @@ StringVector squeezed_mers(int k = 3) {
   return output_sv;
 }
 
-//' Generates unsqueezed kmers
+//' Generates all permutations of unsqueezed kmers
 //' @param k kmer length
 //' @return vector of unsqueezed kmers
 //' @export
+//' @examples
+//' unsqueezed_mers(3)
 // [[Rcpp::export]]
 StringVector unsqueezed_mers(int k = 3) {
   auto output = make_unsqueezed_mers(k);
@@ -366,10 +420,12 @@ StringVector unsqueezed_mers(int k = 3) {
 //' @param starting_index starting index (libsvm is usually indexed starting at 1)
 //' @return vector of squeezed kmer strings
 //' @export
+//' @examples
+//' squeezed_index_to_str(2, k = 3)
 // [[Rcpp::export]]
 StringVector squeezed_index_to_str(IntegerVector x,
                                int k,
-                               int starting_index = 1) {
+                               unsigned int starting_index = 1) {
   auto squeezed_mers = make_squeezed_mers(k);
   std::vector<std::string> output;
   for (auto i = x.begin(); i != x.end(); i++) {
@@ -389,10 +445,12 @@ StringVector squeezed_index_to_str(IntegerVector x,
 //' @param starting_index starting index (libsvm is usually indexed starting at 1)
 //' @return vector of unsqueezed kmer strings
 //' @export
+//' @examples
+//' unsqueezed_index_to_str(2, k = 3)
 // [[Rcpp::export]]
 StringVector unsqueezed_index_to_str(IntegerVector x,
                                int k,
-                               int starting_index = 1) {
+                               unsigned int starting_index = 1) {
   auto unsqueezed_mers = make_unsqueezed_mers(k);
   std::vector<std::string> output;
   for (auto i = x.begin(); i != x.end(); i++) {

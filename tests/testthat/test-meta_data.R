@@ -215,7 +215,8 @@ test_that("test fall back to ECOFFS in compare_mic", {
                      "Escherichia coli",
                      accept_ecoff = TRUE)
   )
-  expect_equal(val$error[val$ab == "CHL"], factor(NA))
+  expect_equal(val$error[val$ab == "CHL"], factor(NA,
+                                                  levels = c("M", "vM", "m")))
 
   val <- suppressMessages(
     compare_mic(AMR::as.mic(64),
@@ -224,7 +225,8 @@ test_that("test fall back to ECOFFS in compare_mic", {
                      "Escherichia coli",
                      accept_ecoff = TRUE)
   )
-  expect_equal(val$error[val$ab == "CHL"], factor("vM"))
+  expect_equal(val$error[val$ab == "CHL"], factor("vM",
+                                                  levels = c("M", "vM", "m")))
 
   # multiple
   gs <- c("0.5", "4", ">64", "2")

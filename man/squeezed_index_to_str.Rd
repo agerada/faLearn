@@ -19,3 +19,6 @@ vector of squeezed kmer strings
 \description{
 Get str conversion of squeezed kmer using index
 }
+\examples{
+squeezed_index_to_str(2, k = 3)
+}

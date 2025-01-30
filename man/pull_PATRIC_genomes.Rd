@@ -5,24 +5,32 @@
 \title{Automated download of genomes from PATRIC database}
 \usage{
 pull_PATRIC_genomes(
-  database = patric_ftp_path,
-  taxonomic_name,
-  filter = "MIC",
   output_directory,
+  taxonomic_name = NULL,
+  database = patric_ftp_path,
+  filter = "MIC",
   n_genomes = 0
 )
 }
 \arguments{
-\item{database}{local or ftp path to PATRIC database, or loaded database using load__patric_db()}
+\item{output_directory}{local directory to save to}
 
 \item{taxonomic_name}{character of taxonomic bacterial name to download}
 
-\item{filter}{"MIC" or "disk" or "all" phenotypes}
+\item{database}{local or ftp path to PATRIC database, or loaded database using load_patric_db()}
 
-\item{output_directory}{local directory to save to}
+\item{filter}{"MIC" or "disk" or "all" phenotypes}
 
 \item{n_genomes}{number of genomes (0 = all)}
 }
 \description{
 Automated download of genomes from PATRIC database
+}
+\examples{
+\dontrun{
+pull_PATRIC_genomes("target/dir/",
+                    taxonomic_name = "Escherichia coli",
+                    filter = "MIC",
+                    n_genomes = 10)
+}
 }

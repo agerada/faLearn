@@ -39,9 +39,15 @@ an MIC result is within the acceptable range given: 1) a control strain
 a guideline (EUCAST or CLSI). The acceptable range is defined by 'QC_table',
 which is a dataset which is loaded with this package.
 
-The source of the QC values is
+The source of the QC values is the WHONET QC Ranges and Targets available from
+the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
+https://github.com/AClark-WHONET/AMRIE
 }
 \examples{
 qc_in_range(AMR::as.mic(0.5), 25922, "GEN") == TRUE
 qc_in_range(AMR::as.mic(8.0), 25922, "GEN") == FALSE
+}
+\references{
+O’Brien TF, Stelling JM. WHONET: An Information System for Monitoring
+Antimicrobial Resistance. Emerg Infect Dis. 1995 Jun;1(2):66–66.
 }

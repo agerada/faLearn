@@ -40,5 +40,6 @@ essential_agreement(x, y)
 # TRUE FALSE FALSE TRUE
 }
 \references{
-https://www.iso.org/standard/79377.html
+International Organization for Standardization. ISO 20776-2:2021
+Available from: https://www.iso.org/standard/79377.html
 }

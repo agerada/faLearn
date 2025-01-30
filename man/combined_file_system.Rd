@@ -27,3 +27,26 @@ moved here}
 \description{
 Combine train and test filesystem into single folder
 }
+\examples{
+set.seed(123)
+# create 10 random DNA files
+tmp_dir <- tempdir()
+# remove any existing .fna files
+file.remove(
+ list.files(tmp_dir, pattern = "*.fna", full.names = TRUE)
+)
+for (i in 1:10) {
+writeLines(paste0(">", i, "\n", paste0(sample(c("A", "T", "C", "G"),
+  100, replace = TRUE), collapse = "")), file.path(tmp_dir, paste0(i, ".fna")))
+}
+
+# split files into train and test directories
+paths <- train_test_filesystem(tmp_dir,
+                               file_ext = "fna",
+                               split = 0.8,
+                               shuffle = TRUE,
+                               overwrite = TRUE)
+# combine files back into a single directory
+combined_file_system(tmp_dir, "fna")
+list.files(tmp_dir)
+}

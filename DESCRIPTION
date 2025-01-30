@@ -1,10 +1,14 @@
 Package: MIC
-Title: Antimicrobial minimium inhibitory concentration analysis
-Version: 0.10.2
+Title: Analysis of Antimicrobial Minimum Inhibitory Concentration Data
+Version: 1.0.0
 Authors@R: 
-    person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre"),
+    person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6743-4271"))
-Description: Make phenotypic MIC predictions using assembled bacterial genomes. Package contains helper functions to collect genomes from PATRIC database and analyse results.
+Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data.
+    Validate the results of an MIC experiment by comparing observed MIC values to
+    a gold standard assay, in line with standards from the 'International Organization for
+    Standardization' (ISO). Perform MIC prediction from whole genome sequence data stored in the
+    'Pathosystems Resource Integration Center' ('BV-BRC') database or locally.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -29,7 +33,7 @@ Imports:
     purrr,
     tibble
 Depends: 
-    R (>= 2.10)
+    R (>= 4.1.0)
 LazyData: true
 LinkingTo: 
     Rcpp
@@ -37,5 +41,8 @@ Suggests:
     testthat (>= 3.0.0),
     xgboost,
     flextable,
-    caret
+    caret,
+    lifecycle
 Config/testthat/edition: 3
+URL: https://github.com/agerada/MIC
+BugReports: https://github.com/agerada/MIC/issues

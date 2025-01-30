@@ -1,8 +1,12 @@
+library(devtools)
+devtools::load_all()
+
 ## Code to prepare qc_targets dataset goes here
 
 ## The source of this dataset is the WHONET QC Ranges and Targets available from
 ## the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
-## https://github.com/AClark-WHONET/AMRIE
+## https://github.com/AClark-WHONET/AMRIE which is made available under the
+## GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007.
 
 whonet_qc_ranges <- readr::read_tsv(
   "https://raw.githubusercontent.com/AClark-WHONET/AMRIE/main/Interpretation%20Engine/Resources/QC_Ranges.txt",
@@ -63,81 +67,68 @@ QC_table$MAXIMUM_TARGET <- ifelse(
 ecoffs_files <- list.files("data-raw/ecoffs", full.names = TRUE)
 ecoffs <- readr::read_csv(ecoffs_files,
                           col_types = readr::cols(.default = "c"),
-                          id = "organism") %>%
-  dplyr::mutate(organism = basename(organism)) %>%
+                          id = "organism") |>
+  dplyr::mutate(organism = basename(organism)) |>
   dplyr::mutate(organism = tools::file_path_sans_ext(organism))
-ecoffs <- ecoffs %>%
-  dplyr::rename(antibiotic = ...1) %>%
+ecoffs <- ecoffs |>
+  dplyr::rename(antibiotic = ...1) |>
   dplyr::mutate(antibiotic = AMR::as.ab(antibiotic))
 
 ecoffs$organism <- AMR::as.mo(ecoffs$organism)
 
 ## Example dataset
+set.seed(42)
+n <- 300
+ab <- c(rep(AMR::as.ab("Gentamicin"), n / 3),
+        rep(AMR::as.ab("Meropenem"), n / 3),
+        rep(AMR::as.ab("Amoxicillin"), n / 3))
+mo <- rep(AMR::as.mo("Escherichia coli"), n)
+bimodal_probs <- c(1,1,2,3,4,5,4,3,2,1,1,
+                   1,2,3,4,3,2,1,1)
+bimodal_probs <- bimodal_probs / sum(bimodal_probs)
+res_probs <- c(0.01,0.01,2,3,4,5,4,3,2,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01)
+res_probs <- res_probs / sum(res_probs)
+sens_probs <- c(0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,2,3,4,3,2,0.01,0.01)
+sens_probs <- sens_probs / sum(sens_probs)
 
-example_raw <- readr::read_tsv("data-raw/raw_mics.txt",
-                                col_types = readr::cols(.default = "c")) %>%
-  dplyr::mutate(genome_name = AMR::mo_name(AMR_org)) %>%
-  dplyr::relocate(genome_id,
-                  AMR_org,
-                  antibiotic,
-                  measurement,
-                  measurement_unit,
-                  laboratory_typing_method,
-                  dplyr::starts_with("POS_QC"),
-                  dplyr::starts_with("QC"))
+gs <- sample(mic_range(), size = n / 3, prob = bimodal_probs, replace = T)
+gs <- AMR::as.mic(gs)
+# now to generate the test values, assume that the value is the same as gs
+# but with added noise
+# log2 transform needed when adding noise otherwise lower MICs get proportionately
+# more noise
+bimodal_values <- log2(gs) + rnorm(length(gs), 0, 1)
+bimodal_values <- 2^bimodal_values
+bimodal_values[bimodal_values < min(mic_range())] <- min(mic_range())
+bimodal_values <- force_mic(bimodal_values)
+bimodal_values <- AMR::as.mic(bimodal_values)
 
-# get the QC MIC (E. coli ATC 25922) for each antimicrobial
-qc_mic <- example_raw %>%
-  dplyr::distinct(genome_id, .keep_all = TRUE) %>%
-  dplyr::select(genome_id, dplyr::starts_with("POS_QC_")) %>%
-  tidyr::pivot_longer(dplyr::starts_with("POS_QC_"), names_to = "antibiotic",
-               values_to = "qc_mic") %>%
-  dplyr::mutate(antibiotic = stringr::str_remove(antibiotic, "POS_QC_")) %>%
-  dplyr::mutate(laboratory_typing_method = "Agar dilution")
+# repeat for sensitivity and resistance
+sens <- sample(mic_range(), size = n / 3, prob = sens_probs, replace = T)
+sens <- AMR::as.mic(sens)
+sens_values <- log2(sens) + rnorm(length(sens), 0, 1)
+sens_values <- 2^sens_values
+sens_values[sens_values < min(mic_range())] <- min(mic_range())
+sens_values <- force_mic(sens_values)
+sens_values <- AMR::as.mic(sens_values)
 
-# get the growth control for each antimicrobial (P/W/F)
-qc_control <- example_raw %>%
-  dplyr::distinct(genome_id, .keep_all = TRUE) %>%
-  dplyr::select(genome_id, dplyr::starts_with("QC_")) %>%
-  tidyr::pivot_longer(dplyr::starts_with("QC_"), names_to = "antibiotic",
-               values_to = "qc_growth") %>%
-  dplyr::mutate(antibiotic = stringr::str_remove(antibiotic, "QC_")) %>%
-  dplyr::mutate(laboratory_typing_method = "Agar dilution")
+res <- sample(mic_range(), size = n / 3, prob = res_probs, replace = T)
+res <- AMR::as.mic(res)
+res_values <- log2(res) + rnorm(length(res), 0, 1)
+res_values <- 2^res_values
+res_values[res_values < min(mic_range())] <- min(mic_range())
+res_values <- force_mic(res_values)
+res_values <- AMR::as.mic(res_values)
 
-# Combine and remove any antimicrobials with QC outside range
-example_mics <- example_raw %>%
-  dplyr::left_join(qc_mic, by = c("genome_id", "antibiotic", "laboratory_typing_method")) %>%
-  dplyr::left_join(qc_control, by = c("genome_id", "antibiotic", "laboratory_typing_method")) %>%
-  dplyr::filter(laboratory_typing_method == "Agar dilution") %>%
-  dplyr::mutate(measurement = AMR::as.mic(measurement)) %>%
-  dplyr::mutate(qc_mic = AMR::as.mic(qc_mic)) %>%
-  dplyr::filter(qc_in_range(qc_mic, 25922, antibiotic)) %>%
-  dplyr::filter(qc_growth != "F") %>%
-  dplyr::select(!dplyr::starts_with("QC_") & !dplyr::starts_with("POS_QC_"))
+# combine the values
+values <- c(bimodal_values, sens_values, res_values)
+gs <- c(gs, sens, res)
 
-example_mic_disks <- example_mics %>%
-  dplyr::mutate(AMR_org = AMR::as.mo(AMR_org)) %>%
-  tidyr::pivot_wider(names_from = antibiotic, values_from = measurement) %>%
-  dplyr::mutate(dplyr::across(AMR::is.mic, AMR::as.sir, .names = "{col}_sir"))
+example_mics <- data.frame(gs = gs, test = values)
+example_mics$mo <- mo
+example_mics$ab <- ab
 
-example_mic_disks <- example_mic_disks %>%
-  dplyr::mutate(chloramphenicol_sir = AMR::as.sir(chloramphenicol, ab = "chloramphenicol", mo = AMR_org, breakpoint_type = "ECOFF"))
+readr::write_tsv(example_mics, "data-raw/example_mics.txt")
 
-example_mics <- example_mic_disks %>%
-  dplyr::select(!dplyr::where(AMR::is.sir)) %>%
-  tidyr::pivot_longer(cols = dplyr::where(AMR::is.mic), names_to = "antibiotic", values_to = "measurement")
-
-example_disks <- example_mic_disks %>%
-  dplyr::select(!dplyr::where(AMR::is.mic)) %>%
-  tidyr::pivot_longer(cols = dplyr::where(AMR::is.sir), names_to = "antibiotic", values_to = "resistant_phenotype") %>%
-  dplyr::mutate(antibiotic = stringr::str_remove(antibiotic, "_sir")) %>%
-  dplyr::select(genome_id, antibiotic, resistant_phenotype)
-
-example_mics <- example_mics %>%
-  dplyr::left_join(example_disks, by = c("genome_id", "antibiotic"))
-
-example_mics <- example_mics %>%
-  as_patric_db()
-
-usethis::use_data(QC_table, ecoffs,
-  example_mics, overwrite = TRUE, internal = TRUE)
+use_data(QC_table, overwrite = TRUE, internal = TRUE)
+use_data(example_mics, ecoffs, overwrite = TRUE, internal = FALSE)

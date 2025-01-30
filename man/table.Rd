@@ -39,6 +39,15 @@ order to match the y- and x- axes}
 
 \item{test_name}{Name of the test to display in output}
 }
+\value{
+table or flextable object
+}
 \description{
 Table
+}
+\examples{
+gold_standard <- c("<0.25", "8", "64", ">64")
+test <- c("<0.25", "2", "16", "64")
+val <- compare_mic(gold_standard, test)
+table(val)
 }
