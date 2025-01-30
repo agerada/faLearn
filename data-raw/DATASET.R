@@ -5,7 +5,8 @@ devtools::load_all()
 
 ## The source of this dataset is the WHONET QC Ranges and Targets available from
 ## the 'Antimicrobial Resistance Test Interpretation Engine' (AMRIE) repository:
-## https://github.com/AClark-WHONET/AMRIE
+## https://github.com/AClark-WHONET/AMRIE which is made available under the
+## GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007.
 
 whonet_qc_ranges <- readr::read_tsv(
   "https://raw.githubusercontent.com/AClark-WHONET/AMRIE/main/Interpretation%20Engine/Resources/QC_Ranges.txt",
