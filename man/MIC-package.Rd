@@ -6,7 +6,7 @@
 \alias{MIC-package}
 \title{MIC: Analysis of Antimicrobial Minimum Inhibitory Concentration Data}
 \description{
-Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data. Validate the results of an MIC experiment by comparing observed MIC values to a gold standard assay, in line with standards from the 'International Organization for Standardization' (ISO). Perform MIC prediction from whole genome sequence data stored in the 'Pathosystems Resource Integration Center' ('BV-BRC') database or locally.
+Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data. Validate the results of an MIC experiment by comparing observed MIC values to a gold standard assay, in line with standards from the International Organization for Standardization (2021) \url{https://www.iso.org/standard/79377.html}. Perform MIC prediction from whole genome sequence data stored in the Pathosystems Resource Integration Center (2013) \doi{ 10.1093/nar/gkt1099} database or locally.
 }
 \seealso{
 Useful links:
