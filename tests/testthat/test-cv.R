@@ -11,7 +11,7 @@ test_that("test cv", {
                            nrounds = 10,
                            nfold = 5,
                            verbose = FALSE,
-                           threads = 1)
+                           nthread = threads)
   expect_s3_class(model, "xgb.cv.synchronous")
 
   # using the custom low memory cv function
@@ -19,7 +19,7 @@ test_that("test cv", {
                                 nfold = 3,
                                 nrounds = 10,
                                 verbose = FALSE,
-                                threads = 1)
+                                nthread = threads)
   expect_s3_class(model_lowmem, "xgb.cv.synchronous")
 
   # with custom folds (similar to generating using caret::createFolds())
@@ -33,7 +33,7 @@ test_that("test cv", {
                            nrounds = 10,
                            folds = folds,
                            verbose = FALSE,
-                           threads = 1)
+                           nthread = threads)
   expect_s3_class(model, "xgb.cv.synchronous")
 
   model_lowmem <- xgb.cv.lowmem(data = dtrain,
@@ -41,7 +41,7 @@ test_that("test cv", {
                                 nrounds = 10,
                                 verbose = FALSE,
                                 prediction = TRUE,
-                                threads = 1)
+                                nthread = threads)
   expect_s3_class(model_lowmem, "xgb.cv.synchronous")
 
   # check members
@@ -68,7 +68,7 @@ test_that("test cv", {
                            callbacks = list(
                              xgboost::cb.cv.predict(save_models = TRUE)
                            ),
-                           threads = 1
+                           nthread = threads
   )
   expect_s3_class(model, "xgb.cv.synchronous")
   expect_contains(names(model), c(expected_fields,
@@ -82,7 +82,7 @@ test_that("test cv", {
                                 verbose = FALSE,
                                 prediction = TRUE,
                                 save_models = TRUE,
-                                threads = 1)
+                                nthread = threads)
 
   expect_s3_class(model_lowmem, "xgb.cv.synchronous")
   expect_contains(names(model_lowmem), c(expected_fields,
@@ -101,7 +101,7 @@ test_that("test cv", {
                     nrounds = 10,
                     folds = folds,
                     verbose = FALSE,
-                    threads = 1)
+                    nthread = threads)
   )
 
   # using one fold with lowmem cv function works
@@ -111,7 +111,7 @@ test_that("test cv", {
                                 verbose = FALSE,
                                 prediction = TRUE,
                                 save_models = TRUE,
-                                threads = 1)
+                                nthread = threads)
   expect_s3_class(model_lowmem, "xgb.cv.synchronous")
   expect_contains(names(model_lowmem), c(expected_fields,
                                          "pred",
@@ -142,7 +142,7 @@ test_that("iris example", {
                            folds = folds,
                            num_class = 3,
                            objective = "multi:softprob",
-                           threads = 1)
+                           nthread = threads)
   expect_s3_class(model, "xgb.cv.synchronous")
   # convert preds to class
   preds <- apply(model$pred, 1, which.max) - 1
@@ -158,7 +158,7 @@ test_that("iris example", {
                                 folds = folds,
                                 num_class = 3,
                                 objective = "multi:softprob",
-                                threads = 1)
+                                nthread = threads)
   expect_s3_class(model_lowmem, "xgb.cv.synchronous")
   # convert preds to class
   preds_lowmem <- apply(model_lowmem$pred, 1, which.max) - 1
