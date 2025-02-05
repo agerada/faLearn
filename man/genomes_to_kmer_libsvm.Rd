@@ -46,8 +46,8 @@ text file of k-mer counts (therefore, each .txt file will be 1 line long).
 This function supports parallel processing using the by setting an appropriate
 \code{future::plan()} (usually \code{future::multisession}) ---
 each genome is processed in parallel. To monitor progress, use the
-\code{\link{progressr}} package by wrapping the function in
-\code{\link[progressr:with_progress]{progressr::with_progress()}}.
+\code{progressr} package by wrapping the function in
+\code{\link[progressr]{with_progress}}.
 
 Although XGBoost can load a multiple .txt (libsvm) files by providing the
 directory as an input, this is generally not recommended as order of

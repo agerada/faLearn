@@ -22,11 +22,14 @@ split_and_combine_files(
 
 \item{split}{train-test split}
 
-\item{train_target_path}{name of train file to save as}
+\item{train_target_path}{name of train file to save as (by default, will be
+train.txt in the path_to_files directory)}
 
-\item{test_target_path}{name of test file to save as}
+\item{test_target_path}{name of test file to save as (by default, will be
+test.txt in the path_to_files directory)}
 
-\item{names_backup}{name of file to save backup of filename metadata}
+\item{names_backup}{name of file to save backup of filename metadata (by
+default, will be names.csv in the path_to_files directory)}
 
 \item{shuffle}{randomise prior to splitting}
 
