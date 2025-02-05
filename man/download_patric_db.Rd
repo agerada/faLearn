@@ -13,6 +13,9 @@ download_patric_db(save_path, ftp_path = patric_ftp_path, overwrite = FALSE)
 
 \item{overwrite}{Force overwrite}
 }
+\value{
+TRUE if successful, FALSE if failure.
+}
 \description{
 Download PATRIC database
 }

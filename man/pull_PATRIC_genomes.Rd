@@ -23,6 +23,10 @@ pull_PATRIC_genomes(
 
 \item{n_genomes}{number of genomes (0 = all)}
 }
+\value{
+The number of failed downloads (i.e., 0 if all attempted downloads
+were successful).
+}
 \description{
 Automated download of genomes from PATRIC database
 }

@@ -136,9 +136,15 @@ train_test_filesystem <- function(path_to_files,
 #' @param test_folder test folder subdirectory name
 #' @param overwrite force overwrite of files that already exist
 #'
+#' @description
+#' This function reorganises files that have been split into train and test
+#' directories using train_test_filesystem() back into a single directory.
+#' This is a convenience function to reverse the effects of
+#' train_test_filesystem().
+#'
 #' @export
 #'
-#' @return NULL
+#' @return Logical vector, indicated success or failure for each file
 #'
 #' @examples
 #' set.seed(123)
@@ -201,14 +207,15 @@ combined_file_system <- function(path_to_folders,
     }
   }
 
-  file.rename(
+  train_outcomes <- file.rename(
     from = train_files,
     to = target_train_paths)
 
-  file.rename(
+  test_outcomes <- file.rename(
     from = test_files,
     to = target_test_paths)
-  return(NULL)
+
+  return(all(c(train_outcomes, test_outcomes)))
 }
 
 #' Move or copy files using logical vector
@@ -221,7 +228,12 @@ combined_file_system <- function(path_to_folders,
 #'
 #' @export
 #'
-#' @return NULL
+#' @return Logical vector, indicating success or failure for each file
+#'
+#' @description
+#' This is simply a wrapper around file.copy/file.rename that allows for
+#' filtering by a logical vector (move_which). This can replicate the behaviour
+#' of a predicate function (see example), and may be easier to read.
 #'
 #' @examples
 #' set.seed(123)
@@ -262,19 +274,23 @@ move_files <- function(source_dir,
   filtered_paths <- subset(file_paths, move_which)
   p <- progressr::progressor(along = filtered_paths)
   if (isTRUE(copy)) {
-    sapply(filtered_paths, \(x) {
-      file.copy(from = x,
-                to = file.path(target_dir, basename(x)))
-      p()
-    })
-    return()
+    return(
+      sapply(filtered_paths, \(x) {
+        outcome <- file.copy(from = x,
+                  to = file.path(target_dir, basename(x)))
+        p()
+        outcome
+      })
+    )
   }
-  sapply(filtered_paths, \(x) {
-    file.rename(from = x,
-                to = file.path(target_dir, basename(x)))
-    p()
-  })
-  return()
+  return(
+    sapply(filtered_paths, \(x) {
+      outcome <- file.rename(from = x,
+                  to = file.path(target_dir, basename(x)))
+      p()
+      outcome
+    })
+  )
 }
 
 #' Removes multiple slashes in a path or url

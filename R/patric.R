@@ -83,7 +83,7 @@ as_patric_db <- function(x) {
 #' @param ftp_path PATRIC database FTP path to download
 #' @param overwrite Force overwrite
 #'
-#' @return NULL
+#' @return TRUE if successful, FALSE if failure.
 
 #' @export
 #' @examples
@@ -103,7 +103,11 @@ download_patric_db <- function(save_path,
   if (!dir.exists(target_dir)) dir.create(target_dir)
 
   return_val <- utils::download.file(ftp_path, save_path, mode = "wb")
-  if (return_val != 0) warning("Non-zero return value on file download")
+  if (return_val != 0) {
+    warning("Non-zero return value on file download")
+    return(FALSE)
+  }
+  return(TRUE)
 }
 
 #' Automated download of genomes from PATRIC database
@@ -114,7 +118,8 @@ download_patric_db <- function(save_path,
 #' @param filter "MIC" or "disk" or "all" phenotypes
 #' @param n_genomes number of genomes (0 = all)
 #'
-#' @return NULL
+#' @return The number of failed downloads (i.e., 0 if all attempted downloads
+#' were successful).
 #'
 #' @export
 #' @examples
@@ -192,6 +197,7 @@ pull_PATRIC_genomes <- function(output_directory,
     }
     i <- i + 1
   }
+  failures
 }
 
 #' Tidy PATRIC data

@@ -24,8 +24,14 @@ moved here}
 
 \item{overwrite}{force overwrite of files that already exist}
 }
+\value{
+Logical vector, indicated success or failure for each file
+}
 \description{
-Combine train and test filesystem into single folder
+This function reorganises files that have been split into train and test
+directories using train_test_filesystem() back into a single directory.
+This is a convenience function to reverse the effects of
+train_test_filesystem().
 }
 \examples{
 set.seed(123)

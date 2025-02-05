@@ -17,8 +17,13 @@ move_files(source_dir, target_dir, move_which, ext = ".txt", copy = FALSE)
 
 \item{copy}{copy files (rather than move)}
 }
+\value{
+Logical vector, indicating success or failure for each file
+}
 \description{
-Move or copy files using logical vector
+This is simply a wrapper around file.copy/file.rename that allows for
+filtering by a logical vector (move_which). This can replicate the behaviour
+of a predicate function (see example), and may be easier to read.
 }
 \examples{
 set.seed(123)
