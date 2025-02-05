@@ -31,8 +31,8 @@ were successful).
 Automated download of genomes from PATRIC database
 }
 \examples{
-\dontrun{
-pull_PATRIC_genomes("target/dir/",
+\donttest{
+pull_PATRIC_genomes(tempdir(),
                     taxonomic_name = "Escherichia coli",
                     filter = "MIC",
                     n_genomes = 10)

@@ -9,7 +9,7 @@ patric_ftp_path <- "ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' patric_db <- load_patric_db()  # will get from PATRIC ftp
 #' }
 #'
@@ -87,8 +87,8 @@ as_patric_db <- function(x) {
 
 #' @export
 #' @examples
-#' \dontrun{
-#' download_patric_db("patric_db.txt")
+#' \donttest{
+#' download_patric_db(tempfile())
 #' }
 download_patric_db <- function(save_path,
                            ftp_path = patric_ftp_path,
@@ -123,8 +123,8 @@ download_patric_db <- function(save_path,
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' pull_PATRIC_genomes("target/dir/",
+#' \donttest{
+#' pull_PATRIC_genomes(tempdir(),
 #'                     taxonomic_name = "Escherichia coli",
 #'                     filter = "MIC",
 #'                     n_genomes = 10)

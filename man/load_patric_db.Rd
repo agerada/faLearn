@@ -17,7 +17,7 @@ PATRIC database (S3 class 'patric_db')
 Load PATRIC database
 }
 \examples{
-\dontrun{
+\donttest{
 patric_db <- load_patric_db()  # will get from PATRIC ftp
 }
 

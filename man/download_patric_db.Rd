@@ -20,7 +20,7 @@ TRUE if successful, FALSE if failure.
 Download PATRIC database
 }
 \examples{
-\dontrun{
-download_patric_db("patric_db.txt")
+\donttest{
+download_patric_db(tempfile())
 }
 }

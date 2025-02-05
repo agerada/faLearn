@@ -26,13 +26,16 @@ genomes_to_kmer_libsvm(
 
 \item{ext}{file extension to filter}
 }
+\value{
+TRUE if successful
+}
 \description{
 Raw genome data (pre- or post-assembly) is usually transformed by k-mer
 counting prior to machine learning (ML). XGBoost is a popular ML algorithm
 for this problem, due to its scalability to high dimensional data. This
 function converts genomes to k-mer counts stored in XGBoost's preferred
 format, libsvm. Further information on the libsvm format is available at
-https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html.
+\url{https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html}.
 Briefly, libsvm is effectively a text file that stores data points as
 x:y pairs, where x is the feature index, and y is the feature value. Each
 observation is stored on its own line, with the first column reserved for
@@ -40,24 +43,20 @@ labels. Labels can be provided later, during data import.
 
 This function converts each individual genome to an individual libsvm
 text file of k-mer counts (therefore, each .txt file will be 1 line long).
-The function supports parallel processing using the future package, and
-progress bars using the progressr package (see examples).
+This function supports parallel processing using the by setting an appropriate
+\code{future::plan()} (usually \code{future::multisession}) ---
+each genome is processed in parallel. To monitor progress, use the
+\code{\link{progressr}} package by wrapping the function in
+\code{\link[progressr:with_progress]{progressr::with_progress()}}.
 
 Although XGBoost can load a multiple .txt (libsvm) files by providing the
 directory as an input, this is generally not recommended as order of
 import cannot be guaranteed and probably depends on filesystem. Instead,
 it is recommended that this function is combined with
-split_and_combine_files() which generates a single .txt file (with the
+\code{\link[=split_and_combine_files]{split_and_combine_files()}} which generates a single .txt file (with the
 order of observations guaranteed and stored in a .csv file).
 }
 \examples{
-\dontrun{
-  future::plan(future::multisession)
-  progressr::with_progress(
-    genomes_to_kmer_libsvm("path_in", "path_out")
-  )
-}
-
 set.seed(123)
 # create 10 random DNA files
 tmp_dir <- tempdir()
@@ -74,7 +73,10 @@ tmp_target_dir <- file.path(tmp_dir, "kmers")
 unlink(tmp_target_dir, recursive = TRUE)
 
 # convert genomes to k-mers
-genomes_to_kmer_libsvm(tmp_dir, tmp_target_dir, k = 3)
+future::plan(future::sequential)  # use multisession for parallel processing
+progressr::with_progress(
+  genomes_to_kmer_libsvm(tmp_dir, tmp_target_dir, k = 3)
+)
 
 # check the output
 list.files(tmp_target_dir)
