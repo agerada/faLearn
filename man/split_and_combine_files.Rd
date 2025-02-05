@@ -8,9 +8,9 @@ split_and_combine_files(
   path_to_files,
   file_ext = ".txt",
   split = 0.8,
-  train_target_path = file.path(getwd(), "train.txt"),
-  test_target_path = file.path(getwd(), "test.txt"),
-  names_backup = file.path(getwd(), "names.csv"),
+  train_target_path = NULL,
+  test_target_path = NULL,
+  names_backup = NULL,
   shuffle = TRUE,
   overwrite = FALSE
 )

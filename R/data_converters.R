@@ -314,9 +314,12 @@ replace_multiple_slashes <- function(path) {
 #' @param path_to_files path containing files or vector of filepaths
 #' @param file_ext file extension to filter
 #' @param split train-test split
-#' @param train_target_path name of train file to save as
-#' @param test_target_path name of test file to save as
-#' @param names_backup name of file to save backup of filename metadata
+#' @param train_target_path name of train file to save as (by default, will be
+#' train.txt in the path_to_files directory)
+#' @param test_target_path name of test file to save as (by default, will be
+#' test.txt in the path_to_files directory)
+#' @param names_backup name of file to save backup of filename metadata (by
+#' default, will be names.csv in the path_to_files directory)
 #' @param shuffle randomise prior to splitting
 #' @param overwrite overwrite target files
 #'
@@ -375,15 +378,22 @@ replace_multiple_slashes <- function(path) {
 split_and_combine_files <- function(path_to_files,
                                     file_ext = ".txt",
                                     split = 0.8,
-                                    train_target_path = file.path(getwd(),
-                                                                  "train.txt"),
-                                    test_target_path = file.path(getwd(),
-                                                                 "test.txt"),
-                                    names_backup = file.path(getwd(),
-                                                             "names.csv"),
+                                    train_target_path = NULL,
+                                    test_target_path = NULL,
+                                    names_backup = NULL,
                                     shuffle = TRUE,
                                     overwrite = FALSE) {
   file_ext <- gsub("^\\.", "", file_ext)
+
+  train_target_path <- ifelse(is.null(train_target_path),
+                              file.path(path_to_files, "train.txt"),
+                              train_target_path)
+  test_target_path <- ifelse(is.null(test_target_path),
+                             file.path(path_to_files, "test.txt"),
+                             test_target_path)
+  names_backup <- ifelse(is.null(names_backup),
+                         file.path(path_to_files, "names.csv"),
+                         names_backup)
 
   attempted_load <- is_test_train_combined(train_path = train_target_path,
                                            test_path = test_target_path,
