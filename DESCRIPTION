@@ -9,7 +9,7 @@ Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concen
     a gold standard assay, in line with standards from the International Organization for
     Standardization (2021) <https://www.iso.org/standard/79377.html>. Perform MIC prediction from
     whole genome sequence data stored in the Pathosystems Resource Integration Center (2013)
-    <doi: 10.1093/nar/gkt1099> database or locally.
+    <doi:10.1093/nar/gkt1099> database or locally.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

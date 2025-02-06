@@ -1,5 +1,9 @@
 ## Resubmission
 
+Only change is removal of space from doi entry in description.
+
+## Previous Resubmission
+
 This is a resubmission with the below changes, following CRAN review by
 Konstanze Lauseker. Thank you for the feedback.
 
