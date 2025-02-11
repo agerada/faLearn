@@ -1,3 +1,5 @@
+# MIC (development version)
+
 # MIC 1.0.2
 
 * CRAN resubmission with minor changes.
