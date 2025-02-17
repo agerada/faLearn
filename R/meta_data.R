@@ -551,12 +551,13 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
   stop("Mode must be categorical or numerical")
 }
 
-#' Convert MIC or Disk Diffusion to SIR, vectorised over antimicrobials and
-#' microorganisms
+#' Convert MIC or Disk Diffusion to SIR, vectorised over antimicrobials
 #'
-#' @param x
-#' @param mo
-#' @param ab
+#' @param mic vector of MIC values
+#' @param mo vector of microorganism names
+#' @param ab vector of antibiotic names
+#' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
+#' @param ... additional arguments that are passed to AMR::as.sir
 #'
 #' @return
 #' @export
@@ -564,7 +565,20 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
 #' The AMR::as.sir function is only
 #'
 #' @examples
-as.sir_vectorised <- function(mic, mo, ab, accept_ecoff) {
+as.sir_vectorised <- function(mic, mo, ab, accept_ecoff, ...) {
+  if (length(unique(ab)) == 1) {
+    ab <- ab[[1]]
+    output <- AMR::as.sir(mic, mo = mo, ab = ab, ...)
+    if (accept_ecoff) {
+      output[is.na(output)] <- AMR::as.sir(mic[is.na(output)],
+                                           mo = mo[is.na(output)],
+                                           ab = ab,
+                                           breakpoint_type = "ECOFF",
+                                           ...)
+    }
+    return(output)
+  }
+
   output <- purrr::pmap_vec(list(mic,
                        mo,
                        ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
@@ -640,7 +654,8 @@ compare_mic <- function(gold_standard,
                         ab = NULL,
                         mo = NULL,
                         accept_ecoff = FALSE,
-                        simplify = TRUE) {
+                        simplify = TRUE,
+                        ...) {
   if (length(gold_standard) != length(test)) {
     stop("Gold standard and test must be the same length")
   }
@@ -681,8 +696,8 @@ compare_mic <- function(gold_standard,
   }
 
   if (!is.null(ab) & !is.null(mo)) {
-    gold_standard_sir <- as.sir_vectorised(gold_standard_mod, mo, ab, accept_ecoff)
-    test_sir <- as.sir_vectorised(test_mod, mo, ab, accept_ecoff)
+    gold_standard_sir <- as.sir_vectorised(gold_standard_mod, mo, ab, accept_ecoff, ...)
+    test_sir <- as.sir_vectorised(test_mod, mo, ab, accept_ecoff, ...)
     output[["gold_standard_sir"]] <- gold_standard_sir
     output[["test_sir"]] <- test_sir
     output[["error"]] <- compare_sir(gold_standard_sir,

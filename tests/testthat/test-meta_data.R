@@ -192,6 +192,13 @@ test_that("test compare_mic", {
     }
   )
 
+test_that("test additional arguments passed from compare_mic to AMR::as.sir", {
+  gs <- c("0.5", "4", ">8", "2")
+  test <- c("0.5", "8", "2", "0.5")
+  ab <- "amoxicillin"
+  mo <- "Escherichia coli"
+  val <- suppressMessages(compare_mic(gs, test, ab, mo, uti = TRUE))
+  expect_s3_class(val, "mic_validation")
 })
 
 test_that("test compare_sir", {
