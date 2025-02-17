@@ -562,9 +562,22 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
 #' @return
 #' @export
 #' @description
-#' The AMR::as.sir function is only
+#' The AMR::as.sir function is not vectorised over antimicrobials. This function
+#' provides vectorisation over antimicrobials. Due to the overhead of running
+#' AMR::as.sir, this function tries to be efficient by only running AMR::as.sir
+#' as little as necessary.
 #'
 #' @examples
+#' mic <- c("<0.25", "8", "64", ">64")
+#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
+#' ab <- c("AMK", "AMK", "AMK", "AMK")
+#' as.sir_vectorised(mic, mo, ab)
+
+#' # using different microorganisms and antibiotics
+#' mic <- c("<0.25", "8", "64", ">64")
+#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_PROTS_MRBL", "B_PROTS_MRBL")
+#' ab <- c("AMK", "AMK", "CIP", "CIP")
+#' as.sir_vectorised(mic, mo, ab)
 as.sir_vectorised <- function(mic, mo, ab, accept_ecoff, ...) {
   if (length(unique(ab)) == 1) {
     ab <- ab[[1]]
