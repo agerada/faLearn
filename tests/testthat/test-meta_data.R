@@ -176,14 +176,14 @@ test_that("test mic_censor", {
   )
 })
 
-test_that("test compare_mic", {
+test_that("test compare_mic categorical", {
   gs <- c("0.5", "4", ">8", "2")
   test <- c("0.5", "8", "2", "0.5")
   expect_s3_class(compare_mic(gs, test), "mic_validation")
   expect_equal(summary(compare_mic(gs, test))[["EA_pcent"]], 0.5)
 
   ab <- c("amoxicillin", "amoxicillin", "gentamicin", "gentamicin")
-  mo <- "Escherichia coli"
+  mo <- c("Escherichia coli", "Escherichia coli", "Proteus mirabilis", "Proteus mirabilis")
   suppressMessages(
     {
       expect_s3_class(compare_mic(gs, test, ab, mo), "mic_validation")
@@ -191,6 +191,31 @@ test_that("test compare_mic", {
       expect_equal(summary(compare_mic(gs, test, ab, mo))[[2, "EA_pcent"]], 0)
     }
   )
+})
+
+test_that("test compare_mic speed", {
+  # this is currently slow
+  n <- 10
+  many_mics <- sample(mic_range(), n, replace = TRUE)
+  ab <- sample(c("AMX", "CIP"), n, replace = TRUE)
+  mo <- sample(c("Escherichia coli", "Proteus mirabilis"), n, replace = TRUE)
+  suppressMessages(
+    {
+      expect_s3_class(compare_mic(many_mics, many_mics, ab, mo), "mic_validation")
+    }
+  )
+
+  # this is fast
+  n <- 1000
+  many_mics <- sample(mic_range(), n, replace = TRUE)
+  ab <- rep("AMX", n)
+  mo <- sample(c("Escherichia coli", "Proteus mirabilis"), n, replace = TRUE)
+  suppressMessages(
+    {
+      expect_s3_class(compare_mic(many_mics, many_mics, ab, mo), "mic_validation")
+    }
+  )
+})
 
 test_that("test additional arguments passed from compare_mic to AMR::as.sir", {
   gs <- c("0.5", "4", ">8", "2")
