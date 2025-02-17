@@ -578,7 +578,7 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
 #' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_PROTS_MRBL", "B_PROTS_MRBL")
 #' ab <- c("AMK", "AMK", "CIP", "CIP")
 #' as.sir_vectorised(mic, mo, ab)
-as.sir_vectorised <- function(mic, mo, ab, accept_ecoff, ...) {
+as.sir_vectorised <- function(mic, mo, ab, accept_ecoff = FALSE, ...) {
   if (length(unique(ab)) == 1) {
     ab <- ab[[1]]
     output <- AMR::as.sir(mic, mo = mo, ab = ab, ...)
@@ -624,6 +624,7 @@ as.sir_vectorised <- function(mic, mo, ab, accept_ecoff, ...) {
 #' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
 #' @param simplify if TRUE, MIC values will be coerced into the closest halving
 #' dilution (e.g., 0.55 will be converted to 0.5)
+#' @param ... additional arguments to be passed to AMR::as.sir
 #'
 #' @return S3 mic_validation object
 #'

@@ -10,7 +10,8 @@ compare_mic(
   ab = NULL,
   mo = NULL,
   accept_ecoff = FALSE,
-  simplify = TRUE
+  simplify = TRUE,
+  ...
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ compare_mic(
 
 \item{simplify}{if TRUE, MIC values will be coerced into the closest halving
 dilution (e.g., 0.55 will be converted to 0.5)}
+
+\item{...}{additional arguments to be passed to AMR::as.sir}
 }
 \value{
 S3 mic_validation object
