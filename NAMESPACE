@@ -3,6 +3,7 @@
 S3method(plot,mic_validation)
 S3method(print,mic_validation)
 S3method(print,mic_validation_summary)
+S3method(subset,mic_validation)
 S3method(summary,mic_validation)
 S3method(table,default)
 S3method(table,mic_validation)

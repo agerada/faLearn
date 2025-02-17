@@ -559,7 +559,7 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
 #' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
 #' @param ... additional arguments that are passed to AMR::as.sir
 #'
-#' @return
+#' @return S3 sir values
 #' @export
 #' @description
 #' The AMR::as.sir function is not vectorised over antimicrobials. This function
@@ -752,6 +752,31 @@ print.mic_validation <- function(x, ...) {
                    Agreement type: essential"))
   )
 
+}
+
+#' Subset MIC validation object
+#'
+#' @param x mic_validation object
+#' @param subset logical expression to subset by
+#' @param ... additional arguments
+#'
+#' @return mic_validation object
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' ab <- AMR::as.ab(c("AMK", "AMK", "CIP", "CIP"))
+#' mo <- AMR::as.mo(c("E. coli", "E. coli", "P. mirabilis", "P. mirabilis"))
+#' val <- compare_mic(gold_standard, test, ab, mo)
+#' subset(val, ab == AMR::as.ab("AMX"))
+#' subset(val, mo == AMR::as.mo("E. coli"))
+subset.mic_validation <- function(x, subset, ...) {
+  filtered <- x |>
+    as.data.frame() |>
+    subset(subset, ...)
+  class(filtered) <- append(class(filtered), "mic_validation", 0)
+  filtered
 }
 
 plot_mic_validation_single_ab <- function(x, match_axes, ...) {

@@ -17,6 +17,9 @@ as.sir_vectorised(mic, mo, ab, accept_ecoff = FALSE, ...)
 
 \item{...}{additional arguments that are passed to AMR::as.sir}
 }
+\value{
+S3 sir values
+}
 \description{
 The AMR::as.sir function is not vectorised over antimicrobials. This function
 provides vectorisation over antimicrobials. Due to the overhead of running

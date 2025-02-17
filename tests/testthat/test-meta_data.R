@@ -226,6 +226,25 @@ test_that("test additional arguments passed from compare_mic to AMR::as.sir", {
   expect_s3_class(val, "mic_validation")
 })
 
+test_that("test subset mic_validation", {
+  gs <- c("0.5", "4", ">8", "2")
+  test <- c("0.5", "8", "2", "0.5")
+  ab <- c("amoxicillin", "amoxicillin", "gentamicin", "gentamicin")
+  mo <- c("Escherichia coli", "Proteus mirabilis", "Proteus mirabilis", "Proteus mirabilis")
+  val <- suppressMessages(compare_mic(gs, test, ab, mo))
+  expect_s3_class(val, "mic_validation")
+
+  # subset amox
+  val_sub <- subset(val, ab == "amoxicillin")
+  expect_s3_class(val_sub, "mic_validation")
+  expect_equal(nrow(val_sub), 2)
+
+  # subset amox and E. coli
+  val_sub <- subset(val, ab == "amoxicillin" & mo == "Escherichia coli")
+  expect_s3_class(val_sub, "mic_validation")
+  expect_equal(nrow(val_sub), 1)
+})
+
 test_that("test compare_sir", {
   gs <- c("4", "16", ">8", "0.5")
   test <- c("0.5", "8", "0.25", ">64")
