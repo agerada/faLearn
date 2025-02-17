@@ -582,7 +582,7 @@ as.sir_vectorised <- function(mic, mo, ab, accept_ecoff = FALSE, ...) {
   if (length(unique(ab)) == 1) {
     ab <- ab[[1]]
     output <- AMR::as.sir(mic, mo = mo, ab = ab, ...)
-    if (accept_ecoff) {
+    if (accept_ecoff & any(is.na(output))) {
       output[is.na(output)] <- AMR::as.sir(mic[is.na(output)],
                                            mo = mo[is.na(output)],
                                            ab = ab,

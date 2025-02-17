@@ -273,6 +273,27 @@ test_that("test fall back to ECOFFS in compare_mic", {
   expect_equal(sum_val$very_major_error_pcent[sum_val$ab == "CHL"], 25)
   expect_equal(sum_val$minor_error_pcent[sum_val$ab == "CHL"], 0)
   expect_equal(sum_val$major_error_pcent[sum_val$ab == "CHL"], 25)
+
+  # here we test some results that have breakpoints and some that do not
+  gs <- c("0.5", "4", ">64", "2")
+  test <- c("0.5", "8", "0.25", ">64")
+  ab <- c("CIP", "CIP", "CHL", "CHL")
+  mo <- "Escherichia coli"
+  val <- suppressMessages(
+    compare_mic(gs, test, ab, mo, accept_ecoff = TRUE))
+  expect_s3_class(val, "mic_validation")
+
+  # all mics have breakpoints but accept_ecoff is TRUE
+  ab <- "CIP"
+  val <- suppressMessages(
+    compare_mic(gs, test, ab, mo, accept_ecoff = TRUE))
+  expect_s3_class(val, "mic_validation")
+
+  # all mics have breakpoints but accept_ecoff is FALSE (different ab)
+  ab <- c("CIP", "CIP", "AMX", "AMX")
+  val <- suppressMessages(
+    compare_mic(gs, test, ab, mo, accept_ecoff = TRUE))
+  expect_s3_class(val, "mic_validation")
 })
 
 test_that("test mic_uncensor", {
