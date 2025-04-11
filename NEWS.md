@@ -2,6 +2,8 @@
 
 * `compare_mic` is faster when only one `ab` is provided
 * `subset` S3 method added for `mic_validation`
+* `plot.mic_validation` now properly matches dilutions on the lower end of the
+scale
 
 # MIC 1.0.2
 
