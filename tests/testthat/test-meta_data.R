@@ -400,4 +400,10 @@ test_that("test fill dilution levels", {
                         as.character(filled_range)))
   expect_false(all(levels(filled_range) %in% levels(test_range)))
   expect_true(length(levels(filled_range)) >= length(levels(test_range)))
+
+  start <- AMR::as.mic(c("0.002","0.008","0.016","0.03","0.06","0.125","0.25","0.5","1","2","4","8","16","32"))
+  target <- AMR::as.mic(c("0.002", "0.004", "0.008","0.016","0.03","0.06","0.125","0.25","0.5","1","2","4","8","16","32"))
+  filled_range <- fill_dilution_levels(start)
+  expect_true(all.equal(levels(as.character(target)),
+                        levels(as.character(filled_range))))
 })

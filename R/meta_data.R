@@ -968,9 +968,12 @@ fill_dilution_levels <- function(x,
   if (cap_upper) {
     mic_conc_range <- mic_conc_range[mic_conc_range <= max(AMR::as.mic(x))]
   }
+
   x <- forcats::fct_expand(x, as.character(mic_conc_range))
+
   new_levels <- levels(x)[order(match(levels(x),
                                       as.character(levels(AMR::as.mic(NA)))))]
+
   x <- ordered(x, levels = new_levels)
   if (as.mic) {
     class(x) <- append(class(x), "mic", after = 0)
@@ -1031,9 +1034,29 @@ plot.mic_validation <- function(x,
   if (match_axes) {
     x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
     x[["test"]] <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
+
     if (add_missing_dilutions) {
-      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]])
-      x[["test"]] <- fill_dilution_levels(x[["test"]])
+      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]],
+                                                   cap_lower = TRUE,
+                                                   cap_upper = TRUE)
+      x[["test"]] <- fill_dilution_levels(x[["test"]],
+                                          cap_lower = TRUE,
+                                          cap_upper = TRUE)
+    }
+
+    if (length(levels(x[["gold_standard"]])) > length(levels(x[["test"]]))) {
+      # after dilution filling, levels may not yet match, force another match
+      x[["test"]] <- forcats::fct_expand(x[["test"]],
+                                          as.character(levels(x[["gold_standard"]])))
+      x[["test"]] <- forcats::fct_relevel(x[["test"]],
+                                          levels(x[["gold_standard"]]))
+    }
+
+    if (length(levels(x[["test"]])) > length(levels(x[["gold_standard"]]))) {
+      x[["gold_standard"]] <- forcats::fct_expand(x[["gold_standard"]],
+                                                  as.character(levels(x[["test"]])))
+      x[["gold_standard"]] <- forcats::fct_relevel(x[["gold_standard"]],
+                                                  levels(x[["test"]]))
     }
   }
 
