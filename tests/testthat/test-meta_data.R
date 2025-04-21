@@ -407,3 +407,25 @@ test_that("test fill dilution levels", {
   expect_true(all.equal(levels(as.character(target)),
                         levels(as.character(filled_range))))
 })
+
+test_that("test droplevels mic_validation", {
+  t <- c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5")
+  g <- c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5")
+
+  expect_g <- AMR::as.mic(
+    c("<0.25", "<0.25", "<0.25", "0.5", "1", "0.5", "0.5"))
+
+  v <- compare_mic(g, t)
+  expect_equal(droplevels.mic_validation(v)$gold_standard,
+               expect_g)
+
+  # same but flip MICs
+  v <- compare_mic(t, g)
+  expect_equal(droplevels.mic_validation(v)$test,
+               expect_g)
+
+  # some more tests
+  v <- compare_mic(c("0.5", "0.5", "0.5"), c("0.5", "0.5", "0.5"))
+  expect_equal(droplevels.mic_validation(v)$gold_standard,
+               AMR::as.mic(c("0.5", "0.5", "0.5")))
+})

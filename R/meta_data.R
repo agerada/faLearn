@@ -722,6 +722,49 @@ compare_mic <- function(gold_standard,
   output
 }
 
+drop_levels_mic_validation <- function(x, lower = TRUE) {
+  x_df <- as.data.frame(x)
+  sorted_by_gs <- x_df[order(x_df$gold_standard, decreasing = !lower),]
+  # find first flip in the essential agreement, e.g.
+  # T T T F (flip = 3)
+  # F F T (flip = 2)
+
+  flip <- which(diff(as.numeric(sorted_by_gs$essential_agreement)) != 0)[[1]]
+  print(sorted_by_gs)
+  print(flip)
+  if (rlang::is_empty(flip)) {
+    return(x)
+  }
+
+  than <- ifelse(lower, "<", ">")
+  than_fun <- ifelse(lower, `<`, `>`)
+
+  bound <- sorted_by_gs$gold_standard[flip]
+  print(bound)
+  x$gold_standard[
+    than_fun(x$gold_standard, bound)] <- AMR::as.mic(
+      paste0(than, as.numeric(bound)))
+
+  x$test[
+    than_fun(x$test, bound)] <- AMR::as.mic(
+      paste0(than, as.numeric(bound)))
+
+  # repeat for test
+  sorted_by_test <- x_df[order(x_df$test, decreasing = !lower),]
+  flip <- which(diff(as.numeric(sorted_by_test$essential_agreement)) != 0)[[1]]
+  bound <- sorted_by_test$test[flip]
+  x$test[than_fun(x$test,bound)] <- AMR::as.mic(paste0(than,
+                                                   as.numeric(bound)))
+  x
+}
+
+droplevels.mic_validation <- function(x, ...) {
+  x <- drop_levels_mic_validation(x, lower = TRUE)
+  x <- drop_levels_mic_validation(x, lower = FALSE)
+  x
+
+}
+
 #' Print MIC validation object
 #'
 #' @param x mic_validation object
