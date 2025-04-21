@@ -409,11 +409,11 @@ test_that("test fill dilution levels", {
 })
 
 test_that("test droplevels mic_validation", {
-  t <- c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5")
-  g <- c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5")
+  t <- AMR::as.mic(c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5"))
+  g <- AMR::as.mic(c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5"))
 
   expect_g <- AMR::as.mic(
-    c("<0.25", "<0.25", "<0.25", "0.5", "1", "0.5", "0.5"))
+    c("<0.06", "0.06", "<0.25", "0.5", "1", "0.5", "0.5"))
 
   v <- compare_mic(g, t)
   expect_equal(droplevels.mic_validation(v)$gold_standard,
@@ -428,4 +428,17 @@ test_that("test droplevels mic_validation", {
   v <- compare_mic(c("0.5", "0.5", "0.5"), c("0.5", "0.5", "0.5"))
   expect_equal(droplevels.mic_validation(v)$gold_standard,
                AMR::as.mic(c("0.5", "0.5", "0.5")))
+
+  t <- AMR::as.mic(c("0.5", "4", "16", "256", "256"))
+  g <- AMR::as.mic(c("0.5", "4", ">4", ">4", "2"))
+
+  expect_t <- AMR::as.mic(
+    c("0.5", "4", "16", ">16", ">16")
+  )
+
+  v <- compare_mic(g, t)
+  expect_equal(droplevels.mic_validation(v)$test,
+               expect_t)
+  expect_equal(droplevels.mic_validation(v)$gold_standard,
+               g)
 })

@@ -722,45 +722,54 @@ compare_mic <- function(gold_standard,
   output
 }
 
-drop_levels_mic_validation <- function(x, lower = TRUE) {
-  x_df <- as.data.frame(x)
-  sorted_by_gs <- x_df[order(x_df$gold_standard, decreasing = !lower),]
-  # find first flip in the essential agreement, e.g.
-  # T T T F (flip = 3)
-  # F F T (flip = 2)
-
-  flip <- which(diff(as.numeric(sorted_by_gs$essential_agreement)) != 0)[[1]]
-  print(sorted_by_gs)
-  print(flip)
-  if (rlang::is_empty(flip)) {
-    return(x)
-  }
-
+drop_levels_mic_validation <- function(x, target, source,
+                                       lower = TRUE,
+                                       scale = 4) {
   than <- ifelse(lower, "<", ">")
   than_fun <- ifelse(lower, `<`, `>`)
+  bound_fun <- ifelse(lower, min, max)
+  bound_scaler <- ifelse(lower, 1/scale, scale)
 
-  bound <- sorted_by_gs$gold_standard[flip]
-  print(bound)
-  x$gold_standard[
-    than_fun(x$gold_standard, bound)] <- AMR::as.mic(
-      paste0(than, as.numeric(bound)))
+  source_bound <- bound_fun(x[[source]], na.rm = TRUE) * bound_scaler
+  source_bound <- force_mic(source_bound)
 
-  x$test[
-    than_fun(x$test, bound)] <- AMR::as.mic(
-      paste0(than, as.numeric(bound)))
+  unexpected_ea_true <- which(
+    x$essential_agreement == TRUE &
+      than_fun(x[[target]], source_bound)
+  )
 
-  # repeat for test
-  sorted_by_test <- x_df[order(x_df$test, decreasing = !lower),]
-  flip <- which(diff(as.numeric(sorted_by_test$essential_agreement)) != 0)[[1]]
-  bound <- sorted_by_test$test[flip]
-  x$test[than_fun(x$test,bound)] <- AMR::as.mic(paste0(than,
-                                                   as.numeric(bound)))
+  if(any(unexpected_ea_true)) {
+    warning(
+      glue::glue(
+        "Unexpected essential agreement for {length(unexpected_ea_true)} observations"))
+  }
+
+  x[[target]][than_fun(x[[target]], source_bound)] <-
+    AMR::as.mic(paste0(than, as.numeric(source_bound)))
+
+  stopifnot(x[["essential_agreement"]] == essential_agreement(
+    x[[target]],
+    x[[source]],
+    coerce_mic = FALSE,
+    mode = "categorical"
+  ))
   x
 }
 
 droplevels.mic_validation <- function(x, ...) {
-  x <- drop_levels_mic_validation(x, lower = TRUE)
-  x <- drop_levels_mic_validation(x, lower = FALSE)
+  x <- drop_levels_mic_validation(x, target = "gold_standard",
+                                  source = "test",
+                                  lower = TRUE)
+  x <- drop_levels_mic_validation(x, target = "test",
+                                  source = "gold_standard",
+                                  lower = TRUE)
+
+  x <- drop_levels_mic_validation(x, target = "gold_standard",
+                                  source = "test",
+                                  lower = FALSE)
+  x <- drop_levels_mic_validation(x, target = "test",
+                                  source = "gold_standard",
+                                  lower = FALSE)
   x
 
 }
