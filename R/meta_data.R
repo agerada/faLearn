@@ -756,6 +756,19 @@ drop_levels_mic_validation <- function(x, target, source,
   x
 }
 
+#' Droplevels for MIC validation object
+#'
+#' @param x mic_validation object
+#' @param ... additional arguments
+#'
+#' @return mic_validation object
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5")
+#' test <- c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5")
+#' val <- compare_mic(gold_standard, test)
+#' droplevels(val)
 droplevels.mic_validation <- function(x, ...) {
   x <- drop_levels_mic_validation(x, target = "gold_standard",
                                   source = "test",

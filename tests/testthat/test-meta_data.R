@@ -437,8 +437,11 @@ test_that("test droplevels mic_validation", {
   )
 
   v <- compare_mic(g, t)
-  expect_equal(droplevels.mic_validation(v)$test,
+  v_dropped <- droplevels.mic_validation(v)
+  expect_equal(v_dropped$test,
                expect_t)
-  expect_equal(droplevels.mic_validation(v)$gold_standard,
+  expect_equal(v_dropped$gold_standard,
                g)
+  expect_s3_class(v_dropped$gold_standard, "mic")
+  expect_s3_class(v_dropped$test, "mic")
 })
