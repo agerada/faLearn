@@ -724,7 +724,8 @@ compare_mic <- function(gold_standard,
 
 drop_levels_mic_validation <- function(x, target, source,
                                        lower = TRUE,
-                                       scale = 4) {
+                                       scale = 4,
+                                       safe = TRUE) {
   than <- ifelse(lower, "<", ">")
   than_fun <- ifelse(lower, `<`, `>`)
   bound_fun <- ifelse(lower, min, max)
@@ -747,42 +748,74 @@ drop_levels_mic_validation <- function(x, target, source,
   x[[target]][than_fun(x[[target]], source_bound)] <-
     AMR::as.mic(paste0(than, as.numeric(source_bound)))
 
-  stopifnot(x[["essential_agreement"]] == essential_agreement(
-    x[[target]],
-    x[[source]],
-    coerce_mic = FALSE,
-    mode = "categorical"
-  ))
+  if (safe) {
+    tryCatch({
+      stopifnot(x[["essential_agreement"]] == essential_agreement(
+        x[[target]],
+        x[[source]],
+        coerce_mic = FALSE,
+        mode = "categorical"
+      ))
+    }, error = function(e) {
+      stop(
+        glue::glue(
+          "Essential agreement does not match after dropping levels for {target} and {source}
+          You can ignore and force the levels to be dropped using safe = FALSE"))
+    }
+    )
+  }
   x
 }
 
 #' Droplevels for MIC validation object
 #'
 #' @param x mic_validation object
+#' @param scale scalar to multiply or divide MIC by (for method = scale)
+#' @param safe ensure that essential agreement is not changed
 #' @param ... additional arguments
 #'
 #' @return mic_validation object
 #' @export
+#'
+#' @description
+#' Quite often, MIC values are being compared across methods with different
+#' levels of granularity. For example, the true MIC may be measured across a
+#' higher range of values than the test method. This means that there may be
+#' MIC levels that don't provide much additional information (since they are
+#' only present in one of the methods). This function removes these unnecessary
+#' levels at both ranges of the MIC values.
+#'
+#' This function ensure that the changes do not "change" the essential
+#' agreement interpretation. This can be suppressed using safe = FALSE,
+#' however this is probably not desired behaviour.
 #'
 #' @examples
 #' gold_standard <- c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5")
 #' test <- c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5")
 #' val <- compare_mic(gold_standard, test)
 #' droplevels(val)
-droplevels.mic_validation <- function(x, ...) {
+droplevels.mic_validation <- function(x, scale = 4, safe = TRUE, ...) {
   x <- drop_levels_mic_validation(x, target = "gold_standard",
                                   source = "test",
-                                  lower = TRUE)
+                                  lower = TRUE,
+                                  scale = scale,
+                                  safe = TRUE)
   x <- drop_levels_mic_validation(x, target = "test",
                                   source = "gold_standard",
-                                  lower = TRUE)
+                                  lower = TRUE,
+                                  scale = scale,
+                                  safe = TRUE)
 
   x <- drop_levels_mic_validation(x, target = "gold_standard",
                                   source = "test",
-                                  lower = FALSE)
+                                  lower = FALSE,
+                                  scale = scale,
+                                  safe = TRUE)
   x <- drop_levels_mic_validation(x, target = "test",
                                   source = "gold_standard",
-                                  lower = FALSE)
+                                  lower = FALSE,
+                                  scale = scale,
+                                  safe = TRUE)
   x
 
 }

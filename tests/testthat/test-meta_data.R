@@ -444,4 +444,12 @@ test_that("test droplevels mic_validation", {
                g)
   expect_s3_class(v_dropped$gold_standard, "mic")
   expect_s3_class(v_dropped$test, "mic")
+
+  expect_warning(
+    expect_error(droplevels(v, scale = 1))
+  )
+  expect_error(
+    suppressWarnings(
+      droplevels(v, scale = 1))
+    )
 })

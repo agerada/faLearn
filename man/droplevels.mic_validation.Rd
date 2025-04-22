@@ -4,10 +4,14 @@
 \alias{droplevels.mic_validation}
 \title{Droplevels for MIC validation object}
 \usage{
-\method{droplevels}{mic_validation}(x, ...)
+\method{droplevels}{mic_validation}(x, scale = 4, safe = TRUE, ...)
 }
 \arguments{
 \item{x}{mic_validation object}
+
+\item{scale}{scalar to multiply or divide MIC by (for method = scale)}
+
+\item{safe}{ensure that essential agreement is not changed}
 
 \item{...}{additional arguments}
 }
@@ -15,7 +19,16 @@
 mic_validation object
 }
 \description{
-Droplevels for MIC validation object
+Quite often, MIC values are being compared across methods with different
+levels of granularity. For example, the true MIC may be measured across a
+higher range of values than the test method. This means that there may be
+MIC levels that don't provide much additional information (since they are
+only present in one of the methods). This function removes these unnecessary
+levels at both ranges of the MIC values.
+
+This function ensure that the changes do not "change" the essential
+agreement interpretation. This can be suppressed using safe = FALSE,
+however this is probably not desired behaviour.
 }
 \examples{
 gold_standard <- c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5")
