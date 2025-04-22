@@ -4,6 +4,8 @@
 * `subset` S3 method added for `mic_validation`
 * `plot.mic_validation` now properly matches dilutions on the lower end of the
 scale
+* `droplevels.mic_validation` method added that allows unnecessary MIC levels
+in a validation object to be dropped
 
 # MIC 1.0.2
 
