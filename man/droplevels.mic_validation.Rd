@@ -9,9 +9,14 @@
 \arguments{
 \item{x}{mic_validation object}
 
-\item{scale}{scalar to multiply or divide MIC by (for method = scale)}
+\item{scale}{scalar to multiply or divide MIC by (for method = scale). The
+default is 4, which is conservative and only drops levels in test/gold standard
+levels are 4 dilutions from the minimum/maximum in the other method. Try
+a value of 2 for a more aggressive approach, but this may change the essential
+agreement.}
 
-\item{safe}{ensure that essential agreement is not changed}
+\item{safe}{ensure that essential agreement is not changed after dropping
+levels}
 
 \item{...}{additional arguments}
 }
