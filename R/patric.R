@@ -257,7 +257,9 @@ tidy_patric_meta_data <- function(x,
 
   aggregate_mic <- list(which.min, which.max)
   mic_data <- x |>
-    dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Agar dilution", "Broth dilution")) |>
+    dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Agar dilution",
+                                                             "Broth dilution",
+                                                             "MIC")) |>
     dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
     dplyr::group_by(.data[["genome_id"]], .data[["antibiotic"]]) |>
     dplyr::slice(aggregate_mic[[prefer_more_resistant + 1]](.data[["measurement"]])) |>
