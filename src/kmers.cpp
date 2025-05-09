@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 using namespace Rcpp;
 
 List wrap_custom(const std::map<std::string, unsigned long long int> dict){
@@ -294,6 +295,7 @@ List kmers(const CharacterVector& x,
 //' @param canonical only record canonical kmers
 //' (i.e., the lexicographically smaller of a kmer and its reverse complement)
 //' @param squeeze remove non-canonical kmers
+//' @param overwrite overwrite existing file
 //' @return boolean indicating success
 //' @description
 //' This function converts a single genome to a libsvm file containing kmer
@@ -323,9 +325,14 @@ bool genome_to_libsvm(const CharacterVector &x,
                     const CharacterVector &label = CharacterVector::create("0"),
                     int k = 3,
                     bool canonical = true,
-                    bool squeeze = false) {
-  std::ofstream file;
+                    bool squeeze = false,
+                    bool overwrite = false) {
   std::string path = as<std::string>(target_path);
+  if (std::filesystem::exists(path) & !overwrite) {
+    Rcpp::message(CharacterVector::create("File: " + path + " already exists. Use overwrite = TRUE to overwrite."));
+    return true;
+  }
+  std::ofstream file;
   file.open(path);
   file << as<std::string>(label) << " ";
   std::map<unsigned long long int, unsigned long long int> int_key;

@@ -10,7 +10,8 @@ genome_to_libsvm(
   label = as.character(c("0")),
   k = 3L,
   canonical = TRUE,
-  squeeze = FALSE
+  squeeze = FALSE,
+  overwrite = FALSE
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ genome_to_libsvm(
 (i.e., the lexicographically smaller of a kmer and its reverse complement)}
 
 \item{squeeze}{remove non-canonical kmers}
+
+\item{overwrite}{overwrite existing file}
 }
 \value{
 boolean indicating success
