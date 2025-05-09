@@ -174,11 +174,11 @@ pull_PATRIC_genomes <- function(output_directory,
     # make sure mic/disk is valid
     if (filter == "mic") {
       filtered_data <- filtered_data |>
-        mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
+        dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
         dplyr::filter(!is.na(.data[["measurement"]]))
     } else if (filter == "disc") {
       filtered_data <- filtered_data |>
-        mutate(measurement = AMR::as.disk(.data[["measurement"]])) |>
+        dplyr::mutate(measurement = AMR::as.disk(.data[["measurement"]])) |>
         dplyr::filter(!is.na(.data[["measurement"]]))
     }
 

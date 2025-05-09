@@ -9,7 +9,7 @@ pull_PATRIC_genomes(
   taxonomic_name = NULL,
   database = patric_ftp_path,
   filter = "MIC",
-  ab = "any",
+  ab = NULL,
   n_genomes = 0
 )
 }
@@ -23,7 +23,8 @@ pull_PATRIC_genomes(
 \item{filter}{"MIC" or "disk" or "all" phenotypes}
 
 \item{ab}{antibiotic(s) of interest, provided as a character vector of
-antibiotic names/codes, or ideally, as AMR::ab classes, created using AMR::as.ab}
+antibiotic names/codes, or ideally, as AMR::ab classes, created using AMR::as.ab
+(default = all)}
 
 \item{n_genomes}{number of genomes (0 = all)}
 }
