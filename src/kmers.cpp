@@ -99,6 +99,20 @@ std::string reverse_complement(std::string dna){
     case 'G':
       rev_comp.push_back('C');
       break;
+
+    case 'a':
+      rev_comp.push_back('T');
+      break;
+    case 'c':
+      rev_comp.push_back('G');
+      break;
+    case 't':
+      rev_comp.push_back('A');
+      break;
+    case 'g':
+      rev_comp.push_back('C');
+      break;
+
     default:
       rev_comp.push_back(*i);
       break;
@@ -119,6 +133,8 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
   //std::map<std::string, int> kmer_dict;
   for (int i = 0; i < x.size(); i++) {
     std::string contig = as<std::string>(x[i]);
+    // to upper
+    std::transform(contig.begin(), contig.end(), contig.begin(), ::toupper);
 
     if (!is_valid_dna_string(contig)) {
       throw std::range_error("Invalid DNA string (probably empty/NULL)");

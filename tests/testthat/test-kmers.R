@@ -128,3 +128,13 @@ test_that("check that can revert the squeeze", {
       expect_true(all.equal(squeezed_str, unsqueezed_str))
     }
 })
+
+test_that("test reverse complement", {
+  genome_str <- "ACACTT"
+  rev_str <- reverse_complement(genome_str)
+  expect_true(all.equal(rev_str, "AAGTGT"))
+
+  genome_str <- "ttt"
+  rev_str <- reverse_complement(genome_str)
+  expect_true(all.equal(rev_str, "AAA"))
+})
