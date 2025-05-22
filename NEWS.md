@@ -10,6 +10,7 @@ in a validation object to be dropped
 "MIC" (see 81c69f08)
 * `pull_patric_genomes` now takes an `ab` argument to only download strains
 where the specified antibiotic was tested
+* kmer counting is now case insensitive
 
 # MIC 1.0.2
 
