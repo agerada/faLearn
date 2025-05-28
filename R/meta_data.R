@@ -229,6 +229,10 @@ vectorize.args = c("mic", "ab", "mo"))
 #' @param rules censor rules - named list of pathogen (in AMR::as.mo code) to
 #' antibiotic (in AMR::as.ab code) to censoring rules. The censoring rules
 #' should provide a min or max value to censor MICs to. See example for more.
+#' @param max maximum concentration to censor to (default = Inf), will override
+#' any rules provided
+#' @param min minimum concentration to censor to (default = -Inf), will override
+#' any rules provided
 #'
 #' @return censored MIC values (S3 mic class)
 #'
@@ -259,7 +263,11 @@ vectorize.args = c("mic", "ab", "mo"))
 #'            "AMK",
 #'            "B_ESCHR_COLI",
 #'            example_rules) == AMR::as.mic(">32")
-mic_censor <- function(mic, ab, mo, rules) {
+mic_censor <- function(mic, ab = NULL,
+                       mo = NULL,
+                       rules = NULL,
+                       max = Inf,
+                       min = -Inf) {
   mic_censor_vectorize <- Vectorize(
     function(mic, ab, mo, rules) {
       mic <- AMR::as.mic(mic)
@@ -283,7 +291,27 @@ mic_censor <- function(mic, ab, mo, rules) {
     vectorize.args = c("mic", "ab", "mo")
   )
 
-  AMR::as.mic(mic_censor_vectorize(mic, ab, mo, rules))
+  rules_args <- c(ab, mo, rules)
+  if (any(sapply(rules_args, is.null)) && any(!sapply(rules_args, is.null))) {
+    stop("All of ab, mo, and rules must be provided or all must be NULL.")
+  }
+
+  censored <- AMR::as.mic(mic)
+
+  if (all(!is.null(rules_args))) {
+    censored <- AMR::as.mic(mic_censor_vectorize(mic, ab, mo, rules))
+  }
+
+  # apply overall min and max
+  if (max != Inf) {
+    max <- AMR::as.mic(max)
+    censored[censored > max] <- paste0(">", max)
+  }
+  if (min != -Inf) {
+    min <- AMR::as.mic(min)
+    censored[censored < min] <- paste0("<=", min)
+  }
+  censored
 }
 
 #' Generate dilution series

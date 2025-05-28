@@ -174,6 +174,10 @@ test_that("test mic_censor", {
                    c(AMR::as.mic(">32"), AMR::as.mic("<=2")))
     }
   )
+
+  # test without rules
+  expect_equal(mic_censor(AMR::as.mic(128), max = "32"), AMR::as.mic(">32"))
+  expect_equal(mic_censor(AMR::as.mic(0.5), min = "2"), AMR::as.mic("<=2"))
 })
 
 test_that("test compare_mic categorical", {
