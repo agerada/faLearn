@@ -142,6 +142,40 @@ test_that("test essential agreement", {
   right_check <- c(4, 1, 1, "32")
   expect_equal(essential_agreement(left_check, right_check),
                c(TRUE, TRUE, FALSE, TRUE))
+
+  # this section tests tolerance
+  expect_true(essential_agreement("<2", "0.002", tolerate_censoring = "x"))
+  expect_true(essential_agreement("0.002", "<2", tolerate_censoring = "y"))
+  expect_true(essential_agreement("<2", "0.002", tolerate_censoring = "both"))
+  expect_true(essential_agreement("0.002", "<2", tolerate_censoring = "both"))
+  expect_false(essential_agreement("<2", "0.002", tolerate_censoring = "y"))
+  expect_false(essential_agreement("<2", "0.002", tolerate_censoring = "strict"))
+
+  expect_true(essential_agreement(">32", "256", tolerate_censoring = "x"))
+  expect_false(essential_agreement(">32", "256", tolerate_censoring = "y"))
+  expect_false(essential_agreement(">32", "256", tolerate_censoring = "strict"))
+
+  expect_true(essential_agreement(">32", ">128", tolerate_censoring = "x"))
+  expect_false(essential_agreement(">32", ">16", tolerate_censoring = "x"))
+  expect_true(suppressWarnings(
+    essential_agreement(">32", ">16", tolerate_censoring = "both")))
+  expect_warning(essential_agreement(">32", ">16", tolerate_censoring = "both"))
+  expect_true(suppressMessages(
+    is.na(essential_agreement(">32", ">16", tolerate_censoring = "strict"))))
+
+  expect_false(essential_agreement(">32", ">128", tolerate_censoring = "y"))
+  expect_true(is.na(essential_agreement(">32", ">128", tolerate_censoring = "strict")))
+
+  expect_true(essential_agreement("<2", "<0.125", tolerate_censoring = "x"))
+  expect_false(essential_agreement("<2", "<4", tolerate_censoring = "x"))
+  expect_false(essential_agreement("<2", "<0.125", tolerate_censoring = "y"))
+  expect_true(is.na(essential_agreement("<2", "<0.125", tolerate_censoring = "strict")))
+
+  expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "both"))
+  expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "x"))
+  expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "y"))
+  expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "strict"))
+  expect_false(essential_agreement(">4", "<4", tolerate_censoring = "both"))
 })
 
 test_that("test mic_censor", {
@@ -417,16 +451,22 @@ test_that("test droplevels mic_validation", {
   g <- AMR::as.mic(c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5"))
 
   expect_g <- AMR::as.mic(
-    c("<0.06", "0.06", "<0.25", "0.5", "1", "0.5", "0.5"))
+    c("0.004", "0.06", "<0.25", "0.5", "1", "0.5", "0.5"))
 
   v <- compare_mic(g, t)
   expect_equal(droplevels.mic_validation(v)$gold_standard,
                expect_g)
 
+  expect_g <- AMR::as.mic(
+    c("<0.25", "0.25", "0.5", "1", ">1", "1", "0.5"))
+  expect_t <- AMR::as.mic(
+    c("<0.25", "0.06", "<0.25", "0.5", "1", "0.5", "0.5"))
   # same but flip MICs
   v <- compare_mic(t, g)
-  expect_equal(droplevels.mic_validation(v)$test,
+  expect_equal(droplevels.mic_validation(v)$gold_standard,
                expect_g)
+  expect_equal(droplevels.mic_validation(v)$test,
+               expect_t)
 
   # some more tests
   v <- compare_mic(c("0.5", "0.5", "0.5"), c("0.5", "0.5", "0.5"))
@@ -437,7 +477,7 @@ test_that("test droplevels mic_validation", {
   g <- AMR::as.mic(c("0.5", "4", ">4", ">4", "2"))
 
   expect_t <- AMR::as.mic(
-    c("0.5", "4", "16", ">16", ">16")
+    c("0.5", "4", ">4", ">4", "256")
   )
 
   v <- compare_mic(g, t)
@@ -448,12 +488,4 @@ test_that("test droplevels mic_validation", {
                g)
   expect_s3_class(v_dropped$gold_standard, "mic")
   expect_s3_class(v_dropped$test, "mic")
-
-  expect_warning(
-    expect_error(droplevels(v, scale = 1))
-  )
-  expect_error(
-    suppressWarnings(
-      droplevels(v, scale = 1))
-    )
 })
