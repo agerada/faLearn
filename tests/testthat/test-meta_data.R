@@ -133,10 +133,9 @@ test_that("test essential agreement", {
   expect_false(essential_agreement(128, ">256"))
   expect_false(essential_agreement(512, "128"))
   expect_false(essential_agreement(0.002, "0.006"))
+  expect_false(essential_agreement(2, ">1024"))
+  expect_false(essential_agreement(2, "<1024"))
 
-  expect_true(suppressWarnings(is.na(essential_agreement(2, ">1024"))))
-  expect_warning(essential_agreement(2, ">1024"))
-  expect_true(is.na(essential_agreement(2, "<0.001")))
 
   left_check <- c(4, 2, 7, ">32")
   right_check <- c(4, 1, 1, "32")
@@ -176,6 +175,14 @@ test_that("test essential agreement", {
   expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "y"))
   expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "strict"))
   expect_false(essential_agreement(">4", "<4", tolerate_censoring = "both"))
+
+  expect_false(essential_agreement("2", "<0.001", tolerate_censoring = "both"))
+  expect_false(essential_agreement("2", "<16", tolerate_censoring = "x"))
+  expect_true(essential_agreement("2", "<16", tolerate_censoring = "y"))
+
+  expect_false(essential_agreement("2", ">32", tolerate_censoring = "both"))
+  expect_false(essential_agreement("2", ">32", tolerate_censoring = "x"))
+  expect_false(essential_agreement("2", ">32", tolerate_censoring = "y"))
 })
 
 test_that("test mic_censor", {

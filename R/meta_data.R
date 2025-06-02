@@ -573,8 +573,12 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
     .xbak <- AMR::as.mic(x)
     .ybak <- AMR::as.mic(y)
 
-    x <- AMR::as.mic(force_mic(mic_uncensor(x)))
-    y <- AMR::as.mic(force_mic(mic_uncensor(y)))
+    x <- AMR::as.mic(force_mic(mic_uncensor(x),
+                               max_conc = Inf,
+                               min_conc = -Inf))
+    y <- AMR::as.mic(force_mic(mic_uncensor(y),
+                               max_conc = Inf,
+                               min_conc = -Inf))
 
     range <- mic_range()
     range <- c(max(range) * 2,
