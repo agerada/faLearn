@@ -12,9 +12,9 @@
 
 `MIC` is an R package for the analysis of minimum inhibitory
 concentration (MIC) data. The package was designed to be compatible with
-the [`AMR`](https://msberends.github.io/AMR/), in particular most of the
-functions in `MIC` are designed to accept and return `AMR` objects, such
-as `mic` and `sir`. The primary functions in `MIC` are designed towards
+the [`AMR`](https://amr-for-r.org/), in particular most of the functions
+in `MIC` are designed to accept and return `AMR` objects, such as `mic`
+and `sir`. The primary functions in `MIC` are designed towards
 validation studies of minimum inhibitory concentrations, however it also
 can (optionally) be used to support the construction of machine learning
 models that predict MIC values from genomic data.
