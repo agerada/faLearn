@@ -9,6 +9,7 @@ essential_agreement(
   y,
   coerce_mic = TRUE,
   tolerate_censoring = "strict",
+  tolerate_matched_censoring = "both",
   mode = "categorical"
 )
 }
@@ -21,6 +22,11 @@ essential_agreement(
 
 \item{tolerate_censoring}{"strict", "x", "y", or "both" - whether to tolerate
 censoring in x, y, or both. See details.}
+
+\item{tolerate_matched_censoring}{"strict", "x", "y", or "both" - how to handle
+situations where one of the values is censored, but both values match (e.g.,
+x = ">2", y = "2"). For most situations, this is considered essential agreement.
+so should be left as "both".}
 
 \item{mode}{"categorical" or "numeric", see details}
 }

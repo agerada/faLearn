@@ -507,6 +507,10 @@ force_mic <- function(value,
 #' @param coerce_mic convert to AMR::mic
 #' @param tolerate_censoring "strict", "x", "y", or "both" - whether to tolerate
 #' censoring in x, y, or both. See details.
+#' @param tolerate_matched_censoring "strict", "x", "y", or "both" - how to handle
+#' situations where one of the values is censored, but both values match (e.g.,
+#' x = ">2", y = "2"). For most situations, this is considered essential agreement.
+#' so should be left as "both".
 #' @param mode "categorical" or "numeric", see details
 #' @return logical vector
 #' @export
@@ -559,6 +563,7 @@ essential_agreement <- function(x,
                                 y,
                                 coerce_mic = TRUE,
                                 tolerate_censoring = "strict",
+                                tolerate_matched_censoring = "both",
                                 mode = "categorical") {
   if (any(!AMR::is.mic(c(x, y))) & !coerce_mic) {
     stop("Both MIC inputs to essential_agreement must be AMR::mic.
@@ -603,6 +608,35 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
         index_diff[i] <- FALSE
         next
       }
+
+      # x == y, but x is censored (e.g., x = ">2", "y = "2")
+      if (all(grepl("<|>", .xbak[i]),
+              !grepl("<|>", .ybak[i]),
+              as.numeric(.xbak[i]) == as.numeric(.ybak[i]))) {
+        if (tolerate_matched_censoring == "both" |
+            tolerate_matched_censoring == "x") {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      # y == x, but y is censored (e.g., x = "2", "y = ">2")
+      if (all(!grepl("<|>", .xbak[i]),
+              grepl("<|>", .ybak[i]),
+              as.numeric(.xbak[i]) == as.numeric(.ybak[i]))) {
+        if (tolerate_matched_censoring == "both" |
+            tolerate_matched_censoring == "y") {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
       if (all(grepl("<|>", .xbak[i]),
               grepl("<|>", .ybak[i]),
               .xbak[i] != .ybak[i])) {
@@ -766,6 +800,11 @@ as.sir_vectorised <- function(mic, mo, ab, accept_ecoff = FALSE, ...) {
 #' granularity (i.e., less censoring) than the gold standard. Setting to "test"
 #' or "both" should be used with caution but may be appropriate in some cases
 #' where the test also produces censored results.
+#' @param tolerate_matched_censoring "strict", "gold_standard", "test",
+#' or "both" - how to handle situations where one of the values is censored,
+#' but both values match (e.g., gold_standard = ">2", test = "2"). Generally, this
+#' should be left as "both", since these values are considered to be in
+#' essential agreement. For more details, see [essential_agreement].
 #' @param ... additional arguments to be passed to AMR::as.sir
 #'
 #' @return S3 mic_validation object
@@ -813,6 +852,7 @@ compare_mic <- function(gold_standard,
                         simplify = TRUE,
                         ea_mode = "categorical",
                         tolerate_censoring = "gold_standard",
+                        tolerate_matched_censoring = "both",
                         ...) {
   if (length(gold_standard) != length(test)) {
     stop("Gold standard and test must be the same length")
@@ -821,7 +861,8 @@ compare_mic <- function(gold_standard,
   call_list <- list(accept_ecoff = accept_ecoff,
                     simplify = simplify,
                     ea_mode = ea_mode,
-                    tolerate_censoring = tolerate_censoring)
+                    tolerate_censoring = tolerate_censoring,
+                    tolerate_matched_censoring = tolerate_matched_censoring)
 
   gold_standard_mod <- gold_standard |>
     force_mic(levels_from_AMR = !simplify) |>
@@ -953,12 +994,21 @@ droplevels.mic_validation <- function(x,
     } else if (tol_censor_call == "test") {
       tol_censor_call <- "y"
     }
+
+    tol_censor_match_call <- attr(x, "call")$tolerate_matched_censoring
+    if (tol_censor_match_call == "gold_standard") {
+      tol_censor_match_call <- "x"
+    } else if (tol_censor_match_call == "test") {
+      tol_censor_match_call <- "y"
+    }
+
     new_ea <- essential_agreement(
       x[["gold_standard"]],
       x[["test"]],
       coerce_mic = FALSE,
       mode = "categorical",
-      tolerate_censoring = tol_censor_call
+      tolerate_censoring = tol_censor_call,
+      tolerate_matched_censoring = tol_censor_match_call
     )
 
     if (!all(new_ea == x$essential_agreement)) {

@@ -163,12 +163,14 @@ test_that("test essential agreement", {
     is.na(essential_agreement(">32", ">16", tolerate_censoring = "strict"))))
 
   expect_false(essential_agreement(">32", ">128", tolerate_censoring = "y"))
-  expect_true(is.na(essential_agreement(">32", ">128", tolerate_censoring = "strict")))
+  expect_true(is.na(suppressMessages(
+    essential_agreement(">32", ">128", tolerate_censoring = "strict"))))
 
   expect_true(essential_agreement("<2", "<0.125", tolerate_censoring = "x"))
   expect_false(essential_agreement("<2", "<4", tolerate_censoring = "x"))
   expect_false(essential_agreement("<2", "<0.125", tolerate_censoring = "y"))
-  expect_true(is.na(essential_agreement("<2", "<0.125", tolerate_censoring = "strict")))
+  expect_true(is.na(suppressMessages(
+    essential_agreement("<2", "<0.125", tolerate_censoring = "strict"))))
 
   expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "both"))
   expect_false(essential_agreement(">4", "<0.5", tolerate_censoring = "x"))
@@ -183,6 +185,11 @@ test_that("test essential agreement", {
   expect_false(essential_agreement("2", ">32", tolerate_censoring = "both"))
   expect_false(essential_agreement("2", ">32", tolerate_censoring = "x"))
   expect_false(essential_agreement("2", ">32", tolerate_censoring = "y"))
+
+  expect_false(essential_agreement(">2", "2", tolerate_matched_censoring = "strict"))
+  expect_true(essential_agreement(">2", "2", tolerate_matched_censoring = "both"))
+  expect_true(essential_agreement(">2", "2", tolerate_matched_censoring = "x"))
+  expect_false(essential_agreement(">2", "2", tolerate_matched_censoring = "y"))
 })
 
 test_that("test mic_censor", {
@@ -370,14 +377,19 @@ test_that("test mic_uncensor", {
   ab <- "GEN"
   mo <- "Escherichia coli"
 
-  expect_true(as.numeric(mic_uncensor(">16", method = "bootstrap", ab = ab, mo = mo)) > 16)
+  expect_true(suppressMessages(as.numeric(
+    mic_uncensor(">16", method = "bootstrap", ab = ab, mo = mo)) > 16))
+
   mic1 <- c("0.5", "4", ">8", "2", "<=1", ">16")
-  uncensored_mic1 <- mic_uncensor(mic1, method = "bootstrap", ab = ab, mo = mo)
+  uncensored_mic1 <- suppressMessages(
+    mic_uncensor(mic1, method = "bootstrap", ab = ab, mo = mo))
+
   expect_true(as.numeric(uncensored_mic1[3]) > 8)
 
   expect_equal(mic_uncensor(NA, method = "bootstrap", ab = ab, mo = mo), AMR::NA_mic_)
 
-  expect_warning(mic_uncensor("<0.004", method = "bootstrap", ab = ab, mo = mo))
+  expect_warning(suppressMessages(
+    mic_uncensor("<0.004", method = "bootstrap", ab = ab, mo = mo)))
 })
 
 test_that("test force_mic", {
@@ -496,3 +508,4 @@ test_that("test droplevels mic_validation", {
   expect_s3_class(v_dropped$gold_standard, "mic")
   expect_s3_class(v_dropped$test, "mic")
 })
+

@@ -13,6 +13,7 @@ compare_mic(
   simplify = TRUE,
   ea_mode = "categorical",
   tolerate_censoring = "gold_standard",
+  tolerate_matched_censoring = "both",
   ...
 )
 }
@@ -38,6 +39,12 @@ left as "gold_standard" since this setting "tolerates" a test that has higher
 granularity (i.e., less censoring) than the gold standard. Setting to "test"
 or "both" should be used with caution but may be appropriate in some cases
 where the test also produces censored results.}
+
+\item{tolerate_matched_censoring}{"strict", "gold_standard", "test",
+or "both" - how to handle situations where one of the values is censored,
+but both values match (e.g., gold_standard = ">2", test = "2"). Generally, this
+should be left as "both", since these values are considered to be in
+essential agreement. For more details, see \link{essential_agreement}.}
 
 \item{...}{additional arguments to be passed to AMR::as.sir}
 }
