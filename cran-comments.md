@@ -1,3 +1,9 @@
+# MIC 1.1.0
+
+One note for `plot.mic_validation` examples CPU >10s.
+This warning remains when wrapping in /dontrun{} and even when example removed
+altogether.
+
 ## Resubmission
 
 Only change is removal of space from doi entry in description.
