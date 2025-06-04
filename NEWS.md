@@ -1,4 +1,4 @@
-# MIC (development version)
+# MIC 1.1.0
 
 *  revamp of the `essential_agreement` function to allow a more robust, flexible,
 and explicit approach to dealing with censored values. Now, `essential_agreement`
