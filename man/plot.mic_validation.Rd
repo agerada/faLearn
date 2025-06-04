@@ -41,16 +41,9 @@ test <- c("<0.25", "2", "16", "64")
 val <- compare_mic(gold_standard, test)
 plot(val)
 
-# works with validation that includes categorical agreement
-# categorical agreement is ignored
-ab <- c("AMK", "AMK", "AMK", "AMK")
-mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
-val <- compare_mic(gold_standard, test, ab, mo)
-plot(val)
-
 # if the validation contains multiple antibiotics, i.e.,
 ab <- c("CIP", "CIP", "AMK", "AMK")
-val <- compare_mic(gold_standard, test, ab, mo)
+val <- compare_mic(gold_standard, test, ab)
 # the following will plot all antibiotics in a single plot (pooled results)
 plot(val)
 # use the faceting arguments to split the plot by antibiotic
