@@ -1303,13 +1303,6 @@ fill_dilution_levels <- function(x,
 #' val <- compare_mic(gold_standard, test)
 #' plot(val)
 #'
-#' # works with validation that includes categorical agreement
-#' # categorical agreement is ignored
-#' ab <- c("AMK", "AMK", "AMK", "AMK")
-#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
-#' val <- compare_mic(gold_standard, test, ab, mo)
-#' plot(val)
-#'
 #' # if the validation contains multiple antibiotics, i.e.,
 #' ab <- c("CIP", "CIP", "AMK", "AMK")
 #' val <- compare_mic(gold_standard, test, ab, mo)
@@ -1359,6 +1352,10 @@ plot.mic_validation <- function(x,
                                                   levels(x[["test"]]))
     }
   }
+
+  # temp fix - drop use of mic class as a patch to allow AMR v3 compatibility
+  x[["gold_standard"]] <- factor(x[["gold_standard"]])
+  x[["test"]] <- factor(x[["test"]])
 
   if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1 |
       all(is.null(c(facet_wrap_ncol, facet_wrap_nrow)))) {
