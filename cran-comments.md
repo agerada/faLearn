@@ -4,6 +4,11 @@ One note for `plot.mic_validation` examples CPU >10s.
 This warning remains when wrapping in /dontrun{} and even when example removed
 altogether.
 
+We checked 0 reverse dependencies, comparing R CMD check results across CRAN and dev versions of this package.
+
+ * We saw 0 new problems
+ * We failed to check 0 packages
+ 
 ## Resubmission
 
 Only change is removal of space from doi entry in description.
