@@ -229,6 +229,10 @@ vectorize.args = c("mic", "ab", "mo"))
 #' @param rules censor rules - named list of pathogen (in AMR::as.mo code) to
 #' antibiotic (in AMR::as.ab code) to censoring rules. The censoring rules
 #' should provide a min or max value to censor MICs to. See example for more.
+#' @param max maximum concentration to censor to (default = Inf), will override
+#' any rules provided
+#' @param min minimum concentration to censor to (default = -Inf), will override
+#' any rules provided
 #'
 #' @return censored MIC values (S3 mic class)
 #'
@@ -259,7 +263,11 @@ vectorize.args = c("mic", "ab", "mo"))
 #'            "AMK",
 #'            "B_ESCHR_COLI",
 #'            example_rules) == AMR::as.mic(">32")
-mic_censor <- function(mic, ab, mo, rules) {
+mic_censor <- function(mic, ab = NULL,
+                       mo = NULL,
+                       rules = NULL,
+                       max = Inf,
+                       min = -Inf) {
   mic_censor_vectorize <- Vectorize(
     function(mic, ab, mo, rules) {
       mic <- AMR::as.mic(mic)
@@ -283,7 +291,27 @@ mic_censor <- function(mic, ab, mo, rules) {
     vectorize.args = c("mic", "ab", "mo")
   )
 
-  AMR::as.mic(mic_censor_vectorize(mic, ab, mo, rules))
+  rules_args <- c(ab, mo, rules)
+  if (any(sapply(rules_args, is.null)) && any(!sapply(rules_args, is.null))) {
+    stop("All of ab, mo, and rules must be provided or all must be NULL.")
+  }
+
+  censored <- AMR::as.mic(mic)
+
+  if (all(!is.null(rules_args))) {
+    censored <- AMR::as.mic(mic_censor_vectorize(mic, ab, mo, rules))
+  }
+
+  # apply overall min and max
+  if (max != Inf) {
+    max <- AMR::as.mic(max)
+    censored[censored > max] <- paste0(">", max)
+  }
+  if (min != -Inf) {
+    min <- AMR::as.mic(min)
+    censored[censored < min] <- paste0("<=", min)
+  }
+  censored
 }
 
 #' Generate dilution series
@@ -477,7 +505,13 @@ force_mic <- function(value,
 #' @param x AMR::mic or coercible
 #' @param y AMR::mic or coercible
 #' @param coerce_mic convert to AMR::mic
-#' @param mode Categorical or numeric
+#' @param tolerate_censoring "strict", "x", "y", or "both" - whether to tolerate
+#' censoring in x, y, or both. See details.
+#' @param tolerate_matched_censoring "strict", "x", "y", or "both" - how to handle
+#' situations where one of the values is censored, but both values match (e.g.,
+#' x = ">2", y = "2"). For most situations, this is considered essential agreement.
+#' so should be left as "both".
+#' @param mode "categorical" or "numeric", see details
 #' @return logical vector
 #' @export
 #'
@@ -488,10 +522,22 @@ force_mic <- function(value,
 #' ISO 20776-2:2021. The function can be used in two modes: categorical and
 #' numeric. In categorical mode, the function will use traditional MIC
 #' concentrations to determine the MIC (therefore it will use force_mic() to
-#' convert both x and y to a clean MIC -- see ?force_mic()). In numeric mode,
-#' the function will compare the ratio of the two MICs. In most cases,
-#' categorical mode provides more reliable results. Values within +/- 2
-#' dilutions are considered to be in essential agreement.
+#' convert both x and y to a clean MIC -- see [force_mic]). In numeric mode,
+#' the function will compare the ratio of the two MICs, after removing censoring
+#' (values that are ">" and "<" are multiplied and divided by 2, respectively ---
+#' see [mic_uncensor]).
+#' In most cases, categorical mode provides more reliable results.
+#' Values within +/- 1 dilutions are considered to be in essential agreement.
+#'
+#' The tolerate_censoring argument controls how the function handles censored
+#' data. If set to "strict", the function will return NA for any pair of
+#' values that are both censored (and not equal).
+#' If set to "x" or "y", the function will allow one of the values to be censored
+#' and will compare the uncensored value to the other value.
+#' When set to "both", the function will allow one of the values to be censored.
+#' If using "both" and both values are censored, the function will attempt to
+#' determine essential agreement based on the ratio of the two values, but a
+#' warning will be raised.
 #'
 #' @references
 #' International Organization for Standardization. ISO 20776-2:2021
@@ -502,36 +548,159 @@ force_mic <- function(value,
 #' y <- AMR::as.mic(c("<0.25", "2", "16", "64"))
 #' essential_agreement(x, y)
 #' # TRUE FALSE FALSE TRUE
+#'
+#' # examples using tolerate_censoring
+#' x <- AMR::as.mic("<4")
+#' y <- AMR::as.mic("0.25")
+#'
+#' essential_agreement(x, y, tolerate_censoring = "x") # TRUE
+#' essential_agreement(x, y, tolerate_censoring = "y") # FALSE
+#' essential_agreement(x, y, tolerate_censoring = "both") # TRUE (same as "x")
+#'
+#' # strict returns FALSE as it wants the censoring cut-offs to be close
+#' essential_agreement(x, y, tolerate_censoring = "strict")
 essential_agreement <- function(x,
                                 y,
                                 coerce_mic = TRUE,
+                                tolerate_censoring = "strict",
+                                tolerate_matched_censoring = "both",
                                 mode = "categorical") {
   if (any(!AMR::is.mic(c(x, y))) & !coerce_mic) {
     stop("Both MIC inputs to essential_agreement must be AMR::mic.
 Convert using AMR::as.mic() with or without MIC::force_mic().")
   }
 
+  stopifnot(
+    "tolerate_censoring must be one of 'strict', 'x', 'y', or 'both'" =
+      tolerate_censoring %in% c("strict", "x", "y", "both"))
+
   if (mode == "categorical") {
+    .xbak <- AMR::as.mic(x)
+    .ybak <- AMR::as.mic(y)
 
-    x <- force_mic(mic_uncensor(x))
-    y <- force_mic(mic_uncensor(y))
+    x <- AMR::as.mic(force_mic(mic_uncensor(x),
+                               max_conc = Inf,
+                               min_conc = -Inf))
+    y <- AMR::as.mic(force_mic(mic_uncensor(y),
+                               max_conc = Inf,
+                               min_conc = -Inf))
 
-    index_diff <- purrr::map2_lgl(x,
-                                  y,
-                                  \(.x, .y) {
-                                    range <- mic_range()
-                                    range <- c(max(range) * 2,
-                                               range,
-                                               min(range) / 2)
-                                    if (any(is.na(c(.x, .y)))) {
-                                      return(NA)
-                                    }
-                                    if(abs(which(range == .x) - which(range == .y)) > 1) {
-                                      return(FALSE)
-                                    }
-                                    return(TRUE)
-                                  })
+    range <- mic_range()
+    range <- c(max(range) * 2,
+               range,
+               min(range) / 2)
 
+    index_diff <- logical(length(x))
+    for (i in seq_along(x)) {
+      xi <- x[i]
+      yi <- y[i]
+      if (is.na(xi) || is.na(yi)) {
+        index_diff[i] <- NA
+        next
+      }
+      if (xi == yi) {
+        index_diff[i] <- TRUE
+        next
+      }
+      # mismatched censoring
+      if (grepl("<", .xbak[i]) & grepl(">", .ybak[i]) |
+          grepl(">", .xbak[i]) & grepl("<", .ybak[i])) {
+        index_diff[i] <- FALSE
+        next
+      }
+
+      # x == y, but x is censored (e.g., x = ">2", "y = "2")
+      if (all(grepl("<|>", .xbak[i]),
+              !grepl("<|>", .ybak[i]),
+              as.numeric(.xbak[i]) == as.numeric(.ybak[i]))) {
+        if (tolerate_matched_censoring == "both" |
+            tolerate_matched_censoring == "x") {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      # y == x, but y is censored (e.g., x = "2", "y = ">2")
+      if (all(!grepl("<|>", .xbak[i]),
+              grepl("<|>", .ybak[i]),
+              as.numeric(.xbak[i]) == as.numeric(.ybak[i]))) {
+        if (tolerate_matched_censoring == "both" |
+            tolerate_matched_censoring == "y") {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      if (all(grepl("<|>", .xbak[i]),
+              grepl("<|>", .ybak[i]),
+              .xbak[i] != .ybak[i])) {
+        if (tolerate_censoring == "strict") {
+          index_diff[i] <- NA
+          message(glue::glue("Unable to determine essential agreement for
+                             censored values: {.xbak[i]} vs {.ybak[i]}.",
+                             "Set tolerate_censoring to 'x', 'y', or 'both' to allow comparison.",
+                             .sep = "\n"))
+          next
+        } else if (tolerate_censoring == "both") {
+          warning(glue::glue("Both x and y are censored: {.xbak[i]} vs {.ybak[i]}.",
+                             "Comparison may not be reliable.",
+                             .sep = "\n"))
+          diff <- abs(which(range == xi) - which(range == yi))
+          index_diff[i] <- diff <= 1
+          next
+        }
+      }
+      if (tolerate_censoring == "x" | tolerate_censoring == "both") {
+        if (grepl("<", .xbak[i])) {
+          if (as.numeric(.ybak[i]) <= .xbak[i]) {
+            index_diff[i] <- TRUE
+            next
+          } else {
+            index_diff[i] <- FALSE
+            next
+          }
+        }
+
+        if (grepl(">", .xbak[i])) {
+          if (as.numeric(.ybak[i]) >= .xbak[i]) {
+            index_diff[i] <- TRUE
+            next
+          } else {
+            index_diff[i] <- FALSE
+            next
+          }
+        }
+      }
+      if (tolerate_censoring == "y" | tolerate_censoring == "both") {
+        if (grepl("<", .ybak[i])) {
+          if (as.numeric(.xbak[i]) <= .ybak[i]) {
+            index_diff[i] <- TRUE
+            next
+          } else {
+            index_diff[i] <- FALSE
+            next
+          }
+        }
+
+        if (grepl(">", .ybak[i])) {
+          if (as.numeric(.xbak[i]) >= .ybak[i]) {
+            index_diff[i] <- TRUE
+            next
+          } else {
+            index_diff[i] <- FALSE
+            next
+          }
+        }
+      }
+      diff <- abs(which(range == xi) - which(range == yi))
+      index_diff[i] <- diff <= 1
+    }
     return(index_diff)
 
   }
@@ -551,6 +720,70 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
   stop("Mode must be categorical or numerical")
 }
 
+#' Convert MIC or Disk Diffusion to SIR, vectorised over antimicrobials
+#'
+#' @param mic vector of MIC values
+#' @param mo vector of microorganism names
+#' @param ab vector of antibiotic names
+#' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
+#' @param ... additional arguments that are passed to AMR::as.sir
+#'
+#' @return S3 sir values
+#' @export
+#' @description
+#' The AMR::as.sir function is not vectorised over antimicrobials. This function
+#' provides vectorisation over antimicrobials. Due to the overhead of running
+#' AMR::as.sir, this function tries to be efficient by only running AMR::as.sir
+#' as little as necessary.
+#'
+#' @examples
+#' mic <- c("<0.25", "8", "64", ">64")
+#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
+#' ab <- c("AMK", "AMK", "AMK", "AMK")
+#' as.sir_vectorised(mic, mo, ab)
+
+#' # using different microorganisms and antibiotics
+#' mic <- c("<0.25", "8", "64", ">64")
+#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_PROTS_MRBL", "B_PROTS_MRBL")
+#' ab <- c("AMK", "AMK", "CIP", "CIP")
+#' as.sir_vectorised(mic, mo, ab)
+as.sir_vectorised <- function(mic, mo, ab, accept_ecoff = FALSE, ...) {
+  if (length(unique(ab)) == 1) {
+    ab <- ab[[1]]
+    output <- AMR::as.sir(mic, mo = mo, ab = ab, ...)
+    if (accept_ecoff & any(is.na(output))) {
+      output[is.na(output)] <- AMR::as.sir(mic[is.na(output)],
+                                           mo = mo[is.na(output)],
+                                           ab = ab,
+                                           breakpoint_type = "ECOFF",
+                                           ...)
+    }
+    return(output)
+  }
+
+  output <- purrr::pmap_vec(list(mic,
+                       mo,
+                       ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
+  output <- purrr::pmap_vec(list(mic,
+                                 mo,
+                                 ab,
+                                 output), \(x, mo, ab, sir) {
+                                   if (is.na(sir)) {
+                                     if (accept_ecoff) {
+                                       message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
+                                       AMR::as.sir(x, mo = mo, ab = ab,
+                                                   breakpoint_type = "ECOFF")
+                                     } else {
+                                       message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
+                                       sir
+                                     }
+                                   } else {
+                                     sir
+                                   }
+                                 })
+  output
+}
+
 #' Compare and validate MIC values
 #'
 #' @param gold_standard vector of MICs to compare against.
@@ -560,6 +793,19 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
 #' @param accept_ecoff if TRUE, ECOFFs will be used when no clinical breakpoints are available
 #' @param simplify if TRUE, MIC values will be coerced into the closest halving
 #' dilution (e.g., 0.55 will be converted to 0.5)
+#' @param ea_mode "categorical" or "numeric", see [essential_agreement]
+#' @param tolerate_censoring "strict", "gold_standard", "test", or "both" - how to handle
+#' censored data (see [essential_agreement] for details). Generally, this should be
+#' left as "gold_standard" since this setting "tolerates" a test that has higher
+#' granularity (i.e., less censoring) than the gold standard. Setting to "test"
+#' or "both" should be used with caution but may be appropriate in some cases
+#' where the test also produces censored results.
+#' @param tolerate_matched_censoring "strict", "gold_standard", "test",
+#' or "both" - how to handle situations where one of the values is censored,
+#' but both values match (e.g., gold_standard = ">2", test = "2"). Generally, this
+#' should be left as "both", since these values are considered to be in
+#' essential agreement. For more details, see [essential_agreement].
+#' @param ... additional arguments to be passed to AMR::as.sir
 #'
 #' @return S3 mic_validation object
 #'
@@ -603,10 +849,20 @@ compare_mic <- function(gold_standard,
                         ab = NULL,
                         mo = NULL,
                         accept_ecoff = FALSE,
-                        simplify = TRUE) {
+                        simplify = TRUE,
+                        ea_mode = "categorical",
+                        tolerate_censoring = "gold_standard",
+                        tolerate_matched_censoring = "both",
+                        ...) {
   if (length(gold_standard) != length(test)) {
     stop("Gold standard and test must be the same length")
   }
+
+  call_list <- list(accept_ecoff = accept_ecoff,
+                    simplify = simplify,
+                    ea_mode = ea_mode,
+                    tolerate_censoring = tolerate_censoring,
+                    tolerate_matched_censoring = tolerate_matched_censoring)
 
   gold_standard_mod <- gold_standard |>
     force_mic(levels_from_AMR = !simplify) |>
@@ -616,10 +872,18 @@ compare_mic <- function(gold_standard,
     force_mic(levels_from_AMR = !simplify) |>
     AMR::as.mic()
 
+  if (tolerate_censoring == "gold_standard") {
+    tolerate_censoring <- "x"
+  } else if (tolerate_censoring == "test") {
+    tolerate_censoring <- "y"
+  }
   output <- list(
     gold_standard = gold_standard_mod,
     test = test_mod,
-    essential_agreement = factor(essential_agreement(gold_standard_mod, test_mod),
+    essential_agreement = factor(essential_agreement(gold_standard_mod,
+                                                     test_mod,
+                                                     mode = ea_mode,
+                                                     tolerate_censoring = tolerate_censoring),
                                  levels = c(FALSE, TRUE))
   )
 
@@ -644,46 +908,8 @@ compare_mic <- function(gold_standard,
   }
 
   if (!is.null(ab) & !is.null(mo)) {
-    gold_standard_sir <- purrr::pmap_vec(list(gold_standard_mod,
-                                              mo,
-                                              ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
-    gold_standard_sir <- purrr::pmap_vec(list(gold_standard_mod,
-                                              mo,
-                                              ab,
-                                              gold_standard_sir), \(x, mo, ab, sir) {
-                                                if (is.na(sir)) {
-                                                  if (accept_ecoff) {
-                                                    message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
-                                                    AMR::as.sir(x, mo = mo, ab = ab,
-                                                                breakpoint_type = "ECOFF")
-                                                  } else {
-                                                    message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
-                                                    sir
-                                                  }
-                                                } else {
-                                                  sir
-                                                }
-                                              })
-    test_sir <- purrr::pmap_vec(list(test_mod,
-                                     mo,
-                                     ab), \(x, mo, ab) AMR::as.sir(x, mo = mo, ab = ab))
-    test_sir <- purrr::pmap_vec(list(test_mod,
-                                     mo,
-                                     ab,
-                                     test_sir), \(x, mo, ab, sir) {
-                                       if (is.na(sir)) {
-                                         if (accept_ecoff) {
-                                           message(paste("No clinical breakpoint for:", ab, mo, "using ECOFF"))
-                                           AMR::as.sir(x, mo = mo, ab = ab,
-                                                       breakpoint_type = "ECOFF")
-                                         } else {
-                                           message(paste("No clinical breakpoint for:", ab, mo, "(use accept_ecoff to use ECOFF)"))
-                                           sir
-                                         }
-                                       } else {
-                                         sir
-                                       }
-                                     })
+    gold_standard_sir <- as.sir_vectorised(gold_standard_mod, mo, ab, accept_ecoff, ...)
+    test_sir <- as.sir_vectorised(test_mod, mo, ab, accept_ecoff, ...)
     output[["gold_standard_sir"]] <- gold_standard_sir
     output[["test_sir"]] <- test_sir
     output[["error"]] <- compare_sir(gold_standard_sir,
@@ -691,7 +917,109 @@ compare_mic <- function(gold_standard,
   }
 
   class(output) <- append(class(output), "mic_validation", 0)
+  attr(output, "call") <- call_list
   output
+}
+
+drop_levels_mic_validation <- function(x, target, source,
+                                       lower = TRUE,
+                                       safe = TRUE) {
+  than <- ifelse(lower, "<", ">")
+  than_fun <- ifelse(lower, `<`, `>`)
+  bound_fun <- ifelse(lower, min, max)
+
+  source_bound <- bound_fun(x[[source]], na.rm = TRUE)
+  source_bound <- force_mic(source_bound)
+
+  indices_to_change <- than_fun(x[[target]], source_bound) & x$essential_agreement == TRUE
+  x[[target]][indices_to_change] <-
+    AMR::as.mic(paste0(than, as.numeric(source_bound)))
+
+
+  x
+}
+
+#' Droplevels for MIC validation object
+#'
+#' @param x mic_validation object
+#' @param safe ensure that essential agreement is not changed after dropping
+#' levels
+#' @param ... additional arguments
+#'
+#' @return mic_validation object
+#' @export
+#'
+#' @description
+#' Quite often, MIC values are being compared across methods with different
+#' levels of granularity. For example, the true MIC may be measured across a
+#' higher range of values than the test method. This means that there may be
+#' MIC levels that don't provide much additional information (since they are
+#' only present in one of the methods). This function removes these unnecessary
+#' levels at both ranges of the MIC values.
+#'
+#' This function ensure that the changes do not "change" the essential
+#' agreement interpretation. This can be suppressed using safe = FALSE,
+#' however this is probably not desired behaviour.
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "0.25", "0.5", "1", "2", "1", "0.5")
+#' test <- c("0.004", "0.08", "<0.25", "0.5", "1", "0.5", "0.5")
+#' val <- compare_mic(gold_standard, test)
+#' droplevels(val)
+droplevels.mic_validation <- function(x,
+                                      safe = TRUE,
+                                      ...) {
+  x <- drop_levels_mic_validation(x, target = "gold_standard",
+                                  source = "test",
+                                  lower = TRUE,
+                                  safe = safe)
+  x <- drop_levels_mic_validation(x, target = "test",
+                                  source = "gold_standard",
+                                  lower = TRUE,
+                                  safe = safe)
+
+  x <- drop_levels_mic_validation(x, target = "gold_standard",
+                                  source = "test",
+                                  lower = FALSE,
+                                  safe = safe)
+  x <- drop_levels_mic_validation(x, target = "test",
+                                  source = "gold_standard",
+                                  lower = FALSE,
+                                  safe = safe)
+
+  if (safe) {
+    tol_censor_call <- attr(x, "call")$tolerate_censoring
+    if (tol_censor_call == "gold_standard") {
+      tol_censor_call <- "x"
+    } else if (tol_censor_call == "test") {
+      tol_censor_call <- "y"
+    }
+
+    tol_censor_match_call <- attr(x, "call")$tolerate_matched_censoring
+    if (tol_censor_match_call == "gold_standard") {
+      tol_censor_match_call <- "x"
+    } else if (tol_censor_match_call == "test") {
+      tol_censor_match_call <- "y"
+    }
+
+    new_ea <- essential_agreement(
+      x[["gold_standard"]],
+      x[["test"]],
+      coerce_mic = FALSE,
+      mode = "categorical",
+      tolerate_censoring = tol_censor_call,
+      tolerate_matched_censoring = tol_censor_match_call
+    )
+
+    if (!all(new_ea == x$essential_agreement)) {
+      stop(
+        glue::glue(
+          "Essential agreement does not match after dropping levels.
+          You can ignore and force the levels to be dropped using safe = FALSE"))
+    }
+  }
+  x
+
 }
 
 #' Print MIC validation object
@@ -724,6 +1052,31 @@ print.mic_validation <- function(x, ...) {
                    Agreement type: essential"))
   )
 
+}
+
+#' Subset MIC validation object
+#'
+#' @param x mic_validation object
+#' @param subset logical expression to subset by
+#' @param ... additional arguments
+#'
+#' @return mic_validation object
+#' @export
+#'
+#' @examples
+#' gold_standard <- c("<0.25", "8", "64", ">64")
+#' test <- c("<0.25", "2", "16", "64")
+#' ab <- AMR::as.ab(c("AMK", "AMK", "CIP", "CIP"))
+#' mo <- AMR::as.mo(c("E. coli", "E. coli", "P. mirabilis", "P. mirabilis"))
+#' val <- compare_mic(gold_standard, test, ab, mo)
+#' subset(val, ab == AMR::as.ab("AMX"))
+#' subset(val, mo == AMR::as.mo("E. coli"))
+subset.mic_validation <- function(x, subset, ...) {
+  filtered <- x |>
+    as.data.frame() |>
+    subset(subset, ...)
+  class(filtered) <- append(class(filtered), "mic_validation", 0)
+  filtered
 }
 
 plot_mic_validation_single_ab <- function(x, match_axes, ...) {
@@ -915,9 +1268,12 @@ fill_dilution_levels <- function(x,
   if (cap_upper) {
     mic_conc_range <- mic_conc_range[mic_conc_range <= max(AMR::as.mic(x))]
   }
+
   x <- forcats::fct_expand(x, as.character(mic_conc_range))
+
   new_levels <- levels(x)[order(match(levels(x),
                                       as.character(levels(AMR::as.mic(NA)))))]
+
   x <- ordered(x, levels = new_levels)
   if (as.mic) {
     class(x) <- append(class(x), "mic", after = 0)
@@ -947,16 +1303,9 @@ fill_dilution_levels <- function(x,
 #' val <- compare_mic(gold_standard, test)
 #' plot(val)
 #'
-#' # works with validation that includes categorical agreement
-#' # categorical agreement is ignored
-#' ab <- c("AMK", "AMK", "AMK", "AMK")
-#' mo <- c("B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI", "B_ESCHR_COLI")
-#' val <- compare_mic(gold_standard, test, ab, mo)
-#' plot(val)
-#'
 #' # if the validation contains multiple antibiotics, i.e.,
 #' ab <- c("CIP", "CIP", "AMK", "AMK")
-#' val <- compare_mic(gold_standard, test, ab, mo)
+#' val <- compare_mic(gold_standard, test, ab)
 #' # the following will plot all antibiotics in a single plot (pooled results)
 #' plot(val)
 #' # use the faceting arguments to split the plot by antibiotic
@@ -978,11 +1327,35 @@ plot.mic_validation <- function(x,
   if (match_axes) {
     x[["gold_standard"]] <- match_levels(x[["gold_standard"]], match_to = x[["test"]])
     x[["test"]] <- match_levels(x[["test"]], match_to = x[["gold_standard"]])
+
     if (add_missing_dilutions) {
-      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]])
-      x[["test"]] <- fill_dilution_levels(x[["test"]])
+      x[["gold_standard"]] <- fill_dilution_levels(x[["gold_standard"]],
+                                                   cap_lower = TRUE,
+                                                   cap_upper = TRUE)
+      x[["test"]] <- fill_dilution_levels(x[["test"]],
+                                          cap_lower = TRUE,
+                                          cap_upper = TRUE)
+    }
+
+    if (length(levels(x[["gold_standard"]])) > length(levels(x[["test"]]))) {
+      # after dilution filling, levels may not yet match, force another match
+      x[["test"]] <- forcats::fct_expand(x[["test"]],
+                                          as.character(levels(x[["gold_standard"]])))
+      x[["test"]] <- forcats::fct_relevel(x[["test"]],
+                                          levels(x[["gold_standard"]]))
+    }
+
+    if (length(levels(x[["test"]])) > length(levels(x[["gold_standard"]]))) {
+      x[["gold_standard"]] <- forcats::fct_expand(x[["gold_standard"]],
+                                                  as.character(levels(x[["test"]])))
+      x[["gold_standard"]] <- forcats::fct_relevel(x[["gold_standard"]],
+                                                  levels(x[["test"]]))
     }
   }
+
+  # temp fix - drop use of mic class as a patch to allow AMR v3 compatibility
+  x[["gold_standard"]] <- factor(x[["gold_standard"]])
+  x[["test"]] <- factor(x[["test"]])
 
   if (!"ab" %in% colnames(x) | length(unique(x[["ab"]])) == 1 |
       all(is.null(c(facet_wrap_ncol, facet_wrap_nrow)))) {

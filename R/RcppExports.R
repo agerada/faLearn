@@ -50,6 +50,7 @@ kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE
 #' @param canonical only record canonical kmers
 #' (i.e., the lexicographically smaller of a kmer and its reverse complement)
 #' @param squeeze remove non-canonical kmers
+#' @param overwrite overwrite existing file
 #' @return boolean indicating success
 #' @description
 #' This function converts a single genome to a libsvm file containing kmer
@@ -73,8 +74,8 @@ kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE
 #' temp_libsvm_path <- tempfile(fileext = ".txt")
 #' genome_to_libsvm("ATCGCAGT", temp_libsvm_path)
 #' readLines(temp_libsvm_path)
-genome_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3L, canonical = TRUE, squeeze = FALSE) {
-    .Call(`_MIC_genome_to_libsvm`, x, target_path, label, k, canonical, squeeze)
+genome_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3L, canonical = TRUE, squeeze = FALSE, overwrite = FALSE) {
+    .Call(`_MIC_genome_to_libsvm`, x, target_path, label, k, canonical, squeeze, overwrite)
 }
 
 #' Generates all permutations of squeezed kmers

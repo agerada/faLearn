@@ -116,6 +116,9 @@ download_patric_db <- function(save_path,
 #' @param taxonomic_name character of taxonomic bacterial name to download
 #' @param database local or ftp path to PATRIC database, or loaded database using load_patric_db()
 #' @param filter "MIC" or "disk" or "all" phenotypes
+#' @param ab antibiotic(s) of interest, provided as a character vector of
+#' antibiotic names/codes, or ideally, as AMR::ab classes, created using AMR::as.ab
+#' (default = all)
 #' @param n_genomes number of genomes (0 = all)
 #'
 #' @return The number of failed downloads (i.e., 0 if all attempted downloads
@@ -133,6 +136,7 @@ pull_PATRIC_genomes <- function(output_directory,
                                 taxonomic_name = NULL,
                                 database = patric_ftp_path,
                                 filter = "MIC",
+                                ab = NULL,
                                 n_genomes = 0) {
   supported_modality_filters <- c("all", "mic", "disc")
   filter <- tolower(filter)
@@ -160,6 +164,27 @@ pull_PATRIC_genomes <- function(output_directory,
     filter == "disc" & laboratory_typing_method == "Disk diffusion" ~ TRUE,
     filter == "all" ~ TRUE
   ))
+
+  if (!is.null(ab)) {
+    ab <- AMR::as.ab(ab)
+    filtered_data$antibiotic <- AMR::as.ab(filtered_data$antibiotic)
+    filtered_data <- filtered_data |>
+      dplyr::filter(.data[["antibiotic"]] %in% ab)
+
+    # make sure mic/disk is valid
+    if (filter == "mic") {
+      filtered_data <- filtered_data |>
+        dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
+        dplyr::filter(!is.na(.data[["measurement"]]))
+    } else if (filter == "disc") {
+      filtered_data <- filtered_data |>
+        dplyr::mutate(measurement = AMR::as.disk(.data[["measurement"]])) |>
+        dplyr::filter(!is.na(.data[["measurement"]]))
+    }
+
+    # if filter == "all", then all measurements are kept (even if turn out to
+    # to be invalid).
+  }
 
   genome_ids <- unique(filtered_data$genome_id)
 
@@ -247,7 +272,9 @@ tidy_patric_meta_data <- function(x,
 
   aggregate_mic <- list(which.min, which.max)
   mic_data <- x |>
-    dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Agar dilution", "Broth dilution")) |>
+    dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Agar dilution",
+                                                             "Broth dilution",
+                                                             "MIC")) |>
     dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
     dplyr::group_by(.data[["genome_id"]], .data[["antibiotic"]]) |>
     dplyr::slice(aggregate_mic[[prefer_more_resistant + 1]](.data[["measurement"]])) |>

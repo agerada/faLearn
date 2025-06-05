@@ -4,7 +4,14 @@
 \alias{essential_agreement}
 \title{Essential agreement for MIC validation}
 \usage{
-essential_agreement(x, y, coerce_mic = TRUE, mode = "categorical")
+essential_agreement(
+  x,
+  y,
+  coerce_mic = TRUE,
+  tolerate_censoring = "strict",
+  tolerate_matched_censoring = "both",
+  mode = "categorical"
+)
 }
 \arguments{
 \item{x}{AMR::mic or coercible}
@@ -13,7 +20,15 @@ essential_agreement(x, y, coerce_mic = TRUE, mode = "categorical")
 
 \item{coerce_mic}{convert to AMR::mic}
 
-\item{mode}{Categorical or numeric}
+\item{tolerate_censoring}{"strict", "x", "y", or "both" - whether to tolerate
+censoring in x, y, or both. See details.}
+
+\item{tolerate_matched_censoring}{"strict", "x", "y", or "both" - how to handle
+situations where one of the values is censored, but both values match (e.g.,
+x = ">2", y = "2"). For most situations, this is considered essential agreement.
+so should be left as "both".}
+
+\item{mode}{"categorical" or "numeric", see details}
 }
 \value{
 logical vector
@@ -28,16 +43,39 @@ standard. This function reliably performs essential agreement in line with
 ISO 20776-2:2021. The function can be used in two modes: categorical and
 numeric. In categorical mode, the function will use traditional MIC
 concentrations to determine the MIC (therefore it will use force_mic() to
-convert both x and y to a clean MIC -- see ?force_mic()). In numeric mode,
-the function will compare the ratio of the two MICs. In most cases,
-categorical mode provides more reliable results. Values within +/- 2
-dilutions are considered to be in essential agreement.
+convert both x and y to a clean MIC -- see \link{force_mic}). In numeric mode,
+the function will compare the ratio of the two MICs, after removing censoring
+(values that are ">" and "<" are multiplied and divided by 2, respectively ---
+see \link{mic_uncensor}).
+In most cases, categorical mode provides more reliable results.
+Values within +/- 1 dilutions are considered to be in essential agreement.
+
+The tolerate_censoring argument controls how the function handles censored
+data. If set to "strict", the function will return NA for any pair of
+values that are both censored (and not equal).
+If set to "x" or "y", the function will allow one of the values to be censored
+and will compare the uncensored value to the other value.
+When set to "both", the function will allow one of the values to be censored.
+If using "both" and both values are censored, the function will attempt to
+determine essential agreement based on the ratio of the two values, but a
+warning will be raised.
 }
 \examples{
 x <- AMR::as.mic(c("<0.25", "8", "64", ">64"))
 y <- AMR::as.mic(c("<0.25", "2", "16", "64"))
 essential_agreement(x, y)
 # TRUE FALSE FALSE TRUE
+
+# examples using tolerate_censoring
+x <- AMR::as.mic("<4")
+y <- AMR::as.mic("0.25")
+
+essential_agreement(x, y, tolerate_censoring = "x") # TRUE
+essential_agreement(x, y, tolerate_censoring = "y") # FALSE
+essential_agreement(x, y, tolerate_censoring = "both") # TRUE (same as "x")
+
+# strict returns FALSE as it wants the censoring cut-offs to be close
+essential_agreement(x, y, tolerate_censoring = "strict")
 }
 \references{
 International Organization for Standardization. ISO 20776-2:2021

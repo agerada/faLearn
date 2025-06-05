@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 using namespace Rcpp;
 
 List wrap_custom(const std::map<std::string, unsigned long long int> dict){
@@ -98,6 +99,20 @@ std::string reverse_complement(std::string dna){
     case 'G':
       rev_comp.push_back('C');
       break;
+
+    case 'a':
+      rev_comp.push_back('T');
+      break;
+    case 'c':
+      rev_comp.push_back('G');
+      break;
+    case 't':
+      rev_comp.push_back('A');
+      break;
+    case 'g':
+      rev_comp.push_back('C');
+      break;
+
     default:
       rev_comp.push_back(*i);
       break;
@@ -118,6 +133,8 @@ std::map<std::string, unsigned long long int> make_kmer_paired_list(
   //std::map<std::string, int> kmer_dict;
   for (int i = 0; i < x.size(); i++) {
     std::string contig = as<std::string>(x[i]);
+    // to upper
+    std::transform(contig.begin(), contig.end(), contig.begin(), ::toupper);
 
     if (!is_valid_dna_string(contig)) {
       throw std::range_error("Invalid DNA string (probably empty/NULL)");
@@ -294,6 +311,7 @@ List kmers(const CharacterVector& x,
 //' @param canonical only record canonical kmers
 //' (i.e., the lexicographically smaller of a kmer and its reverse complement)
 //' @param squeeze remove non-canonical kmers
+//' @param overwrite overwrite existing file
 //' @return boolean indicating success
 //' @description
 //' This function converts a single genome to a libsvm file containing kmer
@@ -323,9 +341,14 @@ bool genome_to_libsvm(const CharacterVector &x,
                     const CharacterVector &label = CharacterVector::create("0"),
                     int k = 3,
                     bool canonical = true,
-                    bool squeeze = false) {
-  std::ofstream file;
+                    bool squeeze = false,
+                    bool overwrite = false) {
   std::string path = as<std::string>(target_path);
+  if (std::filesystem::exists(path) & !overwrite) {
+    Rcpp::message(CharacterVector::create("File: " + path + " already exists. Use overwrite = TRUE to overwrite."));
+    return true;
+  }
+  std::ofstream file;
   file.open(path);
   file << as<std::string>(label) << " ";
   std::map<unsigned long long int, unsigned long long int> int_key;

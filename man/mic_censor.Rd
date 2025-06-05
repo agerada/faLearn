@@ -4,7 +4,7 @@
 \alias{mic_censor}
 \title{Censor MIC values}
 \usage{
-mic_censor(mic, ab, mo, rules)
+mic_censor(mic, ab = NULL, mo = NULL, rules = NULL, max = Inf, min = -Inf)
 }
 \arguments{
 \item{mic}{MIC (coercible to AMR::as.mic)}
@@ -16,6 +16,12 @@ mic_censor(mic, ab, mo, rules)
 \item{rules}{censor rules - named list of pathogen (in AMR::as.mo code) to
 antibiotic (in AMR::as.ab code) to censoring rules. The censoring rules
 should provide a min or max value to censor MICs to. See example for more.}
+
+\item{max}{maximum concentration to censor to (default = Inf), will override
+any rules provided}
+
+\item{min}{minimum concentration to censor to (default = -Inf), will override
+any rules provided}
 }
 \value{
 censored MIC values (S3 mic class)
