@@ -10,6 +10,8 @@ essential_agreement(
   coerce_mic = TRUE,
   tolerate_censoring = "strict",
   tolerate_matched_censoring = "both",
+  tolerate_leq = TRUE,
+  tolerate_geq = TRUE,
   mode = "categorical"
 )
 }
@@ -27,6 +29,18 @@ censoring in x, y, or both. See details.}
 situations where one of the values is censored, but both values match (e.g.,
 x = ">2", y = "2"). For most situations, this is considered essential agreement.
 so should be left as "both".}
+
+\item{tolerate_leq}{whether to tolerate <= in essential agreement, e.g., <=2
+and 4 will be considered in essential agreement (because <=2 includes 2mg/L,
+which is within 1 dilution of 4mg/L). This argument respects the
+tolerate_censoring argument, so if tolerate_censoring is "strict", this will
+not be applied.}
+
+\item{tolerate_geq}{whether to tolerate >= in essential agreement, e.g., >=4
+and 2 will be considered in essential agreement (because >=4 includes 4mg/L,
+which is within 1 dilution of 2mg/L). This argument respects the
+tolerate_censoring argument, so if tolerate_censoring is strict, this will
+not be applied.}
 
 \item{mode}{"categorical" or "numeric", see details}
 }

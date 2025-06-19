@@ -10,7 +10,9 @@ force_mic(
   max_conc = 512,
   min_conc = 0.002,
   method = "closest",
-  prefer = "max"
+  prefer = "max",
+  leq = TRUE,
+  geq = NULL
 )
 }
 \arguments{
@@ -26,6 +28,14 @@ force_mic(
 
 \item{prefer}{where value is in between MIC (e.g., 24mg/L) chose the higher
 MIC ("max") or lower MIC ("min"); only applies to method = "closest"}
+
+\item{leq}{whether to force <= for lower censored values (i.e., <). If TRUE,
+then all values below the limit of detection are converted to <=. If FALSE,
+then they are converted to <. If NULL, they are not changed.}
+
+\item{geq}{whether to force >= for higher censored values (i.e., >). If TRUE,
+then all values above the limit of detection are converted to >=. If FALSE,
+then they are converted to >. If NULL, they are not changed.}
 }
 \value{
 AMR::as.mic compatible character
@@ -45,6 +55,17 @@ coerced to 4). "Round up" is technically the correct approach if the input
 value was generated from an experiment that censored between concentrations
 (e.g., broth or agar dilution). However, "closest" may be more appropriate in
 some cases.
+
+Please note that this function will not make any changes to censored values
+(beyond some simple cleaning, e.g., <==2 is converted to <=2). This is because
+it is not possible to make assumptions about censored data.
+
+The \code{leq} and \code{geq} arguments convert censored values to <= or >=. When MIC
+is measured using a an inhibitory dilution method, the lower limit should be
+reported as <= (since the lowest dilution could be inhibitory itself), and
+the upper limit should be reported as > (growth in the highest dilution means
+that it is not an inhibitory concentration). The default values for \code{leq}
+and \code{geq} enforce this.
 }
 \examples{
 force_mic(c("2.32", "<4.12", ">1.01"))

@@ -389,6 +389,12 @@ mic_range <- function(start = 512,
 #' @param method method to use when forcing MICs (closest or round_up)
 #' @param prefer where value is in between MIC (e.g., 24mg/L) chose the higher
 #' MIC ("max") or lower MIC ("min"); only applies to method = "closest"
+#' @param leq whether to force <= for lower censored values (i.e., <). If TRUE,
+#' then all values below the limit of detection are converted to <=. If FALSE,
+#' then they are converted to <. If NULL, they are not changed.
+#' @param geq whether to force >= for higher censored values (i.e., >). If TRUE,
+#' then all values above the limit of detection are converted to >=. If FALSE,
+#' then they are converted to >. If NULL, they are not changed.
 #'
 #' @details
 #' Some experimental or analytical conditions measure MIC (or surrogate) in a
@@ -403,6 +409,17 @@ mic_range <- function(start = 512,
 #' (e.g., broth or agar dilution). However, "closest" may be more appropriate in
 #' some cases.
 #'
+#' Please note that this function will not make any changes to censored values
+#' (beyond some simple cleaning, e.g., <==2 is converted to <=2). This is because
+#' it is not possible to make assumptions about censored data.
+#'
+#' The `leq` and `geq` arguments convert censored values to <= or >=. When MIC
+#' is measured using a an inhibitory dilution method, the lower limit should be
+#' reported as <= (since the lowest dilution could be inhibitory itself), and
+#' the upper limit should be reported as > (growth in the highest dilution means
+#' that it is not an inhibitory concentration). The default values for `leq`
+#' and `geq` enforce this.
+#'
 #' @return AMR::as.mic compatible character
 #' @export
 #'
@@ -413,7 +430,9 @@ force_mic <- function(value,
                       max_conc = 512,
                       min_conc = 0.002,
                       method = "closest",
-                      prefer = 'max') {
+                      prefer = 'max',
+                      leq = TRUE,
+                      geq = NULL) {
 
   if (levels_from_AMR) {
     mic_levels <- levels(AMR::as.mic(NA))
@@ -443,18 +462,34 @@ force_mic <- function(value,
     }
     if (is.numeric(inner_val)) {
       appropriate_levels <- subset(mic_levels, !stringr::str_detect(mic_levels, "[^0-9.]"))
+      censored <- FALSE
     }
     if (is.character(inner_val)){
-      if (stringr::str_detect(inner_val, "<")) {
+      if (stringr::str_detect(inner_val, "<") &
+          stringr::str_detect(inner_val, "=")) {
         appropriate_levels <- subset(mic_levels, stringr::str_detect(mic_levels, "<"))
         appropriate_levels <- stringr::str_remove_all(appropriate_levels, "[^0-9.]")
+        censored <- TRUE
+        prefix <- "<="
+      } else if (stringr::str_detect(inner_val, ">") &
+                 stringr::str_detect(inner_val, "=")) {
+        appropriate_levels <- subset(mic_levels, stringr::str_detect(mic_levels, ">"))
+        appropriate_levels <- stringr::str_remove_all(appropriate_levels, "[^0-9.]")
+        censored <- TRUE
+        prefix <- ">="
+      } else if (stringr::str_detect(inner_val, "<")) {
+        appropriate_levels <- subset(mic_levels, stringr::str_detect(mic_levels, "<"))
+        appropriate_levels <- stringr::str_remove_all(appropriate_levels, "[^0-9.]")
+        censored <- TRUE
         prefix <- "<"
       } else if (stringr::str_detect(inner_val, ">")) {
         appropriate_levels <- subset(mic_levels, stringr::str_detect(mic_levels, ">"))
         appropriate_levels <- stringr::str_remove_all(appropriate_levels, "[^0-9.]")
+        censored <- TRUE
         prefix <- ">"
       } else {
         appropriate_levels <- subset(mic_levels, !stringr::str_detect(mic_levels, "[^0-9.]"))
+        censored <- FALSE
       }
       inner_val <- stringr::str_remove_all(inner_val, "[^0-9.]")
       inner_val <- as.numeric(inner_val)
@@ -477,9 +512,38 @@ force_mic <- function(value,
       }
     }
 
+    if (censored) {
+      # no changes made to censored values
+      output[i] <- paste0(prefix, inner_val)
+      if (!is.null(leq)) {
+        if (leq) {
+          if (stringr::str_detect(prefix, "<")) {
+            output[i] <- paste0("<=", inner_val)
+          }
+        } else {
+          if (stringr::str_detect(prefix, "<")) {
+            output[i] <- paste0("<", inner_val)
+          }
+        }
+      }
+      if (!is.null(geq)) {
+        if (geq) {
+          if (stringr::str_detect(prefix, ">")) {
+            output[i] <- paste0(">=", inner_val)
+          }
+        } else {
+          if (stringr::str_detect(prefix, ">")) {
+            output[i] <- paste0(">", inner_val)
+          }
+        }
+      }
+      next
+    }
+
     if (length(positions) == 1) {
       output[i] <- paste0(prefix, mic_vector[positions])
     }
+
     if (prefer == 'min') {
       output[i] <- paste0(prefix, mic_vector[min(positions)])
     }
@@ -511,6 +575,16 @@ force_mic <- function(value,
 #' situations where one of the values is censored, but both values match (e.g.,
 #' x = ">2", y = "2"). For most situations, this is considered essential agreement.
 #' so should be left as "both".
+#' @param tolerate_leq whether to tolerate <= in essential agreement, e.g., <=2
+#' and 4 will be considered in essential agreement (because <=2 includes 2mg/L,
+#' which is within 1 dilution of 4mg/L). This argument respects the
+#' tolerate_censoring argument, so if tolerate_censoring is "strict", this will
+#' not be applied.
+#' @param tolerate_geq whether to tolerate >= in essential agreement, e.g., >=4
+#' and 2 will be considered in essential agreement (because >=4 includes 4mg/L,
+#' which is within 1 dilution of 2mg/L). This argument respects the
+#' tolerate_censoring argument, so if tolerate_censoring is strict, this will
+#' not be applied.
 #' @param mode "categorical" or "numeric", see details
 #' @return logical vector
 #' @export
@@ -564,6 +638,8 @@ essential_agreement <- function(x,
                                 coerce_mic = TRUE,
                                 tolerate_censoring = "strict",
                                 tolerate_matched_censoring = "both",
+                                tolerate_leq = TRUE,
+                                tolerate_geq = TRUE,
                                 mode = "categorical") {
   if (any(!AMR::is.mic(c(x, y))) & !coerce_mic) {
     stop("Both MIC inputs to essential_agreement must be AMR::mic.
@@ -575,20 +651,29 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
       tolerate_censoring %in% c("strict", "x", "y", "both"))
 
   if (mode == "categorical") {
-    .xbak <- AMR::as.mic(x)
-    .ybak <- AMR::as.mic(y)
+    .xbak <- suppressWarnings(
+      AMR::as.mic(x))
+    .ybak <- suppressWarnings(
+      AMR::as.mic(y))
 
-    x <- AMR::as.mic(force_mic(mic_uncensor(x),
-                               max_conc = Inf,
-                               min_conc = -Inf))
-    y <- AMR::as.mic(force_mic(mic_uncensor(y),
-                               max_conc = Inf,
-                               min_conc = -Inf))
+    if (any(is.na(.xbak)) | any(is.na(.ybak))) {
+      stop("Both x and y must be mic-compatible values.")
+    }
+
+    x <- mic_uncensor(.xbak)
+    y <- mic_uncensor(.ybak)
 
     range <- mic_range()
     range <- c(max(range) * 2,
                range,
                min(range) / 2)
+
+    if (any(.xbak < min(range),
+            .xbak > max(range),
+            .ybak < min(range),
+            .ybak > max(range))) {
+      stop("Input MICs must be above {min(range)} and below {max(range)}")
+    }
 
     index_diff <- logical(length(x))
     for (i in seq_along(x)) {
@@ -613,6 +698,7 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
       if (all(grepl("<|>", .xbak[i]),
               !grepl("<|>", .ybak[i]),
               as.numeric(.xbak[i]) == as.numeric(.ybak[i]))) {
+
         if (tolerate_matched_censoring == "both" |
             tolerate_matched_censoring == "x") {
           index_diff[i] <- TRUE
@@ -629,6 +715,62 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
               as.numeric(.xbak[i]) == as.numeric(.ybak[i]))) {
         if (tolerate_matched_censoring == "both" |
             tolerate_matched_censoring == "y") {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      # x is 2 * y, but y is equal censored (e.g., x = "4", y = "<=2")
+      # if tolerate_censoring is "both" or "y", then this is essential agreement
+      if (all(!grepl("<|>", .xbak[i]),
+              grepl("<=", .ybak[i]),
+              as.numeric(xi) == 2 * as.numeric(.ybak[i]))) {
+        if ((tolerate_censoring == "both" | tolerate_censoring == "y") & tolerate_leq) {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      # x is y / 2, but y is equal censored (e.g., x = "2", y = ">=4")
+      # if tolerate_censoring is "both" or "x", then this is essential agreement
+      if (all(grepl(">=", .ybak[i]),
+              !grepl("<|>", .xbak[i]),
+              as.numeric(xi) == as.numeric(.ybak[i]) / 2)) {
+        if ((tolerate_censoring == "both" | tolerate_censoring == "x") & tolerate_geq) {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      # y is 2 * x, but x is equal censored (e.g., x = "<=2", y = "4")
+      # if tolerate_censoring is "both" or "x", then this is essential agreement
+      if (all(grepl("<=", .xbak[i]),
+              !grepl("<|>", .ybak[i]),
+              as.numeric(yi) == 2 * as.numeric(.xbak[i]))) {
+        if ((tolerate_censoring == "both" | tolerate_censoring == "x") & tolerate_leq) {
+          index_diff[i] <- TRUE
+          next
+        } else {
+          index_diff[i] <- FALSE
+          next
+        }
+      }
+
+      # y is x / 2, but x is equal censored (e.g., x = ">=4", y = "2")
+      # if tolerate_censoring is "both" or "y", then this is essential agreement
+      if (all(!grepl("<|>", .ybak[i]),
+              grepl(">=", .xbak[i]),
+              as.numeric(yi) == as.numeric(.xbak[i]) / 2)) {
+        if ((tolerate_censoring == "both" | tolerate_censoring == "y") & tolerate_geq) {
           index_diff[i] <- TRUE
           next
         } else {
@@ -677,6 +819,7 @@ Convert using AMR::as.mic() with or without MIC::force_mic().")
           }
         }
       }
+
       if (tolerate_censoring == "y" | tolerate_censoring == "both") {
         if (grepl("<", .ybak[i])) {
           if (as.numeric(.xbak[i]) <= .ybak[i]) {
@@ -805,6 +948,12 @@ as.sir_vectorised <- function(mic, mo, ab, accept_ecoff = FALSE, ...) {
 #' but both values match (e.g., gold_standard = ">2", test = "2"). Generally, this
 #' should be left as "both", since these values are considered to be in
 #' essential agreement. For more details, see [essential_agreement].
+#' @param tolerate_leq whether to tolerate <= in essential agreement, e.g., <=2
+#' and 4 will be considered in essential agreement. See [essential_agreement]
+#' for details.
+#' @param tolerate_geq whether to tolerate >= in essential agreement, e.g.,  >=4
+#' and 2 will be considered in essential agreement. See [essential_agreement]
+#' for details.
 #' @param ... additional arguments to be passed to AMR::as.sir
 #'
 #' @return S3 mic_validation object
@@ -853,6 +1002,8 @@ compare_mic <- function(gold_standard,
                         ea_mode = "categorical",
                         tolerate_censoring = "gold_standard",
                         tolerate_matched_censoring = "both",
+                        tolerate_leq = TRUE,
+                        tolerate_geq = TRUE,
                         ...) {
   if (length(gold_standard) != length(test)) {
     stop("Gold standard and test must be the same length")
@@ -862,7 +1013,9 @@ compare_mic <- function(gold_standard,
                     simplify = simplify,
                     ea_mode = ea_mode,
                     tolerate_censoring = tolerate_censoring,
-                    tolerate_matched_censoring = tolerate_matched_censoring)
+                    tolerate_matched_censoring = tolerate_matched_censoring,
+                    tolerate_leq = tolerate_leq,
+                    tolerate_geq = tolerate_geq)
 
   gold_standard_mod <- gold_standard |>
     force_mic(levels_from_AMR = !simplify) |>
@@ -883,7 +1036,10 @@ compare_mic <- function(gold_standard,
     essential_agreement = factor(essential_agreement(gold_standard_mod,
                                                      test_mod,
                                                      mode = ea_mode,
-                                                     tolerate_censoring = tolerate_censoring),
+                                                     tolerate_censoring = tolerate_censoring,
+                                                     tolerate_matched_censoring = tolerate_matched_censoring,
+                                                     tolerate_leq = tolerate_leq,
+                                                     tolerate_geq = tolerate_geq),
                                  levels = c(FALSE, TRUE))
   )
 
@@ -924,7 +1080,7 @@ compare_mic <- function(gold_standard,
 drop_levels_mic_validation <- function(x, target, source,
                                        lower = TRUE,
                                        safe = TRUE) {
-  than <- ifelse(lower, "<", ">")
+  than <- ifelse(lower, "<=", ">")
   than_fun <- ifelse(lower, `<`, `>`)
   bound_fun <- ifelse(lower, min, max)
 

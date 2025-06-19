@@ -14,6 +14,8 @@ compare_mic(
   ea_mode = "categorical",
   tolerate_censoring = "gold_standard",
   tolerate_matched_censoring = "both",
+  tolerate_leq = TRUE,
+  tolerate_geq = TRUE,
   ...
 )
 }
@@ -45,6 +47,14 @@ or "both" - how to handle situations where one of the values is censored,
 but both values match (e.g., gold_standard = ">2", test = "2"). Generally, this
 should be left as "both", since these values are considered to be in
 essential agreement. For more details, see \link{essential_agreement}.}
+
+\item{tolerate_leq}{whether to tolerate <= in essential agreement, e.g., <=2
+and 4 will be considered in essential agreement. See \link{essential_agreement}
+for details.}
+
+\item{tolerate_geq}{whether to tolerate >= in essential agreement, e.g.,  >=4
+and 2 will be considered in essential agreement. See \link{essential_agreement}
+for details.}
 
 \item{...}{additional arguments to be passed to AMR::as.sir}
 }
