@@ -1,5 +1,10 @@
 # MIC (development version)
 
+* Future versions of `MIC` may remove the genomic functions of the package, to
+focus on MIC analysis. Any removed functions will be ported to a new package
+that focuses on machine learning with genomic data, so the only change for users
+will be to install and load a new package.
+
 * Functionality added to handle <= and => in MIC values, distinguishing them from
 < and >. In general, inhibitory MIC assays report <= and >. The `leq` and `geq`
 arguments for `force_mic` can be used to enforce these. The `essential_agreement`
