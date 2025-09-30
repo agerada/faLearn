@@ -174,7 +174,7 @@ pull_PATRIC_genomes <- function(output_directory,
     # make sure mic/disk is valid
     if (filter == "mic") {
       filtered_data <- filtered_data |>
-        dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
+        dplyr::mutate(measurement = AMR::as.mic(MIC::clean_raw_mic(.data[["measurement"]]))) |>
         dplyr::filter(!is.na(.data[["measurement"]]))
     } else if (filter == "disc") {
       filtered_data <- filtered_data |>
@@ -275,7 +275,7 @@ tidy_patric_meta_data <- function(x,
     dplyr::filter(.data[["laboratory_typing_method"]] %in% c("Agar dilution",
                                                              "Broth dilution",
                                                              "MIC")) |>
-    dplyr::mutate(measurement = AMR::as.mic(clean_raw_mic(.data[["measurement"]]))) |>
+    dplyr::mutate(measurement = AMR::as.mic(MIC::clean_raw_mic(.data[["measurement"]]))) |>
     dplyr::group_by(.data[["genome_id"]], .data[["antibiotic"]]) |>
     dplyr::slice(aggregate_mic[[prefer_more_resistant + 1]](.data[["measurement"]])) |>
     tidyr::pivot_wider(id_cols = c(.data[["genome_id"]], .data[["genome_name"]]),

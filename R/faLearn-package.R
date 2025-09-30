@@ -2,7 +2,7 @@
 "_PACKAGE"
 
 ## usethis namespace: start
-#' @useDynLib MIC, .registration = TRUE
+#' @useDynLib faLearn, .registration = TRUE
 ## usethis namespace: end
 NULL
 

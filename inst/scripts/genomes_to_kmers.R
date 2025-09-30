@@ -45,15 +45,15 @@ dirs <- args$args
 input_dir <- dirs[[1]]
 output_dir <- dirs[[2]]
 
-MIC::genomes_to_kmer_dataset(input_dir = input_dir,
-                                output_dir = output_dir,
-                                cores = opt$cores,
-                                kmers = opt$kmers,
-                                n_genomes = opt$n_genomes,
-                                split = opt$split,
-                                anchor = opt$anchor,
-                                simplify = opt$simplify,
-                                drop_n = opt$drop_n,
-                                integer_index = opt$integer_index,
-                                starting_index = opt$starting_index,
-                                random_shuffle = opt$random_shuffle)
+faLearn::genomes_to_kmer_dataset(input_dir = input_dir,
+                                 output_dir = output_dir,
+                                 cores = opt$cores,
+                                 kmers = opt$kmers,
+                                 n_genomes = opt$n_genomes,
+                                 split = opt$split,
+                                 anchor = opt$anchor,
+                                 simplify = opt$simplify,
+                                 drop_n = opt$drop_n,
+                                 integer_index = opt$integer_index,
+                                 starting_index = opt$starting_index,
+                                 random_shuffle = opt$random_shuffle)

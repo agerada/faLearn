@@ -7,6 +7,5 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(MIC)
 
-test_check("MIC")
+test_check("faLearn")
