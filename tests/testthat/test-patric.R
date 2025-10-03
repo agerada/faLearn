@@ -14,7 +14,7 @@ test_that("local load patric works", {
 })
 
 test_that("load patric from ftp works", {
-  skip_on_cran()
+  skip("Skipping PATRIC ftp test")
   expect_s3_class(load_patric_db(), "patric_db")
 })
 
@@ -29,14 +29,14 @@ test_that("check valid patric_db works",{
 })
 
 test_that("check can save patric db", {
-  skip_on_cran()
+  skip("Skipping PATRIC ftp test")
   tmp_path_db <- tempfile(fileext = ".txt")
   download_patric_db(tmp_path_db)
   expect_s3_class(load_patric_db(tmp_path_db), "patric_db")
 })
 
 test_that("check can download genomes", {
-  skip_on_cran()
+  skip("Skipping PATRIC ftp test")
   tmp_dir <- tempdir()
   unlink(list.files(tmp_dir, full.names = TRUE, pattern = "*.fna"))
   pull_PATRIC_genomes(tmp_dir,
