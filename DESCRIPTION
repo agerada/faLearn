@@ -27,6 +27,7 @@ Imports:
     tidyr,
     future.apply,
     progressr,
+    curl
 Depends: 
     R (>= 4.1.0)
 LazyData: true

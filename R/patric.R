@@ -1,4 +1,4 @@
-patric_ftp_path <- "ftp://ftp.bvbrc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
+patric_ftp_path <- "ftp://ftp.bv-brc.org/RELEASE_NOTES/PATRIC_genomes_AMR.txt"
 
 #' Load PATRIC database
 #'
@@ -48,7 +48,13 @@ or use tidy_patric_meta_data()")
     stop("Path to PATRIC database must be to a .txt file")
   }
   if (startsWith(x, "ftp")) {
-    x <- url(x)
+    # Download the file using download_patric_db to handle FTPS
+    temp_file <- tempfile(fileext = ".txt")
+    success <- download_patric_db(temp_file, ftp_path = x)
+    if (!success) {
+      stop("Failed to download PATRIC database from FTP")
+    }
+    x <- temp_file
   }
   patric_db <- readr::read_delim(x, delim = "\t",
                                  col_types = readr::cols(.default = "c"))
@@ -88,7 +94,7 @@ as_patric_db <- function(x) {
 #' @export
 #' @examples
 #' \donttest{
-#' download_patric_db(tempfile())
+#' download_patric_db(tempfile(fileext = ".txt"))
 #' }
 download_patric_db <- function(save_path,
                            ftp_path = patric_ftp_path,
@@ -100,10 +106,57 @@ download_patric_db <- function(save_path,
     warning("The path provided is not a .txt path, recommend use .txt")
   }
   target_dir <- dirname(save_path)
-  if (!dir.exists(target_dir)) dir.create(target_dir)
+  if (!dir.exists(target_dir)) dir.create(target_dir, recursive = TRUE)
 
-  return_val <- utils::download.file(ftp_path, save_path, mode = "wb")
-  if (return_val != 0) {
+  # Try a FTPS-capable strategy. The server requires SSL/TLS on the control
+  # channel (explicit FTPS / AUTH TLS). Prefer the 'curl' package (libcurl)
+  # with TLS required; fall back to system curl with --ssl-reqd; finally to
+  # default download.file (least reliable for FTPS).
+  download_attempt <- function() {
+    # Normalize legacy hostnames to the current BV-BRC FTP host (certificate matches bv-brc.org)
+    ftp_path_local <- sub("ftp://ftp\\.bvbrc\\.org", "ftp://ftp.bv-brc.org", ftp_path)
+    ftp_path_local <- sub("ftps://ftp\\.bvbrc\\.org", "ftps://ftp.bv-brc.org", ftp_path_local)
+
+    if (startsWith(ftp_path_local, "ftp://") || startsWith(ftp_path_local, "ftps://")) {
+      # Prefer to request the FTP URL and negotiate TLS (explicit FTPS).
+      p <- ftp_path_local
+
+      # 1) Preferred: curl package with TLS required and anonymous login.
+      if (requireNamespace("curl", quietly = TRUE)) {
+        handle <- curl::new_handle()
+        curl::handle_setopt(handle,
+                            use_ssl = 3,   # require TLS for control+data
+                            userpwd = "anonymous:")
+        res <- tryCatch({
+          curl::curl_download(p, save_path, handle = handle, mode = "wb")
+          0
+        }, error = function(e) e, warning = function(w) w)
+        if (is.numeric(res) && res == 0) return(0)
+      }
+
+      # 2) Fallback: system curl via utils::download.file(method = "curl")
+      #    using explicit FTPS requirement and anonymous user.
+      res <- tryCatch({
+        utils::download.file(p, save_path, method = "curl",
+                             extra = "--ssl-reqd -u anonymous:", mode = "wb")
+      }, warning = function(w) w, error = function(e) e)
+      if (is.numeric(res) && res == 0) return(0)
+
+      # 3) Final fallback: try default download.file on the original path
+      return(utils::download.file(ftp_path_local, save_path, mode = "wb"))
+    }
+
+    # Non-FTP(S) URLs: use the default download.file behaviour.
+    return(utils::download.file(ftp_path_local, save_path, mode = "wb"))
+  }
+
+  return_val <- tryCatch(download_attempt(),
+                         error = function(e) {
+                           warning("Error downloading PATRIC file: ", conditionMessage(e))
+                           return(1)
+                         })
+
+  if (is.numeric(return_val) && return_val != 0) {
     warning("Non-zero return value on file download")
     return(FALSE)
   }
@@ -197,7 +250,7 @@ pull_PATRIC_genomes <- function(output_directory,
   }
 
   genome_paths <- glue::glue(
-    "ftp://ftp.patricbrc.org/genomes/{genome_ids}/{genome_ids}.fna"
+    "ftp://ftp.bv-brc.org/genomes/{genome_ids}/{genome_ids}.fna"
   )
 
   if (!dir.exists(output_directory)) dir.create(output_directory)
@@ -211,14 +264,45 @@ pull_PATRIC_genomes <- function(output_directory,
       message(glue::glue("Genome {genome_paths[[i]]} already exists"))
     } else {
       message(glue::glue("Downloading file {i} of {n_downloads}"))
-      tryCatch(utils::download.file(genome_paths[[i]],
-                             destfile = target_path,
-                             mode = "wb"),
-               error = function(e) {
-                 failures <- failures + 1
-                 message(glue::glue("Unable to download {genome_ids[[i]]}"))
-               }
-      )
+      # Normalize legacy hostnames
+      p <- genome_paths[[i]]
+      p_local <- sub("ftp://ftp\\.patricbrc\\.org", "ftp://ftp.bv-brc.org", p)
+      p_local <- sub("ftps://ftp\\.patricbrc\\.org", "ftps://ftp.bv-brc.org", p_local)
+
+      downloaded <- FALSE
+
+      # 1) Preferred: curl package with TLS required and anonymous login.
+      if (requireNamespace("curl", quietly = TRUE)) {
+        handle <- curl::new_handle()
+        curl::handle_setopt(handle, use_ssl = 3, userpwd = "anonymous:")
+        res <- tryCatch({
+          curl::curl_download(p_local, target_path, handle = handle, mode = "wb")
+          TRUE
+        }, error = function(e) FALSE, warning = function(w) FALSE)
+        downloaded <- isTRUE(res)
+      }
+
+      # 2) Fallback: system curl via utils::download.file(method = "curl") with FTPS
+      if (!downloaded) {
+        res2 <- tryCatch({
+          utils::download.file(p_local, destfile = target_path, method = "curl",
+                               extra = "--ssl-reqd -u anonymous:", mode = "wb")
+        }, warning = function(w) w, error = function(e) e)
+        downloaded <- is.numeric(res2) && res2 == 0
+      }
+
+      # 3) Final fallback: default download.file
+      if (!downloaded) {
+        res3 <- tryCatch({
+          utils::download.file(p_local, destfile = target_path, mode = "wb")
+        }, warning = function(w) w, error = function(e) e)
+        downloaded <- is.numeric(res3) && res3 == 0
+      }
+
+      if (!downloaded) {
+        failures <- failures + 1
+        message(glue::glue("Unable to download {genome_ids[[i]]}"))
+      }
     }
     i <- i + 1
   }
