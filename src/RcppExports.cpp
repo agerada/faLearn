@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // reverse_complement
 std::string reverse_complement(std::string dna);
-RcppExport SEXP _MIC_reverse_complement(SEXP dnaSEXP) {
+RcppExport SEXP _faLearn_reverse_complement(SEXP dnaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,7 +23,7 @@ END_RCPP
 }
 // kmers
 List kmers(const CharacterVector& x, int k, bool simplify, bool canonical, bool squeeze, bool anchor, bool clean_up, bool key_as_int, bool starting_index);
-RcppExport SEXP _MIC_kmers(SEXP xSEXP, SEXP kSEXP, SEXP simplifySEXP, SEXP canonicalSEXP, SEXP squeezeSEXP, SEXP anchorSEXP, SEXP clean_upSEXP, SEXP key_as_intSEXP, SEXP starting_indexSEXP) {
+RcppExport SEXP _faLearn_kmers(SEXP xSEXP, SEXP kSEXP, SEXP simplifySEXP, SEXP canonicalSEXP, SEXP squeezeSEXP, SEXP anchorSEXP, SEXP clean_upSEXP, SEXP key_as_intSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -42,7 +42,7 @@ END_RCPP
 }
 // genome_to_libsvm
 bool genome_to_libsvm(const CharacterVector& x, const CharacterVector& target_path, const CharacterVector& label, int k, bool canonical, bool squeeze, bool overwrite);
-RcppExport SEXP _MIC_genome_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP, SEXP squeezeSEXP, SEXP overwriteSEXP) {
+RcppExport SEXP _faLearn_genome_to_libsvm(SEXP xSEXP, SEXP target_pathSEXP, SEXP labelSEXP, SEXP kSEXP, SEXP canonicalSEXP, SEXP squeezeSEXP, SEXP overwriteSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -59,7 +59,7 @@ END_RCPP
 }
 // squeezed_mers
 StringVector squeezed_mers(int k);
-RcppExport SEXP _MIC_squeezed_mers(SEXP kSEXP) {
+RcppExport SEXP _faLearn_squeezed_mers(SEXP kSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -70,7 +70,7 @@ END_RCPP
 }
 // unsqueezed_mers
 StringVector unsqueezed_mers(int k);
-RcppExport SEXP _MIC_unsqueezed_mers(SEXP kSEXP) {
+RcppExport SEXP _faLearn_unsqueezed_mers(SEXP kSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -81,7 +81,7 @@ END_RCPP
 }
 // squeezed_index_to_str
 StringVector squeezed_index_to_str(IntegerVector x, int k, unsigned int starting_index);
-RcppExport SEXP _MIC_squeezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
+RcppExport SEXP _faLearn_squeezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -94,7 +94,7 @@ END_RCPP
 }
 // unsqueezed_index_to_str
 StringVector unsqueezed_index_to_str(IntegerVector x, int k, unsigned int starting_index);
-RcppExport SEXP _MIC_unsqueezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
+RcppExport SEXP _faLearn_unsqueezed_index_to_str(SEXP xSEXP, SEXP kSEXP, SEXP starting_indexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -107,17 +107,17 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_MIC_reverse_complement", (DL_FUNC) &_MIC_reverse_complement, 1},
-    {"_MIC_kmers", (DL_FUNC) &_MIC_kmers, 9},
-    {"_MIC_genome_to_libsvm", (DL_FUNC) &_MIC_genome_to_libsvm, 7},
-    {"_MIC_squeezed_mers", (DL_FUNC) &_MIC_squeezed_mers, 1},
-    {"_MIC_unsqueezed_mers", (DL_FUNC) &_MIC_unsqueezed_mers, 1},
-    {"_MIC_squeezed_index_to_str", (DL_FUNC) &_MIC_squeezed_index_to_str, 3},
-    {"_MIC_unsqueezed_index_to_str", (DL_FUNC) &_MIC_unsqueezed_index_to_str, 3},
+    {"_faLearn_reverse_complement", (DL_FUNC) &_faLearn_reverse_complement, 1},
+    {"_faLearn_kmers", (DL_FUNC) &_faLearn_kmers, 9},
+    {"_faLearn_genome_to_libsvm", (DL_FUNC) &_faLearn_genome_to_libsvm, 7},
+    {"_faLearn_squeezed_mers", (DL_FUNC) &_faLearn_squeezed_mers, 1},
+    {"_faLearn_unsqueezed_mers", (DL_FUNC) &_faLearn_unsqueezed_mers, 1},
+    {"_faLearn_squeezed_index_to_str", (DL_FUNC) &_faLearn_squeezed_index_to_str, 3},
+    {"_faLearn_unsqueezed_index_to_str", (DL_FUNC) &_faLearn_unsqueezed_index_to_str, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_MIC(DllInfo *dll) {
+RcppExport void R_init_faLearn(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

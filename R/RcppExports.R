@@ -9,7 +9,7 @@
 #' @examples
 #' reverse_complement("ATCG")
 reverse_complement <- function(dna) {
-    .Call(`_MIC_reverse_complement`, dna)
+    .Call(`_faLearn_reverse_complement`, dna)
 }
 
 #' Generates genome kmers
@@ -38,7 +38,7 @@ reverse_complement <- function(dna) {
 #' @examples
 #' kmers("ATCGCAGT")
 kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE, anchor = TRUE, clean_up = TRUE, key_as_int = FALSE, starting_index = 1L) {
-    .Call(`_MIC_kmers`, x, k, simplify, canonical, squeeze, anchor, clean_up, key_as_int, starting_index)
+    .Call(`_faLearn_kmers`, x, k, simplify, canonical, squeeze, anchor, clean_up, key_as_int, starting_index)
 }
 
 #' Converts a genome to kmers stored in libsvm format on disk
@@ -75,7 +75,7 @@ kmers <- function(x, k = 3L, simplify = FALSE, canonical = TRUE, squeeze = FALSE
 #' genome_to_libsvm("ATCGCAGT", temp_libsvm_path)
 #' readLines(temp_libsvm_path)
 genome_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 3L, canonical = TRUE, squeeze = FALSE, overwrite = FALSE) {
-    .Call(`_MIC_genome_to_libsvm`, x, target_path, label, k, canonical, squeeze, overwrite)
+    .Call(`_faLearn_genome_to_libsvm`, x, target_path, label, k, canonical, squeeze, overwrite)
 }
 
 #' Generates all permutations of squeezed kmers
@@ -85,7 +85,7 @@ genome_to_libsvm <- function(x, target_path, label = as.character( c("0")), k = 
 #' @examples
 #' squeezed_mers(3)
 squeezed_mers <- function(k = 3L) {
-    .Call(`_MIC_squeezed_mers`, k)
+    .Call(`_faLearn_squeezed_mers`, k)
 }
 
 #' Generates all permutations of unsqueezed kmers
@@ -95,7 +95,7 @@ squeezed_mers <- function(k = 3L) {
 #' @examples
 #' unsqueezed_mers(3)
 unsqueezed_mers <- function(k = 3L) {
-    .Call(`_MIC_unsqueezed_mers`, k)
+    .Call(`_faLearn_unsqueezed_mers`, k)
 }
 
 #' Get str conversion of squeezed kmer using index
@@ -107,7 +107,7 @@ unsqueezed_mers <- function(k = 3L) {
 #' @examples
 #' squeezed_index_to_str(2, k = 3)
 squeezed_index_to_str <- function(x, k, starting_index = 1L) {
-    .Call(`_MIC_squeezed_index_to_str`, x, k, starting_index)
+    .Call(`_faLearn_squeezed_index_to_str`, x, k, starting_index)
 }
 
 #' Get str conversion of unsqueezed kmer using index
@@ -119,6 +119,6 @@ squeezed_index_to_str <- function(x, k, starting_index = 1L) {
 #' @examples
 #' unsqueezed_index_to_str(2, k = 3)
 unsqueezed_index_to_str <- function(x, k, starting_index = 1L) {
-    .Call(`_MIC_unsqueezed_index_to_str`, x, k, starting_index)
+    .Call(`_faLearn_unsqueezed_index_to_str`, x, k, starting_index)
 }
 

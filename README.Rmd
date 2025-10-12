@@ -13,130 +13,134 @@ knitr::opts_chunk$set(
 )
 ```
 
-# MIC
+# faLearn
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/agerada/MIC/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/agerada/MIC/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/agerada/faLearn/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/agerada/faLearn/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 ## Introduction
 
-`MIC` is an R package for the analysis of minimum inhibitory concentration (MIC)
-data. The package was designed to be compatible with the [`AMR`](https://amr-for-r.org/), in
-particular most of the functions in `MIC` are designed to accept and return
-`AMR` objects, such as `mic` and `sir`. The primary functions in `MIC` are
-designed towards validation studies of minimum inhibitory concentrations, however
-it also can (optionally) be used to support the construction of machine learning
-models that predict MIC values from genomic data.
+`faLearn` provides utilities to transform whole-genome sequence data into
+feature representations suitable for machine learning, with a focus on k-mer
+based features and XGBoost-compatible input (libsvm). The package is intended
+for workflows that start from raw or assembled genome FASTA/FNA files and end
+with model-ready data.
 
-## Features
+This repository was migrated from a prior package; MIC-specific functions have
+been removed — the current scope is machine learning with genome sequence data.
 
-- Validation metrics (such as essential agreement) for MIC experiments or
-predictions allow comparison against a gold standard, in line with
-ISO 20776-2:2021.
-- Plots and tables can be generated from validation experiments.
-- Quality control analysis of MIC experiments.
-- Functions to deal with censoring in MIC data.
-- Helper functions to download whole genome sequencing data and susceptibility
-metadata from the [PATRIC](https://www.bv-brc.org/docs/system_documentation/data.html)
-database at BV-BRC.
-- Conversion of whole genome sequence data (assembled .fna files) to k-mer based
-features for machine learning models. 
-- Fast k-mer counting using C++ and `Rcpp`.
-- K-mer features stored in `XGBoost`-compatible `libsvm` format.
+## Main features
+
+- Convert individual genomes (FASTA/FNA) into k-mer counts.
+- Export k-mer counts in XGBoost-friendly libsvm format (one .txt per genome).
+- Fast k-mer counting implemented in C++ (Rcpp) for performance.
+- Helpers to process directories of genomes in parallel (via future.apply) and
+  to split/combine libsvm files for training/validation workflows.
+- Memory-efficient XGBoost cross-validation using [xgb.cv.lowmem](man/xgb.cv.lowmem.Rd).
 
 ## Installation
 
-### CRAN
-
-```r
-install.packages("MIC")
-```
-
-### GitHub
+Install from GitHub (development version):
 
 ```r
 # install.packages("remotes")
-remotes::install_github("agerada/MIC")
+remotes::install_github("agerada/faLearn")
 ```
 
-## Example
+## Quick examples
 
-Load the `MIC` package -- it is highly recommended that `AMR` is also loaded.
-Where possible, `MIC` functions maintain compatibility with `AMR` objects, in
-particular the `mic` and `sir` classes.
+[`libsvm`]("https://xgboost.readthedocs.io/en/stable/tutorials/input_format.html") is the preferred
+input format for XGBoost. Data are represented as a sparce matrix in a special text format.
 
-```{r val-example}
-library(MIC)
-library(AMR)
-```
-
-To compare two `mic` vectors (e.g., one from a gold standard and one from a
-prediction or investigational assay), the `compare_mic` function can be used.
-An example dataset of MIC values is provided with the package, which will be
-used here.
+To convert a directory of genomes (.fna or .fasta) directly to libsvm files (one line per
+genome):
 
 ```{r}
-data("example_mics")
-head(example_mics)
+library(faLearn)
+data("example_genomes", package = "faLearn")
+
+# use the first genome from the packaged example_genomes
+genome_ds <- example_genomes$genomes[[1]]
+tmp_out <- file.path(tempdir(), "kmers")
+unlink(tmp_out, recursive = TRUE)
+dir.create(tmp_out, recursive = TRUE, showWarnings = FALSE)
+target_file <- file.path(normalizePath(tmp_out), paste0(names(example_genomes$genomes)[1], ".txt"))
+future::plan(future::sequential) # or multisession, etc.
+progressr::with_progress({
+  genome_to_libsvm(as.character(genome_ds),
+                   target_file,
+                   k = 5)
+})
+
+list.files(tmp_out)
+readLines(list.files(tmp_out, full.names = TRUE)[1])
 ```
 
-The dataset contains MIC values (in `mic` format) for a "test" assay, and a
-"gold standard" (`gs`) assay. We will use `compare_mic` to compare the MICs and
-validate the "test" assay:
+Count k-mers for a single sequence string using the fast C++ implementation:
 
 ```{r}
-val <- compare_mic(gold_standard = example_mics$gs, test = example_mics$test)
-val
+kmers("ATCGATCGA", k = 3)
 ```
 
-Calling `summary` provides the essential agreement (EA) rates and assay bias:
+Train a small XGBoost model (cross-validated) using k-mer features and
+`xgb.cv.lowmem`. This example simulates a numeric phenotype (e.g., an MIC
+value) and demonstrates how to build a feature matrix from multiple genome
+files using `kmers()` (with `anchor = TRUE` so feature lengths align).
 
 ```{r}
-summary(val)
+data("example_genomes", package = "faLearn")
+
+genomes_list <- example_genomes$genomes
+
+# create kmer libsvm features saved to disk
+tmp_out <- file.path(tempdir(), "kmers_all")
+unlink(tmp_out, recursive = TRUE)
+dir.create(tmp_out, recursive = TRUE, showWarnings = FALSE)
+future::plan(future::sequential) # or multisession, etc.
+progressr::with_progress({
+  # iterate over genomes by index so we can use the genome id (not contig names)
+  for (i in seq_along(genomes_list)) {
+    g <- genomes_list[[i]]
+    gid <- names(genomes_list)[i]
+    target_file <- file.path(normalizePath(tmp_out), paste0(gid, ".txt"))
+    genome_to_libsvm(as.character(g), target_file, k = 5)
+  }
+})
+
+# build k-mer features in memory (used below to create feature matrix)
+features_list <- lapply(genomes_list, function(ds) {
+  kmers(as.character(ds), k = 5, simplify = TRUE, anchor = TRUE, canonical = TRUE)
+})
+
+n_genomes <- length(genomes_list)
+feature_mat <- do.call(rbind, lapply(features_list, as.numeric))
+rownames(feature_mat) <- names(genomes_list)
+
+# labels are stored in the packaged object (log2 scale)
+labels <- example_genomes$labels[seq_len(n_genomes)]
+
+# create xgboost DMatrix and run low-memory CV
+dtrain <- xgboost::xgb.DMatrix(data = feature_mat, label = labels)
+
+cv <- xgb.cv.lowmem(params = list(objective = "reg:squarederror", eval_metric = "rmse", nthread = 1),
+                    data = dtrain,
+                    nrounds = 20,
+                    nfold = 4,
+                    prediction = TRUE,
+                    nthread = 1)
+
+head(cv$evaluation_log)
 ```
 
-If organisms and antimicrobials are provided, `compare_mic` will also calculate
-and return the categorical agreement (CA) rates, in the form of minor, major,
-and very major errors:
+## Notes and next steps
 
-```{r message=FALSE}
-val <- compare_mic(gold_standard = example_mics$gs, test = example_mics$test,
-                   mo = example_mics$mo, ab = example_mics$ab)
-val
-```
+- The package focuses on feature generation. Model training (XGBoost) is
+  expected to be performed outside the package using standard tools.
+- If you previously used MIC functions, consult the function reference to map
+  older workflows to the new `faLearn` utilities.
 
-This time, calling `summary` will provide a breakdown of the categorical
-agreement rates in addition to the EA rates:
+## Contact
 
-```{r}
-summary(val)
-```
-
-Using `as.data.frame` allows us to continue working with the summarised results:
-
-```{r}
-head(as.data.frame(val))
-```
-
-The results of an `mic_validation` can be plotted in a confusion matrix 
-(failed essential agreements are in red):
-
-```{r fig-val-ea, dpi=300}
-plot(val)
-```
-
-The plot can also be faceted by antimicrobial:
-
-```{r dpi=300, fig.height=14}
-plot(val, facet_wrap_ncol = 1)
-```
-
-The `table` function can be used to generate a table of the results:
-
-```{r message=FALSE}
-# generate table for MEM
-mem_dat <- subset(example_mics, ab == "MEM")
-mem_val <- compare_mic(gold_standard = mem_dat$gs, test = mem_dat$test)
-table(mem_val)
-```
+Report issues or feature requests on the GitHub repository: 
+https://github.com/agerada/faLearn

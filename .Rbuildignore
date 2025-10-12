@@ -1,6 +1,6 @@
 ^renv$
 ^renv\.lock$
-^MIC\.Rproj$
+^faLearn\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^tmp/

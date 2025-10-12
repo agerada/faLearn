@@ -1,38 +1,33 @@
-Package: MIC
-Title: Analysis of Antimicrobial Minimum Inhibitory Concentration Data
-Version: 1.1.0
+Package: faLearn
+Title: Machine Learning using Whole Genome Sequence Data
+Version: 0.1
 Authors@R: 
     person("Alessandro", "Gerada", , "alessandro.gerada@liverpool.ac.uk", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6743-4271"))
-Description: Analyse, plot, and tabulate antimicrobial minimum inhibitory concentration (MIC) data.
-    Validate the results of an MIC experiment by comparing observed MIC values to
-    a gold standard assay, in line with standards from the International Organization for
-    Standardization (2021) <https://www.iso.org/standard/79377.html>. Perform MIC prediction from
+Description: This package supports the use of whole genome sequence data as an input to machine
+    learning models to predict an output phenotype. Functions are provided to generate $k$-mer
+    counts in data formats suitable for XGBoost, as well as functions to download and process
     whole genome sequence data stored in the Pathosystems Resource Integration Center (2013)
     <doi:10.1093/nar/gkt1099> database or locally.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 biocViews:
 Imports: 
     AMR,
+    MIC,
     glue,
     readr,
     dplyr,
     Rcpp,
     data.table,
     Biostrings,
-    stringr,
     rlang,
     tidyr,
     future.apply,
     progressr,
-    lemon,
-    ggplot2,
-    forcats,
-    purrr,
-    tibble
+    curl
 Depends: 
     R (>= 4.1.0)
 LazyData: true
@@ -46,5 +41,5 @@ Suggests:
     lifecycle,
     future
 Config/testthat/edition: 3
-URL: https://github.com/agerada/MIC
-BugReports: https://github.com/agerada/MIC/issues
+URL: https://github.com/agerada/faLearn
+BugReports: https://github.com/agerada/faLearn/issues
