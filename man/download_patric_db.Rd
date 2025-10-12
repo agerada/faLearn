@@ -21,6 +21,6 @@ Download PATRIC database
 }
 \examples{
 \donttest{
-download_patric_db(tempfile())
+download_patric_db(tempfile(fileext = ".txt"))
 }
 }
