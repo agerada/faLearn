@@ -453,13 +453,13 @@ No changes made. Use overwrite to force changes.")
   p <- progressr::progressor(along = c(train_libsvm_paths, test_libsvm_paths))
   for (file in train_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
-    write(content, train_target_path, append = TRUE, sep = "/n")
+    write(content, train_target_path, append = TRUE, sep = "\n")
     p(glue::glue("Processing {file}"))
   }
 
   for (file in test_libsvm_paths) {
     content <- readLines(file, warn = FALSE)
-    write(content, test_target_path, append = TRUE, sep = "/n")
+    write(content, test_target_path, append = TRUE, sep = "\n")
     p(glue::glue("Processing {file}"))
   }
 
