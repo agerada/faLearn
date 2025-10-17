@@ -24,15 +24,15 @@ make_random_gene <- function(len = 500, seed = NULL) {
   paste0(sample(c("A","C","G","T"), len, replace = TRUE), collapse = "")
 }
 
-gene1_seq <- make_random_gene(480, seed = 123)
-gene2_seq <- make_random_gene(520, seed = 456)
+gene1_seq <- make_random_gene(20, seed = 123)
+gene2_seq <- make_random_gene(25, seed = 456)
 
 # choose genomes that receive each gene
-gene1_idx <- sample(seq_len(n_genomes), size = 30)
-gene2_idx <- sample(seq_len(n_genomes), size = 25)
+gene1_idx <- sample(seq_len(n_genomes), size = 0.15 * n_genomes)
+gene2_idx <- sample(seq_len(n_genomes), size = 0.10 * n_genomes)
 
 ## Ensure some overlap
-both_idx <- sample(gene1_idx, size = 10)
+both_idx <- sample(gene1_idx, size = 0.025 * n_genomes)
 gene2_idx <- unique(c(gene2_idx, both_idx))
 
 genomes <- vector("list", n_genomes)
@@ -92,9 +92,9 @@ for (i in seq_len(n_genomes)) {
   } else if (g1 && !g2) {
     m <- 4 + rnorm(1, sd = 0.2)
   } else if (!g1 && g2) {
-    m <- 8 + rnorm(1, sd = 0.3)
+    m <- 32 + rnorm(1, sd = 0.5)
   } else {
-    m <- 16 + rnorm(1, sd = 0.5)
+    m <- 128 + rnorm(1, sd = 1)
   }
   mic[i] <- round(pmax(m, 0.03), digits = 3)
 }

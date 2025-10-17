@@ -12,20 +12,19 @@
 
 `faLearn` provides utilities to transform whole-genome sequence data
 into feature representations suitable for machine learning, with a focus
-on k-mer based features and XGBoost-compatible input (libsvm). The
+on $k$-mer based features and XGBoost-compatible input (libsvm). The
 package is intended for workflows that start from raw or assembled
 genome FASTA/FNA files and end with model-ready data.
 
-This repository was migrated from a prior package; MIC-specific
-functions have been removed — the current scope is machine learning with
-genome sequence data.
+This repository is an offshot of the [`MIC`](github.com/agerada/MIC)
+package. For MIC analysis functions, please refer to that package.
 
 ## Main features
 
-- Convert individual genomes (FASTA/FNA) into k-mer counts.
-- Export k-mer counts in XGBoost-friendly libsvm format (one .txt per
+- Convert individual genomes (FASTA/FNA) into $k$-mer counts.
+- Export $k$-mer counts in XGBoost-friendly libsvm format (one .txt per
   genome).
-- Fast k-mer counting implemented in C++ (Rcpp) for performance.
+- Fast $k$-mer counting implemented in C++ (Rcpp) for performance.
 - Helpers to process directories of genomes in parallel (via
   future.apply) and to split/combine libsvm files for
   training/validation workflows.
@@ -52,38 +51,25 @@ files (one line per genome):
 
 ``` r
 library(faLearn)
-# make 5 tiny genomes for the example
-tmp_dir <- tempfile("genomes")
-dir.create(tmp_dir)
-set.seed(1)
-for (i in 1:5) {
-  seq <- paste0(sample(c("A","C","G","T"), 200, replace = TRUE), collapse = "")
-  writeLines(c(paste0(">gen", i), seq), file.path(tmp_dir, paste0(i, ".fna")))
-}
+data("example_genomes", package = "faLearn")
 
+# use the first genome from the packaged example_genomes
+genome_ds <- example_genomes$genomes[[1]]
 tmp_out <- file.path(tempdir(), "kmers")
 unlink(tmp_out, recursive = TRUE)
-
-future::plan(future::sequential) # or multisession, etc.
-
-# convert the first genome file to libsvm using the single-file helper
-genome_path <- list.files(tmp_dir, pattern = "\\.fna$", full.names = TRUE)[1]
 dir.create(tmp_out, recursive = TRUE, showWarnings = FALSE)
-target_file <- file.path(normalizePath(tmp_out), paste0(tools::file_path_sans_ext(basename(genome_path)), ".txt"))
+target_file <- file.path(normalizePath(tmp_out), paste0(names(example_genomes$genomes)[1], ".txt"))
+future::plan(future::sequential) # or multisession, etc.
 progressr::with_progress({
-  genome_to_libsvm(as.character(Biostrings::readDNAStringSet(genome_path)),
+  genome_to_libsvm(as.character(genome_ds),
                    target_file,
                    k = 5)
 })
+#> Loading required namespace: Biostrings
 #> [1] TRUE
-
-list.files(tmp_out)
-#> [1] "1.txt"
-readLines(list.files(tmp_out, full.names = TRUE)[1])
-#> [1] "0 2:1 5:2 6:1 7:1 10:1 15:1 17:1 19:1 22:3 27:1 37:1 42:1 43:2 53:1 56:1 57:1 58:1 66:1 74:1 75:2 78:1 83:2 84:1 85:1 86:3 88:1 89:1 90:1 95:1 107:2 113:1 129:2 133:1 134:1 141:1 143:1 145:1 148:1 155:2 157:1 159:1 162:1 166:2 167:1 170:2 174:1 182:1 198:2 201:2 202:1 205:3 206:1 212:3 213:1 221:2 222:1 226:1 230:1 231:1 235:1 238:1 242:1 243:1 245:1 253:1 262:1 267:1 277:1 278:1 283:1 290:1 295:1 297:1 298:2 299:1 306:1 307:2 309:2 313:1 315:1 317:1 326:1 329:1 331:3 333:1 339:1 341:1 342:1 343:3 345:1 354:1 355:1 358:1 361:2 362:2 381:1 382:1 390:1 393:1 407:1 413:1 417:2 418:1 422:2 429:1 430:1 441:1 457:2 458:2 461:1 466:1 481:1 489:1 494:2 497:1 502:1 506:1 509:1 513:1 514:2 518:1 526:1 533:1 541:1 545:1 562:1 570:2 573:1 598:1 602:1 613:1 614:1 617:1 633:1 641:1 642:1 645:1 653:1 662:2 677:1 685:1 689:1 693:1 697:1 722:1 733:1 745:1 765:1 789:1 801:1 805:1 825:2 885:1 901:1 929:1 961:3 "
 ```
 
-Count k-mers for a single sequence string using the fast C++
+Count $k$-mers for a single sequence string using the fast C++
 implementation:
 
 ``` r
@@ -101,14 +87,83 @@ kmers("ATCGATCGA", k = 3)
 #> [39] 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ```
 
-## Notes and next steps
+Train a small XGBoost model (cross-validated) using $k$-mer features and
+`xgb.cv.lowmem`. This example simulates a numeric phenotype (e.g., an
+MIC value in this case) and demonstrates how to build a feature matrix
+from multiple genome files.
 
-- The package focuses on feature generation. Model training (XGBoost) is
-  expected to be performed outside the package using standard tools.
-- If you previously used MIC functions, consult the function reference
-  to map older workflows to the new `faLearn` utilities.
+``` r
+data("example_genomes", package = "faLearn")
+
+genomes_list <- example_genomes$genomes
+
+# create kmer libsvm features saved to disk
+tmp_out <- file.path(tempdir(), "kmers_all")
+unlink(tmp_out, recursive = TRUE)
+dir.create(tmp_out, recursive = TRUE, showWarnings = FALSE)
+future::plan(future::sequential) # or multisession, etc.
+progressr::handlers("txtprogressbar")
+progressr::with_progress({
+  # iterate over genomes by index so we can use the genome id (not contig names)
+  for (i in seq_along(genomes_list)) {
+    g <- genomes_list[[i]]
+    gid <- names(genomes_list)[i]
+    target_file <- file.path(normalizePath(tmp_out), paste0(gid, ".txt"))
+    genome_to_libsvm(as.character(g), target_file, k = 8)
+  }
+})
+
+# combine all libsvm files into a single train file (no test split)
+# disable shuffling to preserve filename order and align labels
+combined_paths <- split_and_combine_files(tmp_out, split = 1.0, overwrite = TRUE, shuffle = FALSE)
+train_file <- combined_paths[["train"]]
+
+# align labels to the order used in the combined train file
+train_names <- combined_paths[["train_names"]]
+# train_names are basenames with .txt; strip to get genome IDs
+train_ids <- tools::file_path_sans_ext(train_names)
+all_ids <- names(example_genomes$genomes)
+id_index <- match(train_ids, all_ids)
+labels <- example_genomes$labels[id_index]
+
+# load combined libsvm file into xgboost DMatrix
+dtrain <- xgboost::xgb.DMatrix(data = train_file, label = labels)
+
+# run low-memory CV
+cv <- xgb.cv.lowmem(data = dtrain,
+                    params = list(eta = 0.05),
+                    nrounds = 2000,
+                    nfold = 3,
+                    verbose = 0,
+                    early_stopping_rounds = 5,
+                    prediction = TRUE)
+
+head(cv$evaluation_log)
+#>   iter train_rmse_mean train_rmse_std test_rmse_mean test_rmse_std
+#> 1    1        2.204962     0.08800962       2.224972     0.1681292
+#> 2    2        2.109566     0.08404007       2.157574     0.1638208
+#> 3    3        2.018659     0.08030880       2.097276     0.1612254
+#> 4    4        1.932029     0.07677881       2.041901     0.1609919
+#> 5    5        1.849487     0.07344387       1.992596     0.1607482
+#> 6    6        1.770839     0.07031310       1.947898     0.1625535
+
+# compare predictions to true labels
+preds <- cv$pred
+plot(labels, preds)
+```
+
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
+
+``` r
+cor(preds, labels)
+#> [1] 0.6772776
+```
 
 ## Contact
 
 Report issues or feature requests on the GitHub repository:
 <https://github.com/agerada/faLearn>
+
+## Author
+
+[Alessandro Gerada](mailto:alessandro.gerada@liverpool.ac.uk)

@@ -22,19 +22,19 @@ knitr::opts_chunk$set(
 ## Introduction
 
 `faLearn` provides utilities to transform whole-genome sequence data into
-feature representations suitable for machine learning, with a focus on k-mer
+feature representations suitable for machine learning, with a focus on $k$-mer
 based features and XGBoost-compatible input (libsvm). The package is intended
 for workflows that start from raw or assembled genome FASTA/FNA files and end
 with model-ready data.
 
-This repository was migrated from a prior package; MIC-specific functions have
-been removed — the current scope is machine learning with genome sequence data.
+This repository is an offshot of the [`MIC`](github.com/agerada/MIC) package.
+For MIC analysis functions, please refer to that package.
 
 ## Main features
 
-- Convert individual genomes (FASTA/FNA) into k-mer counts.
-- Export k-mer counts in XGBoost-friendly libsvm format (one .txt per genome).
-- Fast k-mer counting implemented in C++ (Rcpp) for performance.
+- Convert individual genomes (FASTA/FNA) into $k$-mer counts.
+- Export $k$-mer counts in XGBoost-friendly libsvm format (one .txt per genome).
+- Fast $k$-mer counting implemented in C++ (Rcpp) for performance.
 - Helpers to process directories of genomes in parallel (via future.apply) and
   to split/combine libsvm files for training/validation workflows.
 - Memory-efficient XGBoost cross-validation using [xgb.cv.lowmem](man/xgb.cv.lowmem.Rd).
@@ -72,21 +72,18 @@ progressr::with_progress({
                    target_file,
                    k = 5)
 })
-
-list.files(tmp_out)
-readLines(list.files(tmp_out, full.names = TRUE)[1])
 ```
 
-Count k-mers for a single sequence string using the fast C++ implementation:
+Count $k$-mers for a single sequence string using the fast C++ implementation:
 
 ```{r}
 kmers("ATCGATCGA", k = 3)
 ```
 
-Train a small XGBoost model (cross-validated) using k-mer features and
+Train a small XGBoost model (cross-validated) using $k$-mer features and
 `xgb.cv.lowmem`. This example simulates a numeric phenotype (e.g., an MIC
-value) and demonstrates how to build a feature matrix from multiple genome
-files using `kmers()` (with `anchor = TRUE` so feature lengths align).
+value in this case) and demonstrates how to build a feature matrix
+from multiple genome files.
 
 ```{r}
 data("example_genomes", package = "faLearn")
@@ -98,49 +95,55 @@ tmp_out <- file.path(tempdir(), "kmers_all")
 unlink(tmp_out, recursive = TRUE)
 dir.create(tmp_out, recursive = TRUE, showWarnings = FALSE)
 future::plan(future::sequential) # or multisession, etc.
+progressr::handlers("txtprogressbar")
 progressr::with_progress({
   # iterate over genomes by index so we can use the genome id (not contig names)
   for (i in seq_along(genomes_list)) {
     g <- genomes_list[[i]]
     gid <- names(genomes_list)[i]
     target_file <- file.path(normalizePath(tmp_out), paste0(gid, ".txt"))
-    genome_to_libsvm(as.character(g), target_file, k = 5)
+    genome_to_libsvm(as.character(g), target_file, k = 8)
   }
 })
 
-# build k-mer features in memory (used below to create feature matrix)
-features_list <- lapply(genomes_list, function(ds) {
-  kmers(as.character(ds), k = 5, simplify = TRUE, anchor = TRUE, canonical = TRUE)
-})
+# combine all libsvm files into a single train file (no test split)
+# disable shuffling to preserve filename order and align labels
+combined_paths <- split_and_combine_files(tmp_out, split = 1.0, overwrite = TRUE, shuffle = FALSE)
+train_file <- combined_paths[["train"]]
 
-n_genomes <- length(genomes_list)
-feature_mat <- do.call(rbind, lapply(features_list, as.numeric))
-rownames(feature_mat) <- names(genomes_list)
+# align labels to the order used in the combined train file
+train_names <- combined_paths[["train_names"]]
+# train_names are basenames with .txt; strip to get genome IDs
+train_ids <- tools::file_path_sans_ext(train_names)
+all_ids <- names(example_genomes$genomes)
+id_index <- match(train_ids, all_ids)
+labels <- example_genomes$labels[id_index]
 
-# labels are stored in the packaged object (log2 scale)
-labels <- example_genomes$labels[seq_len(n_genomes)]
+# load combined libsvm file into xgboost DMatrix
+dtrain <- xgboost::xgb.DMatrix(data = train_file, label = labels)
 
-# create xgboost DMatrix and run low-memory CV
-dtrain <- xgboost::xgb.DMatrix(data = feature_mat, label = labels)
-
-cv <- xgb.cv.lowmem(params = list(objective = "reg:squarederror", eval_metric = "rmse", nthread = 1),
-                    data = dtrain,
-                    nrounds = 20,
-                    nfold = 4,
-                    prediction = TRUE,
-                    nthread = 1)
+# run low-memory CV
+cv <- xgb.cv.lowmem(data = dtrain,
+                    params = list(eta = 0.05),
+                    nrounds = 2000,
+                    nfold = 3,
+                    verbose = 0,
+                    early_stopping_rounds = 5,
+                    prediction = TRUE)
 
 head(cv$evaluation_log)
+
+# compare predictions to true labels
+preds <- cv$pred
+plot(labels, preds)
+cor(preds, labels)
 ```
-
-## Notes and next steps
-
-- The package focuses on feature generation. Model training (XGBoost) is
-  expected to be performed outside the package using standard tools.
-- If you previously used MIC functions, consult the function reference to map
-  older workflows to the new `faLearn` utilities.
 
 ## Contact
 
 Report issues or feature requests on the GitHub repository: 
 https://github.com/agerada/faLearn
+
+## Author
+
+[Alessandro Gerada](mailto:alessandro.gerada@liverpool.ac.uk)
